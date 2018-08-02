@@ -119,12 +119,6 @@ py_library(
         ],
         "//conditions:default": [],
     }) + select({
-       "//tensorflow:with_igfs_support_windows_override": [],
-       "//tensorflow:with_igfs_support": [
-           "//tensorflow/contrib/igfs",
-       ],
-       "//conditions:default": [],
-    }) + select({
         "//tensorflow:with_aws_support_windows_override": [],
         "//tensorflow:with_aws_support": [
             "//tensorflow/contrib/kinesis",
