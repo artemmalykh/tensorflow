@@ -173,7 +173,7 @@ cc_library(
     }) + select({
         "//tensorflow:with_igfs_support_windows_override": [],
         "//tensorflow:with_igfs_support": [
-            "//tensorflow/contrib/igfs:dataset_ops_op_lib",
+            "//tensorflow/contrib/igfs:cc_library",
         ],
         "//conditions:default": [],
     }) + select({
@@ -217,5 +217,11 @@ cc_library(
             "//tensorflow/contrib/kinesis:dataset_ops_op_lib",
         ],
         "//conditions:default": [],
-    }),
+    }) + select({
+         "//tensorflow:with_igfs_support_windows_override": [],
+         "//tensorflow:with_igfs_support": [
+             "//tensorflow/contrib/igfs:cc_library",
+         ],
+         "//conditions:default": [],
+    })
 )
