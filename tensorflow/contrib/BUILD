@@ -124,13 +124,7 @@ py_library(
             "//tensorflow/contrib/kinesis",
         ],
         "//conditions:default": [],
-    }) + select({
-        "//tensorflow:with_igfs_support_windows_override": [],
-        "//tensorflow:with_igfs_support": [
-            "//tensorflow/contrib/igfs:ignite_file_system",
-        ],
-        "//conditions:default": [],
-    })+ if_not_windows_cuda([
+    }) + if_not_windows_cuda([
         "//tensorflow/contrib/fused_conv:fused_conv_py",  # unresolved symbols, need to export more symbols
     ]) + if_not_windows([
         "//tensorflow/contrib/bigtable",  # depends on bigtable
@@ -173,7 +167,7 @@ cc_library(
     }) + select({
         "//tensorflow:with_igfs_support_windows_override": [],
         "//tensorflow:with_igfs_support": [
-            "//tensorflow/contrib/igfs:cc_library",
+            "//tensorflow/contrib/igfs:ignite_file_system",
         ],
         "//conditions:default": [],
     }) + select({
@@ -220,7 +214,7 @@ cc_library(
     }) + select({
          "//tensorflow:with_igfs_support_windows_override": [],
          "//tensorflow:with_igfs_support": [
-             "//tensorflow/contrib/igfs:cc_library",
+             "//tensorflow/contrib/igfs:ignite_file_system",
          ],
          "//conditions:default": [],
     })
