@@ -124,7 +124,13 @@ py_library(
             "//tensorflow/contrib/kinesis",
         ],
         "//conditions:default": [],
-    }) + if_not_windows_cuda([
+    }) + select({
+        "//tensorflow:with_igfs_support_windows_override": [],
+        "//tensorflow:with_igfs_support": [
+            "//tensorflow/contrib/igfs:cc_library",
+        ],
+        "//conditions:default": [],
+    })+ if_not_windows_cuda([
         "//tensorflow/contrib/fused_conv:fused_conv_py",  # unresolved symbols, need to export more symbols
     ]) + if_not_windows([
         "//tensorflow/contrib/bigtable",  # depends on bigtable
