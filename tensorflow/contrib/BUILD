@@ -127,7 +127,7 @@ py_library(
     }) + select({
         "//tensorflow:with_igfs_support_windows_override": [],
         "//tensorflow:with_igfs_support": [
-            "//tensorflow/contrib/igfs:cc_library",
+            "//tensorflow/contrib/igfs:ignite_file_system",
         ],
         "//conditions:default": [],
     })+ if_not_windows_cuda([
