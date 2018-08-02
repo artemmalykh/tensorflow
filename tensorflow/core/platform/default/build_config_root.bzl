@@ -45,6 +45,14 @@ def tf_additional_mpi_deps():
       "//conditions:default": [],
   })
 
+  def tf_additional_igfs_deps():
+    return select({
+        str(Label("//tensorflow:with_igfs_support")): [
+            str(Label("//tensorflow/contrib/igfs:ignite_file_system")),
+        ],
+        "//conditions:default": [],
+    })
+
 def tf_additional_gdr_deps():
   return select({
       str(Label("//tensorflow:with_gdr_support")): [
