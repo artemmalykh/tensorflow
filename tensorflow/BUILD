@@ -235,6 +235,12 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+     name = "with_igfs_support",
+     define_values = {"with_igfs_support": "true"},
+     visibility = ["//visibility:public"],
+)
+
 # Crosses between platforms and file system libraries not supported on those
 # platforms due to limitations in nested select() statements.
 config_setting(
@@ -264,6 +270,13 @@ config_setting(
     values = {"cpu": "x64_windows"},
     visibility = ["//visibility:public"],
 )
+
+config_setting(
+     name = "with_igfs_support_windows_override",
+     define_values = {"with_igfs_support": "true"},
+     values = {"cpu": "x64_windows"},
+     visibility = ["//visibility:public"],
+ )
 
 config_setting(
     name = "with_cuda_support_windows_override",

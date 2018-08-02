@@ -1498,6 +1498,8 @@ def main():
                 'with_aws_support', True, 'aws')
   set_build_var(environ_cp, 'TF_NEED_KAFKA', 'Apache Kafka Platform',
                 'with_kafka_support', True, 'kafka')
+  set_build_var(environ_cp, 'TF_NEED_IGFS', 'Apache Ignite File System',
+                'with_igfs_support', True, 'igfs')
   set_build_var(environ_cp, 'TF_ENABLE_XLA', 'XLA JIT', 'with_xla_support',
                 False, 'xla')
   set_build_var(environ_cp, 'TF_NEED_GDR', 'GDR', 'with_gdr_support',
