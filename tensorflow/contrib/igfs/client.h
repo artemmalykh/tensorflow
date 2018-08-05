@@ -30,7 +30,7 @@ limitations under the License.
 
 using namespace std;
 
-namespace igfs {
+namespace tensorflow {
 class Network : public std::exception {
  public:
   Network(const string& s) {
@@ -70,7 +70,7 @@ class IgfsClient {
 
   void writeBlock(long streamId, const char *data, int len);
 
-  ReadBlockControlResponse readBlock(long streamId, int len);
+  ReadBlockControlResponse readBlock(long streamId, long pos, int len, char* dst);
 
   ControlResponse<CloseResponse> close(long streamId);
 

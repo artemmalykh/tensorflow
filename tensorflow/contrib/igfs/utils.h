@@ -89,8 +89,10 @@ class Reader {
            ((0xff & buf[7]));
   }
 
-  void readBytes(char* dest, int len) {
+  streamsize readBytes(char* dest, int len) {
     is->read(dest, len);
+
+    return is->gcount();
   }
 
   // 2 bytes

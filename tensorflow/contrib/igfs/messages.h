@@ -467,6 +467,8 @@ class ReadBlockRequest : public StreamControlRequest {
     StreamControlRequest::write(w);
 
     w.writeLong(pos);
+// TODO: check
+    w.writeInt(len);
   }
 
   int commandId() override {
@@ -479,34 +481,28 @@ class ReadBlockRequest : public StreamControlRequest {
 
 class ReadBlockResponse {
  public:
-  void read(Reader &r, int length) {
-    data = vector<char>(length);
-
-    r.readBytes(data.data(), length);
+  void read(Reader &r, int length, char* dst) {
+    r.readBytes(dst, length);
   }
 
   void read(Reader &r) {
     // No-op
   }
 
- public:
-  const vector<char> &getData() {
-    return data;
-  }
-
  private:
-  vector<char> data;
   int length;
 };
 
 class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
  public:
+  ReadBlockControlResponse::ReadBlockControlResponse(char* dst) : dst(dst) {}
+
   void read(Reader &r) override {
     Response::read(r);
 
     if (isOk()) {
       res = ReadBlockResponse();
-      res.read(r, len);
+      res.read(r, len, dst);
     }
   }
 
@@ -514,6 +510,8 @@ class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
     return len;
   }
 
+ private:
+  char* dst;
 };
 
 class WriteBlockRequest : public StreamControlRequest {
@@ -543,6 +541,36 @@ class WriteBlockResponse {
   void read(Reader& r) {
 
   }
+};
+
+class RenameRequest : public PathControlRequest {
+ public:
+  RenameRequest(const std::string& path, const std::string& destPath) : PathControlRequest("", path,
+                                                                                           destPath, false,
+                                                                                           false,
+                                                                                           std::map<std::string, std::string>()) {}
+
+ private:
+  int commandId() override {
+    return 6;
+  }
+};
+
+class RenameResponse {
+ public:
+  void read(Reader &r) {
+    ex = r.readBool();
+  }
+
+  RenameResponse() {
+
+  }
+
+  bool successful() {
+    return ex;
+  }
+ private:
+  bool ex;
 };
 
 #endif
