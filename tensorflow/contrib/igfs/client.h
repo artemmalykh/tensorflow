@@ -74,7 +74,7 @@ class IgfsClient {
 
   ControlResponse<CloseResponse> close(long streamId);
 
-  ControlResponse<RenameResponse> rename(string &source, string &dest);
+  ControlResponse<RenameResponse> rename(const string &source, const string &dest);
 
  private:
   int port;

@@ -17,6 +17,7 @@ limitations under the License.
 #include <string>
 #include <tensorflow/core/lib/core/errors.h>
 #include <tensorflow/core/platform/file_system.h>
+#include <tensorflow/core/platform/windows/integral_types.h>
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -33,6 +34,14 @@ limitations under the License.
 
 namespace tensorflow {
 
+unique_ptr<IgfsClient> createClient() {
+  string host = "localhost";
+  int port = 10500;
+  string fsName = "myFileSystem";
+
+  return unique_ptr<IgfsClient>(new IgfsClient(port, host, fsName));
+}
+
 IgniteFileSystem::IgniteFileSystem() {}
 
 IgniteFileSystem::~IgniteFileSystem() {}
@@ -47,7 +56,7 @@ class IGFSRandomAccessFile : public RandomAccessFile {
  public:
   IGFSRandomAccessFile(const string& fName, long resourceId, unique_ptr<IgfsClient>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
 
-  ~HDFSRandomAccessFile() override {
+  ~IGFSRandomAccessFile() override {
     client_->close(resourceId_);
   }
 
@@ -71,7 +80,7 @@ class IGFSRandomAccessFile : public RandomAccessFile {
   }
 
  private:
-  unique_ptr<IgfsClient> client_;
+  unique_ptr<IgfsClient>& client_;
   long resourceId_;
   string fName_;
 };
@@ -83,7 +92,7 @@ Status IgniteFileSystem::NewRandomAccessFile(
   int port = 10500;
   string fsName = "myFileSystem";
 
-  unique_ptr<IgfsClient> client = new IgfsClient(port, host, fsName);
+  unique_ptr<IgfsClient> client(new IgfsClient(port, host, fsName));
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
@@ -105,7 +114,7 @@ class IGFSWritableFile : public WritableFile {
  public:
   IGFSWritableFile(const string& fName, long resourceId, unique_ptr<IgfsClient>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
 
-  ~HDFSWritableFile() override {
+  ~IGFSWritableFile() override {
     if (resourceId_ >= 0) {
       client_->close(resourceId_);
     }
@@ -121,7 +130,7 @@ class IGFSWritableFile : public WritableFile {
     Status result;
 
     if (!client_->close(resourceId_).isOk()) {
-      result = IOError(fName_, errno);
+      //result = IOError(fName_, errno);
     }
 
     resourceId_ = -1;
@@ -140,13 +149,13 @@ class IGFSWritableFile : public WritableFile {
   }
 
  private:
-  unique_ptr<IgfsClient> client_;
+  unique_ptr<IgfsClient>& client_;
   long resourceId_;
   string fName_;
 };
 
 Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<WritableFile> *result) {
-  unique_ptr<IgfsClient> client = createClient(fname);
+  unique_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -183,60 +192,58 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
   return Status::OK();
 }
 
-IgfsClient* createClient(const string& fname) {
-  string host = "localhost";
-  int port = 10500;
-  string fsName = "myFileSystem";
-
-  return new IgfsClient(port, host, fsName);
-}
-
 Status IgniteFileSystem::NewAppendableFile(
     const string &fname, std::unique_ptr<WritableFile> *result) {
-  unique_ptr<IgfsClient> client = createClient(fname);
+//  unique_ptr<IgfsClient> client = createClient();
+//
+//  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+//
+//  if (hResponse.isOk()) {
+//    // Check if file exists, and if yes delete it.
+//    ControlResponse<ExistsResponse> existsResponse = client->exists("", fname);
+//
+//    if (existsResponse.isOk()) {
+//      if (existsResponse.getRes().exists()) {
+//        ControlResponse<DeleteResponse> delResponse = client->del(fname, false);
+//
+//        if (!delResponse.isOk()) {
+//          // TODO: return error with appropriate code.
+//          return Status(error::INTERNAL, "Error trying to delete existing file.");
+//        }
+//      }
+//    } else {
+//      // TODO: return error with appropriate code.
+//      return Status(error::INTERNAL, "Error trying to know if file exists.");
+//    }
+//
+//    ControlResponse<Optional<OpenAppendResponse>> openAppendResp = client->openAppend("", fname);
+//
+//    if (openAppendResp.isOk()) {
+//      long resourceId = openAppendResp.getRes().get().getStreamId();
+//
+//      result->reset(new IGFSWritableFile(fname, resourceId, client));
+//    } else {
+//      // TODO: return error with appropriate code.
+//      return Status(error::INTERNAL, "Error");
+//    }
+//  }
+//
+//  return Status::OK();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
-
-  if (hResponse.isOk()) {
-    // Check if file exists, and if yes delete it.
-    ControlResponse<ExistsResponse> existsResponse = client->exists("", fname);
-
-    if (existsResponse.isOk()) {
-      if (existsResponse.getRes().exists()) {
-        ControlResponse<DeleteResponse> delResponse = client->del(fname, false);
-
-        if (!delResponse.isOk()) {
-          // TODO: return error with appropriate code.
-          return Status(error::INTERNAL, "Error trying to delete existing file.");
-        }
-      }
-    } else {
-      // TODO: return error with appropriate code.
-      return Status(error::INTERNAL, "Error trying to know if file exists.");
-    }
-
-    ControlResponse<Optional<OpenAppendResponse>> openAppendResp = client->openAppend("", fname);
-
-    if (openAppendResp.isOk()) {
-      long resourceId = openAppendResp.getRes().get().getStreamId();
-
-      result->reset(new IGFSWritableFile(fname, resourceId, client));
-    } else {
-      // TODO: return error with appropriate code.
-      return Status(error::INTERNAL, "Error");
-    }
-  }
-
+  //TODO:
   return Status::OK();
-}
-
-Status HadoopFileSystem::NewReadOnlyMemoryRegionFromFile(
-    const string &fname, std::unique_ptr<ReadOnlyMemoryRegion> *result) {
   return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
 }
 
+Status IgniteFileSystem::NewReadOnlyMemoryRegionFromFile(
+    const string &fname, std::unique_ptr<ReadOnlyMemoryRegion> *result) {
+  //TODO:
+  return Status::OK();
+//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
+}
+
 Status IgniteFileSystem::FileExists(const string &fname) {
-  unique_ptr<IgfsClient> client = createClient(fname);
+  unique_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -249,7 +256,9 @@ Status IgniteFileSystem::FileExists(const string &fname) {
       if (existsResponse.getRes().exists()) {
         return Status::OK();
       }
-      return errors::NotFound(fname, " not found.");
+//      return errors::NotFound(fname, " not found.");
+      // TODO: return error with appropriate code.
+      return Status(error::INTERNAL, "Error");
     } else {
       // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error");
@@ -259,136 +268,148 @@ Status IgniteFileSystem::FileExists(const string &fname) {
 
 Status IgniteFileSystem::GetChildren(const string &dir,
                                      std::vector<string> *result) {
-  result->clear();
-  hdfsFS fs = nullptr;
-  TF_RETURN_IF_ERROR(Connect(dir, &fs));
+  unique_ptr<IgfsClient> client = createClient();
 
-  // hdfsListDirectory returns nullptr if the directory is empty. Do a separate
-  // check to verify the directory exists first.
-  FileStatistics stat;
-  TF_RETURN_IF_ERROR(Stat(dir, &stat));
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
-  int entries = 0;
-  hdfsFileInfo *info =
-      hdfs_->hdfsListDirectory(fs, TranslateName(dir).c_str(), &entries);
-  if (info == nullptr) {
-    if (stat.is_directory) {
-      // Assume it's an empty directory.
-      return Status::OK();
-    }
-    return IOError(dir, errno);
+  if (hResponse.isOk()) {
+    client->listFiles(dir);
+  } else {
+    // TODO: return error with appropriate code.
+    return Status(error::INTERNAL, "Error");
   }
-  for (int i = 0; i < entries; i++) {
-    result->push_back(io::Basename(info[i].mName).ToString());
-  }
-  hdfs_->hdfsFreeFileInfo(info, entries);
+
   return Status::OK();
 }
 
-Status HadoopFileSystem::GetMatchingPaths(const string &pattern,
+Status IgniteFileSystem::GetMatchingPaths(const string &pattern,
                                           std::vector<string> *results) {
-  return internal::GetMatchingPaths(this, Env::Default(), pattern, results);
+  //TODO:
+  return Status::OK();
+//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
 }
 
-Status HadoopFileSystem::DeleteFile(const string &fname) {
-  hdfsFS fs = nullptr;
-  TF_RETURN_IF_ERROR(Connect(fname, &fs));
+Status IgniteFileSystem::DeleteFile(const string &fname) {
+  unique_ptr<IgfsClient> client = createClient();
 
-  if (hdfs_->hdfsDelete(fs, TranslateName(fname).c_str(),
-      /*recursive=*/0) != 0) {
-    return IOError(fname, errno);
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+
+  if (hResponse.isOk()) {
+    client->del(fname, false);
+  } else {
+    // TODO: return error with appropriate code.
+    return Status(error::INTERNAL, "Error");
   }
+
   return Status::OK();
 }
 
-Status HadoopFileSystem::CreateDir(const string &dir) {
-  hdfsFS fs = nullptr;
-  TF_RETURN_IF_ERROR(Connect(dir, &fs));
+Status IgniteFileSystem::CreateDir(const string &dir) {
+  unique_ptr<IgfsClient> client = createClient();
 
-  if (hdfs_->hdfsCreateDirectory(fs, TranslateName(dir).c_str()) != 0) {
-    return IOError(dir, errno);
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+
+  if (hResponse.isOk()) {
+    client->mkdir(dir);
+  } else {
+    // TODO: return error with appropriate code.
+    return Status(error::INTERNAL, "Error");
   }
+
   return Status::OK();
 }
 
-Status HadoopFileSystem::DeleteDir(const string &dir) {
-  hdfsFS fs = nullptr;
-  TF_RETURN_IF_ERROR(Connect(dir, &fs));
+Status IgniteFileSystem::DeleteDir(const string &dir) {
+  unique_ptr<IgfsClient> client = createClient();
 
-  // Count the number of entries in the directory, and only delete if it's
-  // non-empty. This is consistent with the interface, but note that there's
-  // a race condition where a file may be added after this check, in which
-  // case the directory will still be deleted.
-  int entries = 0;
-  hdfsFileInfo *info =
-      hdfs_->hdfsListDirectory(fs, TranslateName(dir).c_str(), &entries);
-  if (info != nullptr) {
-    hdfs_->hdfsFreeFileInfo(info, entries);
-  }
-  // Due to HDFS bug HDFS-8407, we can't distinguish between an error and empty
-  // folder, expscially for Kerberos enable setup, EAGAIN is quite common when
-  // the call is actually successful. Check again by Stat.
-  if (info == nullptr && errno != 0) {
-    FileStatistics stat;
-    TF_RETURN_IF_ERROR(Stat(dir, &stat));
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+
+  if (hResponse.isOk()) {
+    ControlResponse<ListFilesResponse> listFilesResponse = client->listFiles(dir);
+
+    // Count the number of entries in the directory, and only delete if it's
+    // non-empty. This is consistent with the interface, but note that there's
+    // a race condition where a file may be added after this check, in which
+    // case the directory will still be deleted.
+    if (!listFilesResponse.isOk()) {
+      return Status(error::INTERNAL, "Error");
+    } else {
+      if (!listFilesResponse.getRes().getEntries().empty()) {
+//        return errors::FailedPrecondition("Cannot delete a non-empty directory.");
+        // TODO: return error with appropriate code.
+        return Status(error::INTERNAL, "Error");
+      } else {
+        client->del(dir, true);
+      }
+    }
+
+  } else {
+    // TODO: return error with appropriate code.
+    return Status(error::INTERNAL, "Error");
   }
 
-  if (entries > 0) {
-    return errors::FailedPrecondition("Cannot delete a non-empty directory.");
-  }
-  if (hdfs_->hdfsDelete(fs, TranslateName(dir).c_str(),
-      /*recursive=*/1) != 0) {
-    return IOError(dir, errno);
-  }
   return Status::OK();
 }
 
-Status HadoopFileSystem::GetFileSize(const string &fname, uint64 *size) {
-  hdfsFS fs = nullptr;
-  TF_RETURN_IF_ERROR(Connect(fname, &fs));
+Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
+  //TODO:
+  return Status::OK();
+//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
+}
 
-  hdfsFileInfo *info = hdfs_->hdfsGetPathInfo(fs, TranslateName(fname).c_str());
-  if (info == nullptr) {
-    return IOError(fname, errno);
+Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
+  unique_ptr<IgfsClient> client = createClient();
+
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+
+  if (hResponse.isOk()) {
+    client->rename(src, target);
+  } else {
+    // TODO: return error with appropriate code.
+    return Status(error::INTERNAL, "Error");
   }
-  *size = static_cast<uint64>(info->mSize);
-  hdfs_->hdfsFreeFileInfo(info, 1);
+
   return Status::OK();
 }
 
-Status HadoopFileSystem::RenameFile(const string &src, const string &target) {
-  hdfsFS fs = nullptr;
-  TF_RETURN_IF_ERROR(Connect(src, &fs));
+Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
+  //TODO:
+  return Status::OK();
+//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
+}
 
-  if (hdfs_->hdfsExists(fs, TranslateName(target).c_str()) == 0 &&
-      hdfs_->hdfsDelete(fs, TranslateName(target).c_str(),
-          /*recursive=*/0) != 0) {
-    return IOError(target, errno);
-  }
+/////////////
 
-  if (hdfs_->hdfsRename(fs, TranslateName(src).c_str(),
-                        TranslateName(target).c_str()) != 0) {
-    return IOError(src, errno);
-  }
+string FileSystem::TranslateName(const string& name) const {
+  return "";
+}
+
+Status FileSystem::IsDirectory(const string& name) {
   return Status::OK();
 }
 
-Status HadoopFileSystem::Stat(const string &fname, FileStatistics *stats) {
-  hdfsFS fs = nullptr;
-  TF_RETURN_IF_ERROR(Connect(fname, &fs));
+void FileSystem::FlushCaches() {}
 
-  hdfsFileInfo *info = hdfs_->hdfsGetPathInfo(fs, TranslateName(fname).c_str());
-  if (info == nullptr) {
-    return IOError(fname, errno);
-  }
-  stats->length = static_cast<int64>(info->mSize);
-  stats->mtime_nsec = static_cast<int64>(info->mLastMod) * 1e9;
-  stats->is_directory = info->mKind == kObjectKindDirectory;
-  hdfs_->hdfsFreeFileInfo(info, 1);
+bool FileSystem::FilesExist(const std::vector<string>& files,
+                            std::vector<Status>* status) {
+  return false;
+}
+
+Status FileSystem::DeleteRecursively(const string& dirname,
+                                     int64* undeleted_files,
+                                     int64* undeleted_dirs) {
   return Status::OK();
 }
 
-REGISTER_FILE_SYSTEM("hdfs", HadoopFileSystem);
-REGISTER_FILE_SYSTEM("viewfs", HadoopFileSystem);
+Status FileSystem::RecursivelyCreateDir(const string& dirname) {
+  return Status::OK();
+}
+
+Status FileSystem::CopyFile(const string& src, const string& target) {
+  return Status::OK();
+}
+
+REGISTER_FILE_SYSTEM("hdfs", IgniteFileSystem);
+REGISTER_FILE_SYSTEM("viewfs", IgniteFileSystem);
 
 }  // namespace tensorflow

@@ -145,7 +145,7 @@ ControlResponse<CloseResponse> IgfsClient::close(long streamId) {
   return resp;
 }
 
-ControlResponse<RenameResponse> IgfsClient::rename(std::string &source, std::string &dest) {
+ControlResponse<RenameResponse> IgfsClient::rename(const std::string &source, const std::string &dest) {
   RenameRequest req(source, dest);
   w->flush();
 

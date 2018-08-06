@@ -24,6 +24,8 @@ limitations under the License.
 
 using namespace std;
 
+namespace tensorflow {
+
 class Request {
  public:
   virtual int commandId() = 0;
@@ -131,7 +133,7 @@ class PathControlRequest : public Request {
   /** The user name this control request is made on behalf of. */
   string userName;
 
-  void writePath(Writer& w, string path) {
+  void writePath(Writer &w, string path) {
     w.writeBoolean(!path.empty());
     if (!path.empty())
       w.writeString(path);
@@ -161,25 +163,37 @@ class StreamControlRequest : public Request {
   int len;
 };
 
-template<class R> class ControlResponse : public Response {
+template<class R>
+class ControlResponse : public Response {
  public:
-  ControlResponse();
+  ControlResponse() {
 
-  void read(Reader &r);
+  }
+
+  void read(Reader &r) {
+    Response::read(r);
+
+    if (isOk()) {
+      res = R();
+      res.read(r);
+    }
+  }
 
  public:
-  R getRes();
+  R getRes() {
+    return res;
+  }
 
  protected:
   R res;
 };
 
 class DeleteRequest : public PathControlRequest {
-public:
-    DeleteRequest(const string &path, bool flag);
+ public:
+  DeleteRequest(const string &path, bool flag);
 
-private:
-    int commandId();
+ private:
+  int commandId();
 };
 
 class DeleteResponse {
@@ -195,11 +209,11 @@ class DeleteResponse {
 };
 
 class ExistsRequest : public PathControlRequest {
-public:
-    ExistsRequest(const string &userName, const string &path, const string &destPath, bool flag,
-                  bool collocate, const map<string, string> &props);
+ public:
+  ExistsRequest(const string &userName, const string &path, const string &destPath, bool flag,
+                bool collocate, const map<string, string> &props);
 
-    int commandId();
+  int commandId();
 };
 
 class ExistsResponse {
@@ -272,7 +286,7 @@ class ListRequest : public PathControlRequest {
 
 class ListResponse {
  public:
-  void read(Reader& r) {
+  void read(Reader &r) {
     int len = r.readInt();
 
     entries = vector<IgfsFile>();
@@ -310,11 +324,11 @@ class OpenCreateRequest : PathControlRequest {
  public:
   OpenCreateRequest(const string &userName, const string &path, const string &destPath, bool flag,
                     bool collocate, const map<string, string> &props) : PathControlRequest(userName,
-                                                                                                          path,
-                                                                                                          destPath,
-                                                                                                          flag,
-                                                                                                          collocate,
-                                                                                                          props) {}
+                                                                                           path,
+                                                                                           destPath,
+                                                                                           flag,
+                                                                                           collocate,
+                                                                                           props) {}
 
   void write(Writer &w) override {
     PathControlRequest::write(w);
@@ -357,11 +371,11 @@ class OpenReadRequest : PathControlRequest {
  public:
   OpenReadRequest(const string &userName, const string &path, const string &destPath, bool flag,
                   bool collocate, const map<string, string> &props) : PathControlRequest(userName,
-                                                                                                        path,
-                                                                                                        destPath,
-                                                                                                        flag,
-                                                                                                        collocate,
-                                                                                                        props) {}
+                                                                                         path,
+                                                                                         destPath,
+                                                                                         flag,
+                                                                                         collocate,
+                                                                                         props) {}
 
   void write(Writer &w) {
     PathControlRequest::write(w);
@@ -427,6 +441,7 @@ class MakeDirectoriesResponse {
   bool successful() {
     return succ;
   }
+
  private:
   bool succ;
 };
@@ -448,13 +463,14 @@ class CloseResponse {
 
   }
 
-  void read(Reader& r) {
+  void read(Reader &r) {
     successful = r.readBool();
   }
 
   bool isSuccessful() {
     return successful;
   }
+
  private:
   bool successful;
 };
@@ -481,7 +497,7 @@ class ReadBlockRequest : public StreamControlRequest {
 
 class ReadBlockResponse {
  public:
-  void read(Reader &r, int length, char* dst) {
+  void read(Reader &r, int length, char *dst) {
     r.readBytes(dst, length);
   }
 
@@ -495,7 +511,7 @@ class ReadBlockResponse {
 
 class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
  public:
-  ReadBlockControlResponse::ReadBlockControlResponse(char* dst) : dst(dst) {}
+  ReadBlockControlResponse(char *dst) : dst(dst) {}
 
   void read(Reader &r) override {
     Response::read(r);
@@ -511,14 +527,14 @@ class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
   }
 
  private:
-  char* dst;
+  char *dst;
 };
 
 class WriteBlockRequest : public StreamControlRequest {
  public:
   WriteBlockRequest(long streamId, const char *data, int len) : StreamControlRequest(streamId, len), data(data) {}
 
-  void write(Writer& w) {
+  void write(Writer &w) {
     StreamControlRequest::write(w);
 
     w.writeBytes(data, len);
@@ -529,7 +545,7 @@ class WriteBlockRequest : public StreamControlRequest {
   }
 
  private:
-  const char* data;
+  const char *data;
 };
 
 class WriteBlockResponse {
@@ -538,14 +554,14 @@ class WriteBlockResponse {
 
   }
 
-  void read(Reader& r) {
+  void read(Reader &r) {
 
   }
 };
 
 class RenameRequest : public PathControlRequest {
  public:
-  RenameRequest(const std::string& path, const std::string& destPath) : PathControlRequest("", path,
+  RenameRequest(const std::string &path, const std::string &destPath) : PathControlRequest("", path,
                                                                                            destPath, false,
                                                                                            false,
                                                                                            std::map<std::string, std::string>()) {}
@@ -569,8 +585,11 @@ class RenameResponse {
   bool successful() {
     return ex;
   }
+
  private:
   bool ex;
 };
+
+}
 
 #endif

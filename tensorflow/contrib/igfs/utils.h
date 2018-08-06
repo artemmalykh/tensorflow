@@ -19,8 +19,62 @@ limitations under the License.
 #include <iostream>
 #include <map>
 #include <memory>
+#include <streambuf>
+#include <sys/socket.h>
 
 using namespace std;
+
+class Socketbuf : public std::streambuf {
+  typedef std::streambuf::traits_type traits_type;
+  int d_fd;
+  static const int bufSize = 2048; // Hardcode for now
+  char d_buffer[bufSize];
+
+  int overflow(int c) override {
+    if (c == traits_type::eof()) {
+      return traits_type::eof();
+    }
+
+    int syncRes = sync();
+    return syncRes == 0 ? static_cast<char_type>(c) : traits_type::eof();
+  }
+
+  int sync() override {
+    ssize_t n = send(d_fd, d_buffer, pptr() - pbase(), 0);
+    pbump(-n);
+
+    std::cout << "sync " << n << std::endl;
+    for (int i = 0; i < n; i++) {
+      std::cout << d_buffer[i] << '\t';
+    }
+    std::cout << std::endl;
+
+    return n >= 0 ? 0 : -1;
+  }
+
+  int underflow() override {
+    if (gptr() == egptr()) {
+      std::streamsize size = ::recv(d_fd, d_buffer, sizeof(d_buffer), 0);
+
+      std::cout << "underflow " << size << std::endl;
+      for (int i = 0; i < size; i++) {
+        std::cout << d_buffer[i] << '\t';
+      }
+      std::cout << std::endl;
+
+      setg(d_buffer, d_buffer, d_buffer + size);
+    }
+    return gptr() == egptr()
+           ? traits_type::eof()
+           : traits_type::to_int_type(*this->gptr());
+  }
+
+ public:
+  Socketbuf(int fd) : d_fd(fd) {
+    setp(d_buffer, d_buffer + bufSize);
+    setg(d_buffer, d_buffer, d_buffer);
+  }
+};
 
 class Reader {
  public:
@@ -269,7 +323,7 @@ class Writer {
   }
 
   void writeStringMap(map<string, string> map) {
-    map<string, string>::size_type size = map.size();
+    std::map<string, string>::size_type size = map.size();
     writeSize(size);
 
     for (auto const &x : map) {
