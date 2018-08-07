@@ -15,6 +15,24 @@ limitations under the License.
 
 #include "ignite_file_system.h"
 
+using namespace tensorflow;
+
 int main(int argc, char* argv[]) {
-  
+  IgniteFileSystem igfs = IgniteFileSystem();
+
+  auto * wf = new unique_ptr<WritableFile>();
+
+  const Status status = igfs.NewWritableFile("/test", wf);
+
+  WritableFile *wFile = wf->get();
+  const string str = "KjmsGns!";
+  wFile->Append(StringPiece(str));
+//  wFile->Close();
+
+//  auto * rf = new unique_ptr<RandomAccessFile>();
+//  igfs.NewRandomAccessFile("/test", rf);
+//  RandomAccessFile *rFile = rf->get();
+//  unique_ptr<StringPiece> res(new StringPiece());
+//  char scratch[str.size()] = {};
+//  rFile->Read(0, str.size(), res.get(), scratch);
 }

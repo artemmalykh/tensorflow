@@ -33,6 +33,7 @@ IgfsClient::IgfsClient(int port, std::string host, std::string fsName) :
 
 ControlResponse<Optional<HandshakeResponse>> IgfsClient::handshake() {
   HandshakeRequest req("myFileSystem", "");
+  req.write(*w);
   w->flush();
 
   ControlResponse<Optional<HandshakeResponse>> resp = {};
@@ -46,6 +47,7 @@ ControlResponse<Optional<HandshakeResponse>> IgfsClient::handshake() {
 
 ControlResponse<ListFilesResponse> IgfsClient::listFiles(std::string path) {
   ListFilesRequest req(path);
+  req.write(*w);
   w->flush();
 
   ControlResponse<ListFilesResponse> resp = {};
@@ -57,6 +59,7 @@ ControlResponse<ListFilesResponse> IgfsClient::listFiles(std::string path) {
 
 ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string userName, std::string path) {
   OpenCreateRequest req(userName, path, path, false, false, std::map<std::string, std::string>());
+  req.write(*w);
   w->flush();
 
   ControlResponse<OpenCreateResponse> resp = {};
@@ -72,8 +75,27 @@ ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string userName,
   return resp;
 }
 
+ControlResponse<OpenAppendResponse> IgfsClient::openAppend(std::string userName, std::string path) {
+  OpenAppendRequest req(userName, path);
+  req.write(*w);
+  w->flush();
+
+  ControlResponse<OpenAppendResponse> resp = {};
+  resp.read(*r);
+  r->reset();
+
+  if (resp.isOk()) {
+    std::cout << "response stream id: " << resp.getRes().getStreamId() << std::endl;
+  } else {
+    std::cout << "response error code: " << resp.getErrorCode() << resp.getError() << std::endl;
+  }
+
+  return resp;
+}
+
 ControlResponse<Optional<OpenReadResponse>> IgfsClient::openRead(std::string userName, std::string path) {
   OpenReadRequest req(userName, path, path, false, false, std::map<std::string, std::string>());
+  req.write(*w);
   w->flush();
 
   ControlResponse<Optional<OpenReadResponse>> resp = {};
@@ -85,6 +107,7 @@ ControlResponse<Optional<OpenReadResponse>> IgfsClient::openRead(std::string use
 
 ControlResponse<ExistsResponse> IgfsClient::exists(std::string userName, std::string path) {
   ExistsRequest req(userName, path, path, false, false, std::map<std::string, std::string>());
+  req.write(*w);
   w->flush();
 
   ControlResponse<ExistsResponse> resp = {};
@@ -96,6 +119,7 @@ ControlResponse<ExistsResponse> IgfsClient::exists(std::string userName, std::st
 
 ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(std::string path) {
   MakeDirectoriesRequest req(path);
+  req.write(*w);
   w->flush();
 
   ControlResponse<MakeDirectoriesResponse> resp = {};
@@ -107,6 +131,7 @@ ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(std::string path) {
 
 ControlResponse<DeleteResponse> IgfsClient::del(std::string path, bool recursive) {
   DeleteRequest req(path, recursive);
+  req.write(*w);
   w->flush();
 
   ControlResponse<DeleteResponse> resp = {};
@@ -118,6 +143,7 @@ ControlResponse<DeleteResponse> IgfsClient::del(std::string path, bool recursive
 
 void IgfsClient::writeBlock(long streamId, const char *data, int len) {
   WriteBlockRequest req(streamId, data, len);
+  req.write(*w);
   w->flush();
 }
 

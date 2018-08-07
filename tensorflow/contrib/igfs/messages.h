@@ -367,6 +367,38 @@ class OpenCreateResponse {
   long streamId;
 };
 
+class OpenAppendRequest : PathControlRequest {
+ public:
+  OpenAppendRequest(const string &userName, const string &path) :
+      PathControlRequest(userName, path, "", false, true, map<string, string>()) {}
+
+  void write(Writer &w) override {
+    PathControlRequest::write(w);
+  }
+
+  int commandId() override {
+    return 14;
+  }
+};
+
+class OpenAppendResponse {
+ public:
+  void read(Reader &r) {
+    streamId = r.readLong();
+  }
+
+  OpenAppendResponse() {
+
+  }
+
+  long getStreamId() {
+    return streamId;
+  }
+
+ private:
+  long streamId;
+};
+
 class OpenReadRequest : PathControlRequest {
  public:
   OpenReadRequest(const string &userName, const string &path, const string &destPath, bool flag,

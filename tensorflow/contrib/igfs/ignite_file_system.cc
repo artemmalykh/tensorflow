@@ -177,10 +177,10 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
       return Status(error::INTERNAL, "Error trying to know if file exists.");
     }
     
-    ControlResponse<Optional<OpenReadResponse>> openCreateResp = client->openRead("", fname);
+    ControlResponse<OpenCreateResponse> openCreateResp = client->openCreate("", fname);
 
     if (openCreateResp.isOk()) {
-      long resourceId = openCreateResp.getRes().get().getStreamId();
+      long resourceId = openCreateResp.getRes().getStreamId();
 
       result->reset(new IGFSWritableFile(fname, resourceId, client));
     } else {
@@ -194,45 +194,41 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
 
 Status IgniteFileSystem::NewAppendableFile(
     const string &fname, std::unique_ptr<WritableFile> *result) {
-//  unique_ptr<IgfsClient> client = createClient();
-//
-//  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
-//
-//  if (hResponse.isOk()) {
-//    // Check if file exists, and if yes delete it.
-//    ControlResponse<ExistsResponse> existsResponse = client->exists("", fname);
-//
-//    if (existsResponse.isOk()) {
-//      if (existsResponse.getRes().exists()) {
-//        ControlResponse<DeleteResponse> delResponse = client->del(fname, false);
-//
-//        if (!delResponse.isOk()) {
-//          // TODO: return error with appropriate code.
-//          return Status(error::INTERNAL, "Error trying to delete existing file.");
-//        }
-//      }
-//    } else {
-//      // TODO: return error with appropriate code.
-//      return Status(error::INTERNAL, "Error trying to know if file exists.");
-//    }
-//
-//    ControlResponse<Optional<OpenAppendResponse>> openAppendResp = client->openAppend("", fname);
-//
-//    if (openAppendResp.isOk()) {
-//      long resourceId = openAppendResp.getRes().get().getStreamId();
-//
-//      result->reset(new IGFSWritableFile(fname, resourceId, client));
-//    } else {
-//      // TODO: return error with appropriate code.
-//      return Status(error::INTERNAL, "Error");
-//    }
-//  }
-//
-//  return Status::OK();
+  unique_ptr<IgfsClient> client = createClient();
 
-  //TODO:
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+
+  if (hResponse.isOk()) {
+    // Check if file exists, and if yes delete it.
+    ControlResponse<ExistsResponse> existsResponse = client->exists("", fname);
+
+    if (existsResponse.isOk()) {
+      if (existsResponse.getRes().exists()) {
+        ControlResponse<DeleteResponse> delResponse = client->del(fname, false);
+
+        if (!delResponse.isOk()) {
+          // TODO: return error with appropriate code.
+          return Status(error::INTERNAL, "Error trying to delete existing file.");
+        }
+      }
+    } else {
+      // TODO: return error with appropriate code.
+      return Status(error::INTERNAL, "Error trying to know if file exists.");
+    }
+
+    ControlResponse<OpenAppendResponse> openAppendResp = client->openAppend("", fname);
+
+    if (openAppendResp.isOk()) {
+      long resourceId = openAppendResp.getRes().getStreamId();
+
+      result->reset(new IGFSWritableFile(fname, resourceId, client));
+    } else {
+      // TODO: return error with appropriate code.
+      return Status(error::INTERNAL, "Error");
+    }
+  }
+
   return Status::OK();
-  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
 }
 
 Status IgniteFileSystem::NewReadOnlyMemoryRegionFromFile(
