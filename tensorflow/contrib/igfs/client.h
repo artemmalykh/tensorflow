@@ -19,7 +19,7 @@ limitations under the License.
 #include <string>
 #include <cstdio>
 #include <sys/socket.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <netinet/in.h>
 #include <cstring>
 #include <arpa/inet.h>

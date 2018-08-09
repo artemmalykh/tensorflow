@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef TF_IGFS_UTILS_H
 #define TF_IGFS_UTILS_H
 
+#include <string>
 #include <iostream>
 #include <map>
 #include <memory>

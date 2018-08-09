@@ -34,12 +34,12 @@ limitations under the License.
 
 namespace tensorflow {
 
-unique_ptr<IgfsClient> createClient() {
+shared_ptr<IgfsClient> createClient() {
   string host = "localhost";
   int port = 10500;
   string fsName = "myFileSystem";
 
-  return unique_ptr<IgfsClient>(new IgfsClient(port, host, fsName));
+  return shared_ptr<IgfsClient>(new IgfsClient(port, host, fsName));
 }
 
 IgniteFileSystem::IgniteFileSystem() {}
@@ -54,7 +54,7 @@ string IgniteFileSystem::TranslateName(const string &name) const {
 
 class IGFSRandomAccessFile : public RandomAccessFile {
  public:
-  IGFSRandomAccessFile(const string& fName, long resourceId, unique_ptr<IgfsClient>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
+  IGFSRandomAccessFile(const string& fName, long resourceId, shared_ptr<IgfsClient>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
 
   ~IGFSRandomAccessFile() override {
     client_->close(resourceId_);
@@ -64,8 +64,6 @@ class IGFSRandomAccessFile : public RandomAccessFile {
               char *scratch) const override {
     Status s;
     char *dst = scratch;
-    bool eof_retried = false;
-
     // TODO: check how many bytes were read.
     ReadBlockControlResponse response = client_->readBlock(resourceId_, offset, n, dst);
 
@@ -73,26 +71,22 @@ class IGFSRandomAccessFile : public RandomAccessFile {
       // TODO: Make error return right status;
       s = Status(error::INTERNAL, "Error");
     } else {
-      *result = StringPiece(scratch, dst - scratch);
+      streamsize sz = response.getRes().getSuccessfulyRead();
+      *result = StringPiece(scratch, sz);
     }
 
     return s;
   }
 
  private:
-  unique_ptr<IgfsClient>& client_;
+  shared_ptr<IgfsClient> client_;
   long resourceId_;
   string fName_;
 };
 
 Status IgniteFileSystem::NewRandomAccessFile(
     const string &fname, std::unique_ptr<RandomAccessFile> *result) {
-  // TODO: Get actual host and port;
-  string host = "localhost";
-  int port = 10500;
-  string fsName = "myFileSystem";
-
-  unique_ptr<IgfsClient> client(new IgfsClient(port, host, fsName));
+  shared_ptr<IgfsClient> client = createClient();
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
@@ -100,7 +94,8 @@ Status IgniteFileSystem::NewRandomAccessFile(
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().get().getStreamId();
 
-      result->reset(new IGFSRandomAccessFile(fname, resourceId, client));
+      const string path = TranslateName(fname);
+      result->reset(new IGFSRandomAccessFile(path, resourceId, client));
     } else {
       // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error");
@@ -112,7 +107,7 @@ Status IgniteFileSystem::NewRandomAccessFile(
 
 class IGFSWritableFile : public WritableFile {
  public:
-  IGFSWritableFile(const string& fName, long resourceId, unique_ptr<IgfsClient>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
+  IGFSWritableFile(const string& fName, long resourceId, shared_ptr<IgfsClient> client) : fName_(fName), resourceId_(resourceId), client_(client) {}
 
   ~IGFSWritableFile() override {
     if (resourceId_ >= 0) {
@@ -149,13 +144,13 @@ class IGFSWritableFile : public WritableFile {
   }
 
  private:
-  unique_ptr<IgfsClient>& client_;
+  shared_ptr<IgfsClient> client_;
   long resourceId_;
   string fName_;
 };
 
 Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<WritableFile> *result) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -182,7 +177,8 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().getStreamId();
 
-      result->reset(new IGFSWritableFile(fname, resourceId, client));
+      const string path = TranslateName(fname);
+      result->reset(new IGFSWritableFile(path, resourceId, client));
     } else {
       // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error");
@@ -194,7 +190,7 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
 
 Status IgniteFileSystem::NewAppendableFile(
     const string &fname, std::unique_ptr<WritableFile> *result) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -221,7 +217,7 @@ Status IgniteFileSystem::NewAppendableFile(
     if (openAppendResp.isOk()) {
       long resourceId = openAppendResp.getRes().getStreamId();
 
-      result->reset(new IGFSWritableFile(fname, resourceId, client));
+      result->reset(new IGFSWritableFile(TranslateName(fname), resourceId, client));
     } else {
       // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error");
@@ -239,7 +235,7 @@ Status IgniteFileSystem::NewReadOnlyMemoryRegionFromFile(
 }
 
 Status IgniteFileSystem::FileExists(const string &fname) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -264,7 +260,7 @@ Status IgniteFileSystem::FileExists(const string &fname) {
 
 Status IgniteFileSystem::GetChildren(const string &dir,
                                      std::vector<string> *result) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -286,7 +282,7 @@ Status IgniteFileSystem::GetMatchingPaths(const string &pattern,
 }
 
 Status IgniteFileSystem::DeleteFile(const string &fname) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -301,7 +297,7 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
 }
 
 Status IgniteFileSystem::CreateDir(const string &dir) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -316,7 +312,7 @@ Status IgniteFileSystem::CreateDir(const string &dir) {
 }
 
 Status IgniteFileSystem::DeleteDir(const string &dir) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
@@ -354,7 +350,7 @@ Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
 }
 
 Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
-  unique_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 

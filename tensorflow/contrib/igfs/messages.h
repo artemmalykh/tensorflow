@@ -515,8 +515,6 @@ class ReadBlockRequest : public StreamControlRequest {
     StreamControlRequest::write(w);
 
     w.writeLong(pos);
-// TODO: check
-    w.writeInt(len);
   }
 
   int commandId() override {
@@ -530,15 +528,20 @@ class ReadBlockRequest : public StreamControlRequest {
 class ReadBlockResponse {
  public:
   void read(Reader &r, int length, char *dst) {
-    r.readBytes(dst, length);
+    successfulyRead = r.readBytes(dst, length);
   }
 
   void read(Reader &r) {
     // No-op
   }
 
+  streamsize getSuccessfulyRead() {
+    return successfulyRead;
+  }
+
  private:
   int length;
+  streamsize successfulyRead;
 };
 
 class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
