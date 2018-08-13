@@ -26,6 +26,67 @@ using namespace std;
 
 namespace tensorflow {
 
+class IgnitePath {
+ public:
+  void read(Reader& r) {
+    path_ = r.readNullableString();
+  }
+
+  string getPath() {
+    return path_;
+  }
+ private:
+  string path_;
+};
+
+class IgfsFile {
+ public:
+  IgfsFile() {};
+
+  void read(Reader &r) {
+    path_ = Optional<IgnitePath>();
+    path_.read(r);
+
+    blockSize_ = r.readInt();
+    grpBlockSize_ = r.readLong();
+    len_ = r.readLong();
+    props_ = r.readStringMap();
+    accessTime_ = r.readLong();
+    modificationTime_ = r.readLong();
+    flags_ = r.readChar();
+  }
+
+  long getFileSize() {
+    return len_;
+  }
+
+  long getModificationTime() {
+    return modificationTime_;
+  }
+
+  char getFlags() {
+    return flags_;
+  }
+
+ private:
+  Optional<IgnitePath> path_;
+  int blockSize_;
+  long grpBlockSize_;
+  long len_;
+  map<string, string> props_;
+  long accessTime_;
+  long modificationTime_;
+  char flags_;
+//  IgfsUtils.writePath(rawWriter, path);
+//        rawWriter.writeInt(blockSize);
+//        rawWriter.writeLong(grpBlockSize);
+//        rawWriter.writeLong(len);
+//        IgfsUtils.writeProperties(rawWriter, props);
+//        rawWriter.writeLong(accessTime);
+//        rawWriter.writeLong(modificationTime);
+//        rawWriter.writeByte(flags);
+};
+
 class Request {
  public:
   virtual int commandId() = 0;
@@ -284,26 +345,26 @@ class ListRequest : public PathControlRequest {
   }
 };
 
-class ListResponse {
+template<class T> class ListResponse {
  public:
   void read(Reader &r) {
     int len = r.readInt();
 
-    entries = vector<IgfsFile>();
+    entries = vector<T>();
 
     for (int i = 0; i < len; i++) {
-      IgfsFile f = {};
+      T f = {};
       f.read(r);
       entries.push_back(f);
     }
   }
 
-  vector<IgfsFile> getEntries() {
+  vector<T> getEntries() {
     return entries;
   }
 
  protected:
-  vector<IgfsFile> entries;
+  vector<T> entries;
 };
 
 class ListFilesRequest : public ListRequest {
@@ -316,7 +377,21 @@ class ListFilesRequest : public ListRequest {
   }
 };
 
-class ListFilesResponse : public ListResponse {
+class ListFilesResponse : public ListResponse<IgfsFile> {
+
+};
+
+class ListPathsRequest : public ListRequest {
+ public:
+  ListPathsRequest(const string &path) : ListRequest(path) {}
+
+ private:
+  int commandId() override {
+    return 9;
+  }
+};
+
+class ListPathsResponse : public ListResponse<IgnitePath> {
 
 };
 
@@ -448,6 +523,35 @@ class OpenReadResponse {
  private:
   long streamId;
   long len;
+};
+
+class InfoRequest : public PathControlRequest {
+ public:
+  InfoRequest(string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
+
+ private:
+  int commandId() override {
+    return 3;
+  }
+};
+
+class InfoResponse {
+ public:
+  void read(Reader &r) {
+    fileInfo = IgfsFile();
+    fileInfo.read(r);
+  }
+
+  InfoResponse() {
+
+  }
+
+  IgfsFile getFileInfo() {
+    return fileInfo;
+  }
+
+ private:
+  IgfsFile fileInfo;
 };
 
 class MakeDirectoriesRequest : public PathControlRequest {

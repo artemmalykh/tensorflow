@@ -18,64 +18,64 @@ limitations under the License.
 
 #include "utils.h"
 
-class IgfsFile {
- public:
-  IgfsFile() {
-
-  }
-
-  void read(Reader& r) {
-    path = r.readNullableString();
-    blockSize = r.readInt();
-    groupBlockSize = r.readLong();
-    len = r.readLong();
-    props = r.readStringMap();
-    accessTime = r.readLong();
-    modificationTime = r.readLong();
-    flags = r.readChar();
-  }
-
-  const std::string &getPath() const {
-    return path;
-  }
-
-  int getBlockSize() const {
-    return blockSize;
-  }
-
-  long getGroupBlockSize() const {
-    return groupBlockSize;
-  }
-
-  const std::map<std::string, std::string> &getProps() const {
-    return props;
-  }
-
-  long getAccessTime() const {
-    return accessTime;
-  }
-
-  long getModificationTime() const {
-    return modificationTime;
-  }
-
-  char getFlags() const {
-    return flags;
-  }
-
-  long getLength() const {
-    return len;
-  }
-
- private:
-  std::string path;
-  int blockSize;
-  long groupBlockSize;
-  std::map<std::string, std::string> props;
-  unsigned long accessTime;
-  unsigned long modificationTime;
-  char flags;
-  long len;
-};
+//class IgfsFile {
+// public:
+//  IgfsFile() {
+//
+//  }
+//
+//  void read(Reader& r) {
+//    path = r.readNullableString();
+//    blockSize = r.readInt();
+//    groupBlockSize = r.readLong();
+//    len = r.readLong();
+//    props = r.readStringMap();
+//    accessTime = r.readLong();
+//    modificationTime = r.readLong();
+//    flags = r.readChar();
+//  }
+//
+//  const std::string &getPath() const {
+//    return path;
+//  }
+//
+//  int getBlockSize() const {
+//    return blockSize;
+//  }
+//
+//  long getGroupBlockSize() const {
+//    return groupBlockSize;
+//  }
+//
+//  const std::map<std::string, std::string> &getProps() const {
+//    return props;
+//  }
+//
+//  long getAccessTime() const {
+//    return accessTime;
+//  }
+//
+//  long getModificationTime() const {
+//    return modificationTime;
+//  }
+//
+//  char getFlags() const {
+//    return flags;
+//  }
+//
+//  long getLength() const {
+//    return len;
+//  }
+//
+// private:
+//  std::string path;
+//  int blockSize;
+//  long groupBlockSize;
+//  std::map<std::string, std::string> props;
+//  unsigned long accessTime;
+//  unsigned long modificationTime;
+//  char flags;
+//  long len;
+//};
 
 #endif //TF_CMAKE_IGFS_FILE_H

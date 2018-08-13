@@ -57,6 +57,30 @@ ControlResponse<ListFilesResponse> IgfsClient::listFiles(std::string path) {
   return resp;
 }
 
+ControlResponse<ListPathsResponse> IgfsClient::listPaths(std::string path) {
+  ListPathsRequest req(path);
+  req.write(*w);
+  w->flush();
+
+  ControlResponse<ListPathsResponse> resp = {};
+  resp.read(*r);
+  r->reset();
+
+  return resp;
+}
+
+ControlResponse<InfoResponse> IgfsClient::info(std::string path) {
+  InfoRequest req(path);
+  req.write(*w);
+  w->flush();
+
+  ControlResponse<InfoResponse> resp = {};
+  resp.read(*r);
+  r->reset();
+
+  return resp;
+}
+
 ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string userName, std::string path) {
   OpenCreateRequest req(userName, path, path, false, false, std::map<std::string, std::string>());
   req.write(*w);
@@ -173,6 +197,7 @@ ControlResponse<CloseResponse> IgfsClient::close(long streamId) {
 
 ControlResponse<RenameResponse> IgfsClient::rename(const std::string &source, const std::string &dest) {
   RenameRequest req(source, dest);
+  req.write(*w);
   w->flush();
 
   ControlResponse<RenameResponse> resp = {};

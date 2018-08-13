@@ -58,6 +58,10 @@ class IgfsClient {
 
   ControlResponse<ListFilesResponse> listFiles(string path);
 
+  ControlResponse<ListPathsResponse> listPaths(string path);
+
+  ControlResponse<InfoResponse> info(string path);
+
   ControlResponse<OpenCreateResponse> openCreate(string userName, string path);
 
   ControlResponse<OpenAppendResponse> openAppend(string userName, string path);

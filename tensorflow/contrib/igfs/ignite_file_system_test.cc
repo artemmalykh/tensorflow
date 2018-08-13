@@ -90,6 +90,121 @@ TEST_F(IgniteFileSystemTest, RandomAccessFile) {
   EXPECT_EQ(content.substr(2, 4), result);
 }
 
+TEST_F(IgniteFileSystemTest, WritableFile) {
+  std::unique_ptr<WritableFile> writer;
+  const string fname = TmpDir("WritableFile");
+  TF_EXPECT_OK(igfs.NewWritableFile(fname, &writer));
+  TF_EXPECT_OK(writer->Append("content1,"));
+  TF_EXPECT_OK(writer->Append("content2"));
+  TF_EXPECT_OK(writer->Flush());
+  TF_EXPECT_OK(writer->Sync());
+  TF_EXPECT_OK(writer->Close());
+
+  string content;
+  TF_EXPECT_OK(ReadAll(fname, &content));
+  EXPECT_EQ("content1,content2", content);
+}
+
+TEST_F(IgniteFileSystemTest, FileExists) {
+  const string fname = TmpDir("FileExists");
+  EXPECT_EQ(error::Code::NOT_FOUND, igfs.FileExists(fname).code());
+  TF_ASSERT_OK(WriteString(fname, "test"));
+  TF_EXPECT_OK(igfs.FileExists(fname));
+}
+
+TEST_F(IgniteFileSystemTest, GetChildren) {
+  const string base = TmpDir("GetChildren");
+  TF_EXPECT_OK(igfs.CreateDir(base));
+
+  const string file = io::JoinPath(base, "testfile.csv");
+  TF_EXPECT_OK(WriteString(file, "blah"));
+  const string subdir = io::JoinPath(base, "subdir");
+  TF_EXPECT_OK(igfs.CreateDir(subdir));
+
+  std::vector<string> children;
+  TF_EXPECT_OK(igfs.GetChildren(base, &children));
+  std::sort(children.begin(), children.end());
+  EXPECT_EQ(std::vector<string>({"subdir", "testfile.csv"}), children);
+}
+
+TEST_F(IgniteFileSystemTest, DeleteFile) {
+  const string fname = TmpDir("DeleteFile");
+  EXPECT_FALSE(igfs.DeleteFile(fname).ok());
+  TF_ASSERT_OK(WriteString(fname, "test"));
+  TF_EXPECT_OK(igfs.DeleteFile(fname));
+}
+
+TEST_F(IgniteFileSystemTest, RenameFile) {
+  const string fname1 = TmpDir("RenameFile1");
+  const string fname2 = TmpDir("RenameFile2");
+  TF_ASSERT_OK(WriteString(fname1, "test"));
+  TF_EXPECT_OK(igfs.RenameFile(fname1, fname2));
+  string content;
+  TF_EXPECT_OK(ReadAll(fname2, &content));
+  EXPECT_EQ("test", content);
+}
+
+TEST_F(IgniteFileSystemTest, RenameFile_Overwrite) {
+  const string fname1 = TmpDir("RenameFile1");
+  const string fname2 = TmpDir("RenameFile2");
+
+  TF_ASSERT_OK(WriteString(fname2, "test"));
+  TF_EXPECT_OK(igfs.FileExists(fname2));
+
+  TF_ASSERT_OK(WriteString(fname1, "test"));
+  TF_EXPECT_OK(igfs.RenameFile(fname1, fname2));
+  string content;
+  TF_EXPECT_OK(ReadAll(fname2, &content));
+  EXPECT_EQ("test", content);
+}
+
+TEST_F(IgniteFileSystemTest, StatFile) {
+  const string fname = TmpDir("StatFile");
+  TF_ASSERT_OK(WriteString(fname, "test"));
+  FileStatistics stat;
+  TF_EXPECT_OK(igfs.Stat(fname, &stat));
+  EXPECT_EQ(4, stat.length);
+  EXPECT_FALSE(stat.is_directory);
+}
+
+TEST_F(IgniteFileSystemTest, WriteWhileReading) {
+  std::unique_ptr<WritableFile> writer;
+  const string fname = TmpDir("WriteWhileReading");
+  // Skip the test if we're not testing on HDFS. Hadoop's local filesystem
+  // implementation makes no guarantees that writable files are readable while
+  // being written.
+  if (!str_util::StartsWith(fname, "hdfs://")) {
+    return;
+  }
+
+  TF_EXPECT_OK(igfs.NewWritableFile(fname, &writer));
+
+  const string content1 = "content1";
+  TF_EXPECT_OK(writer->Append(content1));
+  TF_EXPECT_OK(writer->Flush());
+
+  std::unique_ptr<RandomAccessFile> reader;
+  TF_EXPECT_OK(igfs.NewRandomAccessFile(fname, &reader));
+
+  string got;
+  got.resize(content1.size());
+  StringPiece result;
+  TF_EXPECT_OK(
+      reader->Read(0, content1.size(), &result, gtl::string_as_array(&got)));
+  EXPECT_EQ(content1, result);
+
+  string content2 = "content2";
+  TF_EXPECT_OK(writer->Append(content2));
+  TF_EXPECT_OK(writer->Flush());
+
+  got.resize(content2.size());
+  TF_EXPECT_OK(reader->Read(content1.size(), content2.size(), &result,
+                            gtl::string_as_array(&got)));
+  EXPECT_EQ(content2, result);
+
+  TF_EXPECT_OK(writer->Close());
+}
+
 }
 }
 

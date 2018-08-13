@@ -90,11 +90,12 @@ Status IgniteFileSystem::NewRandomAccessFile(
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
-    ControlResponse<Optional<OpenReadResponse>> openCreateResp = client->openRead("", fname);
+    const string path = TranslateName(fname);
+
+    ControlResponse<Optional<OpenReadResponse>> openCreateResp = client->openRead("", path);
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().get().getStreamId();
 
-      const string path = TranslateName(fname);
       result->reset(new IGFSRandomAccessFile(path, resourceId, client));
     } else {
       // TODO: return error with appropriate code.
@@ -155,12 +156,13 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
+    const string path = TranslateName(fname);
     // Check if file exists, and if yes delete it.
-    ControlResponse<ExistsResponse> existsResponse = client->exists("", fname);
+    ControlResponse<ExistsResponse> existsResponse = client->exists("", path);
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
-        ControlResponse<DeleteResponse> delResponse = client->del(fname, false);
+        ControlResponse<DeleteResponse> delResponse = client->del(path, false);
 
         if (!delResponse.isOk()) {
           // TODO: return error with appropriate code.
@@ -171,13 +173,12 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
       // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error trying to know if file exists.");
     }
-    
-    ControlResponse<OpenCreateResponse> openCreateResp = client->openCreate("", fname);
+
+    ControlResponse<OpenCreateResponse> openCreateResp = client->openCreate("", path);
 
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().getStreamId();
 
-      const string path = TranslateName(fname);
       result->reset(new IGFSWritableFile(path, resourceId, client));
     } else {
       // TODO: return error with appropriate code.
@@ -240,32 +241,63 @@ Status IgniteFileSystem::FileExists(const string &fname) {
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
-    
-  } else {
-    ControlResponse<ExistsResponse> existsResponse = client->exists("", fname);
+    const string path = TranslateName(fname);
+    ControlResponse<ExistsResponse> existsResponse = client->exists("", path);
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
         return Status::OK();
       }
-//      return errors::NotFound(fname, " not found.");
-      // TODO: return error with appropriate code.
-      return Status(error::INTERNAL, "Error");
+
+      return errors::NotFound(path, " not found.");
     } else {
       // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error");
     }
+  } else {
+    return Status(error::INTERNAL, "Error");
   }
 }
 
-Status IgniteFileSystem::GetChildren(const string &dir,
+string makeRelative(const string &a, const string &b) {
+  string max = a;
+  string min = b;
+  bool firstIsShortest = false;
+
+  if (b.size() > a.size()) {
+    max = b;
+    min = a;
+    firstIsShortest = true;
+  }
+
+  auto r = mismatch(min.begin(), min.end(), max.begin());
+
+  // Trim common prefix and '/' (hence '+1')
+
+  return string((firstIsShortest ? r.first : r.second) + 1, firstIsShortest ? min.end() : max.end());
+}
+
+Status IgniteFileSystem::GetChildren(const string &fname,
                                      std::vector<string> *result) {
   shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
-    client->listFiles(dir);
+    const string dir = TranslateName(fname);
+
+    ControlResponse<ListPathsResponse> listPathsResponse = client->listPaths(dir);
+
+    if (!listPathsResponse.isOk()) {
+      return Status(error::INTERNAL, "Error");
+    }
+
+    *result = vector<string>();
+    vector<IgnitePath> entries = listPathsResponse.getRes().getEntries();
+
+    for(auto& value: entries) {
+      result->push_back(makeRelative(value.getPath(), dir));
+    }
   } else {
     // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
@@ -287,7 +319,17 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
-    client->del(fname, false);
+    const string path = TranslateName(fname);
+
+    ControlResponse <DeleteResponse> delResp = client->del(path, false);
+
+    if (!delResp.isOk()) {
+      return Status(error::INTERNAL, "Error");
+    }
+
+    if (!delResp.getRes().exists()) {
+      return errors::NotFound(path, " not found.");
+    }
   } else {
     // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
@@ -296,13 +338,19 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
   return Status::OK();
 }
 
-Status IgniteFileSystem::CreateDir(const string &dir) {
+Status IgniteFileSystem::CreateDir(const string &fname) {
   shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
-    client->mkdir(dir);
+    const string dir = TranslateName(fname);
+
+    ControlResponse <MakeDirectoriesResponse> mkDirResponse = client->mkdir(dir);
+
+    if (!(mkDirResponse.isOk() && mkDirResponse.getRes().successful())) {
+      return Status(error::INTERNAL, "Error");
+    }
   } else {
     // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
@@ -344,18 +392,20 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
 }
 
 Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
-  //TODO:
-  return Status::OK();
-//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
-}
-
-Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
   shared_ptr<IgfsClient> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
-    client->rename(src, target);
+    const string path = TranslateName(fname);
+    ControlResponse<InfoResponse> infoResponse = client->info(path);
+
+    if (!infoResponse.isOk()) {
+      return Status(error::INTERNAL, "Error");
+    } else {
+      *size = infoResponse.getRes().getFileInfo().getFileSize();
+    }
+
   } else {
     // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
@@ -364,10 +414,60 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
   return Status::OK();
 }
 
-Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
-  //TODO:
+Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
+  if (FileExists(target).ok()) {
+    DeleteFile(target);
+  }
+
+  shared_ptr<IgfsClient> client = createClient();
+
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+
+  if (hResponse.isOk()) {
+    const string srcPath = TranslateName(src);
+    const string targetPath = TranslateName(target);
+
+    ControlResponse <RenameResponse> renameResp = client->rename(srcPath, targetPath);
+
+    if (!renameResp.isOk()) {
+      return Status(error::INTERNAL, "Error1");
+    }
+
+    if (!renameResp.getRes().successful()) {
+      return errors::NotFound(srcPath, " not found.");
+    }
+  } else {
+    // TODO: return error with appropriate code.
+    return Status(error::INTERNAL, "Error2");
+  }
+
   return Status::OK();
-//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
+}
+
+Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
+  shared_ptr<IgfsClient> client = createClient();
+
+  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+
+  if (hResponse.isOk()) {
+    const string path = TranslateName(fname);
+    ControlResponse<InfoResponse> infoResponse = client->info(path);
+
+    if (!infoResponse.isOk()) {
+      return Status(error::INTERNAL, "Error");
+    } else {
+      IgfsFile info = infoResponse.getRes().getFileInfo();
+
+
+      *stats = FileStatistics(info.getFileSize(), info.getModificationTime(), (info.getFlags() & 0x1) != 0);
+    }
+
+  } else {
+    // TODO: return error with appropriate code.
+    return Status(error::INTERNAL, "Error");
+  }
+
+  return Status::OK();
 }
 
 /////////////
