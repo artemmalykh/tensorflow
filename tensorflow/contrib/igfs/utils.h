@@ -28,20 +28,25 @@ using namespace std;
 class Socketbuf : public std::streambuf {
   typedef std::streambuf::traits_type traits_type;
   int d_fd;
-  static const int bufSize = 2048; // Hardcode for now
-  char d_buffer[bufSize];
+  static const int bufSize = 17; // Hardcode for now
+  char d_buffer[bufSize + 1];
 
   int overflow(int c) override {
     if (c == traits_type::eof()) {
       return traits_type::eof();
     }
 
+    d_buffer[bufSize] = c;
+    pbump(1);
+
     int syncRes = sync();
+
     return syncRes == 0 ? static_cast<char_type>(c) : traits_type::eof();
   }
 
   int sync() override {
-    ssize_t n = send(d_fd, d_buffer, pptr() - pbase(), 0);
+    unsigned long toSend = pptr() - pbase();
+    ssize_t n = send(d_fd, d_buffer, toSend, 0);
     pbump(-n);
 
     std::cout << "sync " << n << std::endl;
@@ -59,7 +64,7 @@ class Socketbuf : public std::streambuf {
 
       std::cout << "underflow " << size << std::endl;
       for (int i = 0; i < size; i++) {
-        std::cout << d_buffer[i] << '\t';
+        std::cout << (static_cast<int>(d_buffer[i]) & 0xFF) << '\t';
       }
       std::cout << std::endl;
 
