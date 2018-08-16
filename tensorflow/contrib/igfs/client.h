@@ -62,15 +62,15 @@ class IgfsClient {
 
   ControlResponse<InfoResponse> info(string path);
 
-  ControlResponse<OpenCreateResponse> openCreate(string userName, string path);
+  ControlResponse<OpenCreateResponse> openCreate(string& path);
 
   ControlResponse<OpenAppendResponse> openAppend(string userName, string path);
 
   ControlResponse<Optional<OpenReadResponse>> openRead(string userName, string path);
 
-  ControlResponse<ExistsResponse> exists(string userName, string path);
+  ControlResponse<ExistsResponse> exists(const string& path);
 
-  ControlResponse<MakeDirectoriesResponse> mkdir(string path);
+  ControlResponse<MakeDirectoriesResponse> mkdir(const string& path);
 
   ControlResponse<DeleteResponse> del(string path, bool recursive);
 

@@ -32,7 +32,7 @@ IgfsClient::IgfsClient(int port, std::string host, std::string fsName) :
 }
 
 ControlResponse<Optional<HandshakeResponse>> IgfsClient::handshake() {
-  HandshakeRequest req("myFileSystem", "");
+  HandshakeRequest req(fsName, "");
   req.write(*w);
   w->flush();
 
@@ -81,8 +81,8 @@ ControlResponse<InfoResponse> IgfsClient::info(std::string path) {
   return resp;
 }
 
-ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string userName, std::string path) {
-  OpenCreateRequest req(userName, path, path, false, false, std::map<std::string, std::string>());
+ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string& path) {
+  OpenCreateRequest req(path);
   req.write(*w);
   w->flush();
 
@@ -129,8 +129,8 @@ ControlResponse<Optional<OpenReadResponse>> IgfsClient::openRead(std::string use
   return resp;
 }
 
-ControlResponse<ExistsResponse> IgfsClient::exists(std::string userName, std::string path) {
-  ExistsRequest req(userName, path, path, false, false, std::map<std::string, std::string>());
+ControlResponse<ExistsResponse> IgfsClient::exists(const std::string& path) {
+  ExistsRequest req(path);
   req.write(*w);
   w->flush();
 
@@ -141,7 +141,7 @@ ControlResponse<ExistsResponse> IgfsClient::exists(std::string userName, std::st
   return resp;
 }
 
-ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(std::string path) {
+ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(const std::string& path) {
   MakeDirectoriesRequest req(path);
   req.write(*w);
   w->flush();

@@ -21,13 +21,11 @@ bool DeleteResponse::exists() {
   return done;
 }
 
-ExistsRequest::ExistsRequest(const std::string &userName, const std::string &path, const std::string &destPath,
-                             bool flag,
-                             bool collocate, const std::map<std::string, std::string> &props) : PathControlRequest(
-    userName, path,
-    destPath, flag,
-    collocate,
-    props) {}
+ExistsRequest::ExistsRequest(const std::string &path) : PathControlRequest(
+    "", path,
+    "", false,
+    false,
+    map<string, string>()) {}
 
 int ExistsRequest::commandId() {
   return 2;

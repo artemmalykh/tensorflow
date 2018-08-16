@@ -14,8 +14,10 @@ limitations under the License.
 ==============================================================================*/
 
 #include <errno.h>
-#include <memory> #include <string>
-#include <utility> #include <tensorflow/core/lib/core/errors.h>
+#include <memory>
+#include <string>
+#include <utility>
+#include <tensorflow/core/lib/core/errors.h>
 #include <tensorflow/core/platform/file_system.h>
 #include <tensorflow/core/platform/windows/integral_types.h>
 
@@ -140,12 +142,10 @@ class IGFSWritableFile : public WritableFile {
   }
 
   Status Flush() override {
-    // TODO: Check.
     return Status::OK();
   }
 
   Status Sync() override {
-    // TODO: Check.
     return Status::OK();
   }
 
@@ -161,9 +161,9 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
   ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
 
   if (hResponse.isOk()) {
-    const string path = TranslateName(fname);
+    string path = TranslateName(fname);
     // Check if file exists, and if yes delete it.
-    ControlResponse<ExistsResponse> existsResponse = client->exists("", path);
+    ControlResponse<ExistsResponse> existsResponse = client->exists(path);
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
@@ -179,7 +179,7 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
       return Status(error::INTERNAL, "Error trying to know if file exists.");
     }
 
-    ControlResponse<OpenCreateResponse> openCreateResp = client->openCreate("", path);
+    ControlResponse<OpenCreateResponse> openCreateResp = client->openCreate(path);
 
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().getStreamId();
@@ -202,19 +202,17 @@ Status IgniteFileSystem::NewAppendableFile(
 
   if (hResponse.isOk()) {
     // Check if file exists, and if yes delete it.
-    ControlResponse<ExistsResponse> existsResponse = client->exists("", fname);
+    ControlResponse<ExistsResponse> existsResponse = client->exists(fname);
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
         ControlResponse<DeleteResponse> delResponse = client->del(fname, false);
 
         if (!delResponse.isOk()) {
-          // TODO: return error with appropriate code.
           return Status(error::INTERNAL, "Error trying to delete existing file.");
         }
       }
     } else {
-      // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error trying to know if file exists.");
     }
 
@@ -235,9 +233,7 @@ Status IgniteFileSystem::NewAppendableFile(
 
 Status IgniteFileSystem::NewReadOnlyMemoryRegionFromFile(
     const string &fname, std::unique_ptr<ReadOnlyMemoryRegion> *result) {
-  //TODO:
-  return Status::OK();
-//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
+  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
 }
 
 Status IgniteFileSystem::FileExists(const string &fname) {
@@ -247,7 +243,7 @@ Status IgniteFileSystem::FileExists(const string &fname) {
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
-    ControlResponse<ExistsResponse> existsResponse = client->exists("", path);
+    ControlResponse<ExistsResponse> existsResponse = client->exists(path);
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
@@ -355,7 +351,6 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
       return Status(error::INTERNAL, "Error");
     }
   } else {
-    // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
   }
 
@@ -374,16 +369,16 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
       return Status(error::INTERNAL, "Error");
     } else {
       if (!listFilesResponse.getRes().getEntries().empty()) {
-//        return errors::FailedPrecondition("Cannot delete a non-empty directory.");
-        // TODO: return error with appropriate code.
-        return Status(error::INTERNAL, "Error");
+        return errors::FailedPrecondition("Cannot delete a non-empty directory.");
       } else {
-        client->del(dir, true);
+        ControlResponse <DeleteResponse> delResponse = client->del(dir, true);
+        
+        if (!delResponse.isOk()) {
+          return Status(error::INTERNAL, "Error while trying to delete directory.");
+        }
       }
     }
-
   } else {
-    // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
   }
 
@@ -406,7 +401,6 @@ Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
     }
 
   } else {
-    // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
   }
 
@@ -429,15 +423,14 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
     ControlResponse <RenameResponse> renameResp = client->rename(srcPath, targetPath);
 
     if (!renameResp.isOk()) {
-      return Status(error::INTERNAL, "Error1");
+      return Status(error::INTERNAL, "Error");
     }
 
     if (!renameResp.getRes().successful()) {
       return errors::NotFound(srcPath, " not found.");
     }
   } else {
-    // TODO: return error with appropriate code.
-    return Status(error::INTERNAL, "Error2");
+    return Status(error::INTERNAL, "Error");
   }
 
   return Status::OK();
@@ -462,7 +455,6 @@ Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
     }
 
   } else {
-    // TODO: return error with appropriate code.
     return Status(error::INTERNAL, "Error");
   }
 

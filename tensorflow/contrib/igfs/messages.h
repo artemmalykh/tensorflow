@@ -20,7 +20,6 @@ limitations under the License.
 #include <map>
 #include <vector>
 #include "utils.h"
-#include "igfs_file.h"
 
 using namespace std;
 
@@ -271,8 +270,7 @@ class DeleteResponse {
 
 class ExistsRequest : public PathControlRequest {
  public:
-  ExistsRequest(const string &userName, const string &path, const string &destPath, bool flag,
-                bool collocate, const map<string, string> &props);
+  ExistsRequest(const string &userName);
 
   int commandId();
 };
@@ -397,13 +395,7 @@ class ListPathsResponse : public ListResponse<IgnitePath> {
 
 class OpenCreateRequest : PathControlRequest {
  public:
-  OpenCreateRequest(const string &userName, const string &path, const string &destPath, bool flag,
-                    bool collocate, const map<string, string> &props) : PathControlRequest(userName,
-                                                                                           path,
-                                                                                           destPath,
-                                                                                           flag,
-                                                                                           collocate,
-                                                                                           props) {}
+  OpenCreateRequest(const string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
 
   void write(Writer &w) override {
     PathControlRequest::write(w);
@@ -556,7 +548,7 @@ class InfoResponse {
 
 class MakeDirectoriesRequest : public PathControlRequest {
  public:
-  MakeDirectoriesRequest(string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
+  MakeDirectoriesRequest(const string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
 
  private:
   int commandId() override {
