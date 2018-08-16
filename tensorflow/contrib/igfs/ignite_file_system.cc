@@ -14,8 +14,8 @@ limitations under the License.
 ==============================================================================*/
 
 #include <errno.h>
-#include <string>
-#include <tensorflow/core/lib/core/errors.h>
+#include <memory> #include <string>
+#include <utility> #include <tensorflow/core/lib/core/errors.h>
 #include <tensorflow/core/platform/file_system.h>
 #include <tensorflow/core/platform/windows/integral_types.h>
 
@@ -34,12 +34,17 @@ limitations under the License.
 
 namespace tensorflow {
 
-shared_ptr<IgfsClient> createClient() {
-  string host = "localhost";
-  int port = 10500;
-  string fsName = "myFileSystem";
+string getEnvOrElse(const string &env, string defVal) {
+  const char *envCStr = env.c_str();
+  return getenv(envCStr) != nullptr ? getenv(envCStr) : std::move(defVal);
+}
 
-  return shared_ptr<IgfsClient>(new IgfsClient(port, host, fsName));
+shared_ptr<IgfsClient> createClient() {
+  string host = getEnvOrElse("IGFS_HOST", "localhost");
+  int port = atoi(getEnvOrElse("IGFS_PORT", "10500").c_str());
+  string fsName = getEnvOrElse("IGFS_FS_NAME", "myFileSystem");
+
+  return std::make_shared<IgfsClient>(port, host, fsName);
 }
 
 IgniteFileSystem::IgniteFileSystem() {}
@@ -306,11 +311,9 @@ Status IgniteFileSystem::GetChildren(const string &fname,
   return Status::OK();
 }
 
-Status IgniteFileSystem::GetMatchingPaths(const string &pattern,
-                                          std::vector<string> *results) {
-  //TODO:
-  return Status::OK();
-//  return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
+Status IgniteFileSystem::GetMatchingPaths(const string& pattern,
+                                          std::vector<string>* results) {
+  return internal::GetMatchingPaths(this, Env::Default(), pattern, results);
 }
 
 Status IgniteFileSystem::DeleteFile(const string &fname) {
@@ -367,10 +370,6 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
   if (hResponse.isOk()) {
     ControlResponse<ListFilesResponse> listFilesResponse = client->listFiles(dir);
 
-    // Count the number of entries in the directory, and only delete if it's
-    // non-empty. This is consistent with the interface, but note that there's
-    // a race condition where a file may be added after this check, in which
-    // case the directory will still be deleted.
     if (!listFilesResponse.isOk()) {
       return Status(error::INTERNAL, "Error");
     } else {
@@ -501,7 +500,5 @@ Status FileSystem::CopyFile(const string& src, const string& target) {
   return Status::OK();
 }
 
-REGISTER_FILE_SYSTEM("hdfs", IgniteFileSystem);
-REGISTER_FILE_SYSTEM("viewfs", IgniteFileSystem);
-
+REGISTER_FILE_SYSTEM("igfs", IgniteFileSystem);
 }  // namespace tensorflow
