@@ -46,7 +46,7 @@ class IgniteFileSystemTest : public ::testing::Test {
     return Status::OK();
   }
 
-  Status ReadAll(const string& fname, string* content) {
+  Status ReadAll(const string &fname, string *content) {
     std::unique_ptr<RandomAccessFile> reader;
     TF_RETURN_IF_ERROR(igfs.NewRandomAccessFile(fname, &reader));
 
@@ -210,8 +210,7 @@ TEST_F(IgniteFileSystemTest, WriteWhileReading) {
 
 using namespace tensorflow;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

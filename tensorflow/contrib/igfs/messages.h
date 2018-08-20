@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <string>
 #include <map>
+#include <utility>
 #include <vector>
 #include "utils.h"
 
@@ -27,123 +28,63 @@ namespace tensorflow {
 
 class IgnitePath {
  public:
-  void read(Reader& r) {
+  void read(Reader &r) {
     path_ = r.readNullableString();
   }
 
   string getPath() {
     return path_;
   }
+
  private:
   string path_;
 };
 
 class IgfsFile {
  public:
-  IgfsFile() {};
+  IgfsFile() = default;
 
-  void read(Reader &r) {
-    path_ = Optional<IgnitePath>();
-    path_.read(r);
+  void read(Reader &r);
 
-    blockSize_ = r.readInt();
-    grpBlockSize_ = r.readLong();
-    len_ = r.readLong();
-    props_ = r.readStringMap();
-    accessTime_ = r.readLong();
-    modificationTime_ = r.readLong();
-    flags_ = r.readChar();
-  }
+  long getFileSize();
 
-  long getFileSize() {
-    return len_;
-  }
+  long getModificationTime();
 
-  long getModificationTime() {
-    return modificationTime_;
-  }
-
-  char getFlags() {
-    return flags_;
-  }
+  char getFlags();
 
  private:
   Optional<IgnitePath> path_;
-  int blockSize_;
-  long grpBlockSize_;
-  long len_;
+  int blockSize_{};
+  long grpBlockSize_{};
+  long len_{};
   map<string, string> props_;
-  long accessTime_;
-  long modificationTime_;
-  char flags_;
-//  IgfsUtils.writePath(rawWriter, path);
-//        rawWriter.writeInt(blockSize);
-//        rawWriter.writeLong(grpBlockSize);
-//        rawWriter.writeLong(len);
-//        IgfsUtils.writeProperties(rawWriter, props);
-//        rawWriter.writeLong(accessTime);
-//        rawWriter.writeLong(modificationTime);
-//        rawWriter.writeByte(flags);
+  long accessTime_{};
+  long modificationTime_{};
+  char flags_{};
 };
 
 class Request {
  public:
   virtual int commandId() = 0;
 
-  virtual void write(Writer &w) {
-    int off = 0;
-
-    w.writeChar(0);
-    w.skipToPos(8);
-    w.writeInt(commandId());
-    w.skipToPos(24);
-  }
+  virtual void write(Writer &w);
 };
 
 class Response {
  public:
-  Response() {
+  Response();
 
-  }
+  virtual void read(Reader &r);
 
-  virtual void read(Reader &r) {
-    //read Header
-    r.readChar();
-    r.skipToPos(8);
-    requestId = r.readInt();
-    r.skipToPos(24);
-    resType = r.readInt();
-    bool hasError = r.readBool();
+  int getResType();
 
-    if (hasError) {
-      error = r.readString();
-      errorCode = r.readInt();
-    } else {
-      r.skipToPos(HEADER_SIZE + 6 - 1);
-      len = r.readInt();
-      r.skipToPos(HEADER_SIZE + RESPONSE_HEADER_SIZE);
-    }
-  }
+  int getRequestId();
 
-  int getResType() {
-    return resType;
-  }
+  bool isOk();
 
-  int getRequestId() {
-    return requestId;
-  }
+  string getError();
 
-  bool isOk() {
-    return errorCode == -1;
-  }
-
-  string getError() {
-    return error;
-  }
-
-  int getErrorCode() {
-    return errorCode;
-  }
+  int getErrorCode();
 
  protected:
   string error;
@@ -159,20 +100,9 @@ class Response {
 class PathControlRequest : public Request {
  public:
   PathControlRequest(string userName, string path, string destPath, bool flag, bool collocate,
-                     map<string, string> props) :
-      userName(userName), path(path), destPath(destPath), flag(flag), collocate(collocate), props(props) {
-  }
+                     map<string, string> props);
 
-  virtual void write(Writer &w) {
-    Request::write(w);
-
-    w.writeString(userName);
-    writePath(w, path);
-    writePath(w, destPath);
-    w.writeBoolean(flag);
-    w.writeBoolean(collocate);
-    w.writeStringMap(props);
-  }
+  void write(Writer &w);
 
  protected:
   /** Main path. */
@@ -193,29 +123,14 @@ class PathControlRequest : public Request {
   /** The user name this control request is made on behalf of. */
   string userName;
 
-  void writePath(Writer &w, string path) {
-    w.writeBoolean(!path.empty());
-    if (!path.empty())
-      w.writeString(path);
-  }
+  void writePath(Writer &w, string &path);
 };
 
 class StreamControlRequest : public Request {
  public:
-  StreamControlRequest(long streamId, int len) :
-      streamId(streamId),
-      len(len) {
-  }
+  StreamControlRequest(long streamId, int len);
 
-  virtual void write(Writer &w) {
-    int off = 0;
-
-    w.writeChar(0);
-    w.skipToPos(8);
-    w.writeInt(commandId());
-    w.writeLong(streamId);
-    w.writeInt(len);
-  }
+  void write(Writer &w) override;
 
  protected:
   long streamId;
@@ -226,11 +141,9 @@ class StreamControlRequest : public Request {
 template<class R>
 class ControlResponse : public Response {
  public:
-  ControlResponse() {
+  ControlResponse() = default;
 
-  }
-
-  void read(Reader &r) {
+  void read(Reader &r) override {
     Response::read(r);
 
     if (isOk()) {
@@ -239,7 +152,6 @@ class ControlResponse : public Response {
     }
   }
 
- public:
   R getRes() {
     return res;
   }
@@ -253,7 +165,7 @@ class DeleteRequest : public PathControlRequest {
   DeleteRequest(const string &path, bool flag);
 
  private:
-  int commandId();
+  int commandId() override;
 };
 
 class DeleteResponse {
@@ -270,9 +182,9 @@ class DeleteResponse {
 
 class ExistsRequest : public PathControlRequest {
  public:
-  ExistsRequest(const string &userName);
+  explicit ExistsRequest(const string &userName);
 
-  int commandId();
+  int commandId() override;
 };
 
 class ExistsResponse {
@@ -288,62 +200,39 @@ class ExistsResponse {
 };
 
 class HandshakeRequest : Request {
+ public:
+  HandshakeRequest(string fsName, string logDir);
+
+  int commandId() override;
+
+  void write(Writer &w) override;
+
  private:
-  int requestId;
   string fsName;
   string logDir;
-
- public:
-  HandshakeRequest(string fsName, string logDir) : fsName(fsName), logDir(logDir) {
-
-  }
-
-  int commandId() override {
-    return 0;
-  }
-
-  void write(Writer &w) {
-    Request::write(w);
-    w.writeString(fsName);
-    w.writeString(logDir);
-  }
 };
 
 class HandshakeResponse {
  public:
-  void read(Reader &r) {
-    fsName = r.readNullableString();
-    blockSize = r.readLong();
+  HandshakeResponse();
 
-    bool hasSampling = r.readBool();
+  void read(Reader &r);
 
-    if (hasSampling) {
-      sampling = r.readBool();
-    }
-  }
-
-  HandshakeResponse() {
-
-  }
-
-  string getFSName() {
-    return fsName;
-  }
+  string getFSName();
 
  private:
   string fsName;
-  long blockSize;
-  bool sampling;
+  long blockSize{};
+  bool sampling{};
 };
 
 class ListRequest : public PathControlRequest {
  public:
-  ListRequest(const string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {
-
-  }
+  explicit ListRequest(const string &path);
 };
 
-template<class T> class ListResponse {
+template<class T>
+class ListResponse {
  public:
   void read(Reader &r) {
     int len = r.readInt();
@@ -367,12 +256,9 @@ template<class T> class ListResponse {
 
 class ListFilesRequest : public ListRequest {
  public:
-  ListFilesRequest(const string &path) : ListRequest(path) {}
+  explicit ListFilesRequest(const string &path);
 
- private:
-  int commandId() override {
-    return 10;
-  }
+  int commandId() override;
 };
 
 class ListFilesResponse : public ListResponse<IgfsFile> {
@@ -381,7 +267,7 @@ class ListFilesResponse : public ListResponse<IgfsFile> {
 
 class ListPathsRequest : public ListRequest {
  public:
-  ListPathsRequest(const string &path) : ListRequest(path) {}
+  explicit ListPathsRequest(const string &path) : ListRequest(path) {}
 
  private:
   int commandId() override {
@@ -395,7 +281,7 @@ class ListPathsResponse : public ListResponse<IgnitePath> {
 
 class OpenCreateRequest : PathControlRequest {
  public:
-  OpenCreateRequest(const string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
+  explicit OpenCreateRequest(const string &path);
 
   void write(Writer &w) override {
     PathControlRequest::write(w);
@@ -410,10 +296,10 @@ class OpenCreateRequest : PathControlRequest {
 
  protected:
   /** Hadoop replication factor. */
-  int replication;
+  int replication{};
 
   /** Hadoop block size. */
-  long blockSize;
+  long blockSize{};
 };
 
 class OpenCreateResponse {
@@ -422,16 +308,14 @@ class OpenCreateResponse {
     streamId = r.readLong();
   }
 
-  OpenCreateResponse() {
-
-  }
+  OpenCreateResponse() = default;
 
   long getStreamId() {
     return streamId;
   }
 
  private:
-  long streamId;
+  long streamId{};
 };
 
 class OpenAppendRequest : PathControlRequest {
@@ -454,16 +338,14 @@ class OpenAppendResponse {
     streamId = r.readLong();
   }
 
-  OpenAppendResponse() {
-
-  }
+  OpenAppendResponse() = default;
 
   long getStreamId() {
     return streamId;
   }
 
  private:
-  long streamId;
+  long streamId{};
 };
 
 class OpenReadRequest : PathControlRequest {
@@ -476,7 +358,7 @@ class OpenReadRequest : PathControlRequest {
                                                                                          collocate,
                                                                                          props) {}
 
-  void write(Writer &w) {
+  void write(Writer &w) override {
     PathControlRequest::write(w);
 
     if (flag) {
@@ -490,7 +372,7 @@ class OpenReadRequest : PathControlRequest {
 
  protected:
   /** Sequential reads before prefetch. */
-  int seqReadsBeforePrefetch;
+  int seqReadsBeforePrefetch{};
 };
 
 class OpenReadResponse {
@@ -500,9 +382,7 @@ class OpenReadResponse {
     len = r.readLong();
   }
 
-  OpenReadResponse() {
-
-  }
+  OpenReadResponse() = default;
 
   long getStreamId() {
     return streamId;
@@ -513,13 +393,13 @@ class OpenReadResponse {
   }
 
  private:
-  long streamId;
-  long len;
+  long streamId{};
+  long len{};
 };
 
 class InfoRequest : public PathControlRequest {
  public:
-  InfoRequest(string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
+  explicit InfoRequest(string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
 
  private:
   int commandId() override {
@@ -534,9 +414,7 @@ class InfoResponse {
     fileInfo.read(r);
   }
 
-  InfoResponse() {
-
-  }
+  InfoResponse() = default;
 
   IgfsFile getFileInfo() {
     return fileInfo;
@@ -548,7 +426,8 @@ class InfoResponse {
 
 class MakeDirectoriesRequest : public PathControlRequest {
  public:
-  MakeDirectoriesRequest(const string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
+  explicit MakeDirectoriesRequest(const string &path) : PathControlRequest("", path, "", false, false,
+                                                                           map<string, string>()) {}
 
  private:
   int commandId() override {
@@ -562,23 +441,21 @@ class MakeDirectoriesResponse {
     succ = r.readBool();
   }
 
-  MakeDirectoriesResponse() {
-
-  }
+  MakeDirectoriesResponse() = default;
 
   bool successful() {
     return succ;
   }
 
  private:
-  bool succ;
+  bool succ{};
 };
 
 /** Stream control requests. **/
 
 class CloseRequest : public StreamControlRequest {
  public:
-  CloseRequest(long streamId) : StreamControlRequest(streamId, 0) {}
+  explicit CloseRequest(long streamId) : StreamControlRequest(streamId, 0) {}
 
   int commandId() override {
     return 16;
@@ -607,7 +484,7 @@ class ReadBlockRequest : public StreamControlRequest {
  public:
   ReadBlockRequest(long streamId, long pos, int len) : StreamControlRequest(streamId, len), pos(pos) {}
 
-  void write(Writer &w) {
+  void write(Writer &w) override {
     StreamControlRequest::write(w);
 
     w.writeLong(pos);
@@ -642,7 +519,7 @@ class ReadBlockResponse {
 
 class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
  public:
-  ReadBlockControlResponse(char *dst) : dst(dst) {}
+  explicit ReadBlockControlResponse(char *dst) : dst(dst) {}
 
   void read(Reader &r) override {
     Response::read(r);
@@ -665,7 +542,7 @@ class WriteBlockRequest : public StreamControlRequest {
  public:
   WriteBlockRequest(long streamId, const char *data, int len) : StreamControlRequest(streamId, len), data(data) {}
 
-  void write(Writer &w) {
+  void write(Writer &w) override {
     StreamControlRequest::write(w);
 
     w.writeBytes(data, len);
@@ -681,9 +558,7 @@ class WriteBlockRequest : public StreamControlRequest {
 
 class WriteBlockResponse {
  public:
-  WriteBlockResponse() {
-
-  }
+  WriteBlockResponse() = default;
 
   void read(Reader &r) {
 
@@ -709,16 +584,14 @@ class RenameResponse {
     ex = r.readBool();
   }
 
-  RenameResponse() {
-
-  }
+  RenameResponse() = default;
 
   bool successful() {
     return ex;
   }
 
  private:
-  bool ex;
+  bool ex{};
 };
 
 }

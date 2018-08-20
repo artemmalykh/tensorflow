@@ -45,11 +45,6 @@ class Network : public std::exception {
   const char *cause;
 };
 
-struct Header {
-  int requestId;
-  char commandId;
-};
-
 class IgfsClient {
  public:
   IgfsClient(int port, string host, string fsName);
