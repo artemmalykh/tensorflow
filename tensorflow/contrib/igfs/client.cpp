@@ -70,7 +70,7 @@ ControlResponse<ListPathsResponse> IgfsClient::listPaths(std::string path) {
 }
 
 ControlResponse<InfoResponse> IgfsClient::info(std::string path) {
-  InfoRequest req(path);
+  InfoRequest req("", path);
   req.write(*w);
   w->flush();
 
@@ -118,7 +118,7 @@ ControlResponse<OpenAppendResponse> IgfsClient::openAppend(std::string userName,
 }
 
 ControlResponse<Optional<OpenReadResponse>> IgfsClient::openRead(std::string userName, std::string path) {
-  OpenReadRequest req(userName, path, path, false, false, std::map<std::string, std::string>());
+  OpenReadRequest req(userName, path);
   req.write(*w);
   w->flush();
 

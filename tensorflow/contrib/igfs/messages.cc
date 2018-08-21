@@ -198,7 +198,106 @@ int ListFilesRequest::commandId() {
   return 10;
 }
 
+int ListPathsRequest::commandId() {
+  return 9;
+}
+
+
 OpenCreateRequest::OpenCreateRequest(const string &path) : PathControlRequest("", path, "", false, false,
                                                                               map<string, string>()) {}
 
+void OpenCreateRequest::write(Writer &w) {
+  PathControlRequest::write(w);
+
+  w.writeInt(replication);
+  w.writeLong(blockSize);
 }
+
+int OpenCreateRequest::commandId() {
+  return 15;
+}
+
+void OpenCreateResponse::read(Reader &r) {
+  streamId = r.readLong();
+}
+
+long OpenCreateResponse::getStreamId() {
+  return streamId;
+}
+
+OpenAppendRequest::OpenAppendRequest(const string &userName, const string &path) :
+    PathControlRequest(userName, path, "", false, true, map<string, string>()) {}
+
+void OpenAppendRequest::write(Writer &w) {
+  PathControlRequest::write(w);
+}
+
+int OpenAppendRequest::commandId() {
+  return 14;
+}
+
+void OpenAppendResponse::read(Reader &r) {
+  streamId = r.readLong();
+}
+
+long OpenAppendResponse::getStreamId() {
+  return streamId;
+}
+
+OpenReadRequest::OpenReadRequest(const string &userName, const string &path, bool flag, int seqReadsBeforePrefetch)
+    : seqReadsBeforePrefetch(seqReadsBeforePrefetch), PathControlRequest(userName,
+                                                                         path,
+                                                                         "",
+                                                                         flag,
+                                                                         true,
+                                                                         map<string, string>()) {}
+
+OpenReadRequest::OpenReadRequest(const string &userName, const string &path) : OpenReadRequest(userName,
+                                                                                               path,
+                                                                                               false,
+                                                                                               0) {}
+
+void OpenReadRequest::write(Writer &w) {
+  PathControlRequest::write(w);
+
+  if (flag) {
+    w.writeInt(seqReadsBeforePrefetch);
+  }
+}
+
+int OpenReadRequest::commandId() {
+  return 13;
+}
+
+void OpenReadResponse::read(Reader &r) {
+  streamId = r.readLong();
+  len = r.readLong();
+}
+
+OpenReadResponse::OpenReadResponse() = default;
+
+long OpenReadResponse::getStreamId() {
+  return streamId;
+}
+
+InfoRequest::InfoRequest(const string &userName, const string &path) : PathControlRequest(userName, path, "", false, false,
+                                                                              map<string, string>()) {}
+
+int InfoRequest::commandId() {
+  return 3;
+}
+
+void InfoResponse::read(Reader &r) {
+  fileInfo = IgfsFile();
+  fileInfo.read(r);
+}
+
+IgfsFile InfoResponse::getFileInfo() {
+  return fileInfo;
+}
+
+}
+
+
+
+

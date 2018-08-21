@@ -269,10 +269,7 @@ class ListPathsRequest : public ListRequest {
  public:
   explicit ListPathsRequest(const string &path) : ListRequest(path) {}
 
- private:
-  int commandId() override {
-    return 9;
-  }
+  int commandId();
 };
 
 class ListPathsResponse : public ListResponse<IgnitePath> {
@@ -283,16 +280,9 @@ class OpenCreateRequest : PathControlRequest {
  public:
   explicit OpenCreateRequest(const string &path);
 
-  void write(Writer &w) override {
-    PathControlRequest::write(w);
+  void write(Writer &w) override;
 
-    w.writeInt(replication);
-    w.writeLong(blockSize);
-  }
-
-  int commandId() override {
-    return 15;
-  }
+  int commandId() override;
 
  protected:
   /** Hadoop replication factor. */
@@ -304,15 +294,11 @@ class OpenCreateRequest : PathControlRequest {
 
 class OpenCreateResponse {
  public:
-  void read(Reader &r) {
-    streamId = r.readLong();
-  }
-
   OpenCreateResponse() = default;
 
-  long getStreamId() {
-    return streamId;
-  }
+  void read(Reader &r);
+
+  long getStreamId();
 
  private:
   long streamId{};
@@ -320,29 +306,20 @@ class OpenCreateResponse {
 
 class OpenAppendRequest : PathControlRequest {
  public:
-  OpenAppendRequest(const string &userName, const string &path) :
-      PathControlRequest(userName, path, "", false, true, map<string, string>()) {}
+  explicit OpenAppendRequest(const string& userName, const string& path);
 
-  void write(Writer &w) override {
-    PathControlRequest::write(w);
-  }
+  void write(Writer &w) override;
 
-  int commandId() override {
-    return 14;
-  }
+  int commandId() override;
 };
 
 class OpenAppendResponse {
  public:
-  void read(Reader &r) {
-    streamId = r.readLong();
-  }
-
   OpenAppendResponse() = default;
 
-  long getStreamId() {
-    return streamId;
-  }
+  void read(Reader &r);
+
+  long getStreamId();
 
  private:
   long streamId{};
@@ -350,43 +327,26 @@ class OpenAppendResponse {
 
 class OpenReadRequest : PathControlRequest {
  public:
-  OpenReadRequest(const string &userName, const string &path, const string &destPath, bool flag,
-                  bool collocate, const map<string, string> &props) : PathControlRequest(userName,
-                                                                                         path,
-                                                                                         destPath,
-                                                                                         flag,
-                                                                                         collocate,
-                                                                                         props) {}
+  OpenReadRequest(const string &userName, const string &path, bool flag, int seqReadsBeforePrefetch);
 
-  void write(Writer &w) override {
-    PathControlRequest::write(w);
+  OpenReadRequest(const string &userName, const string &path);
 
-    if (flag) {
-      w.writeInt(seqReadsBeforePrefetch);
-    }
-  }
+  void write(Writer &w) override;
 
-  int commandId() override {
-    return 13;
-  }
+  int commandId() override;
 
  protected:
   /** Sequential reads before prefetch. */
-  int seqReadsBeforePrefetch{};
+  int seqReadsBeforePrefetch;
 };
 
 class OpenReadResponse {
  public:
-  void read(Reader &r) {
-    streamId = r.readLong();
-    len = r.readLong();
-  }
+  OpenReadResponse();
 
-  OpenReadResponse() = default;
+  void read(Reader &r);
 
-  long getStreamId() {
-    return streamId;
-  }
+  long getStreamId();
 
   long getLength() {
     return len;
@@ -399,26 +359,18 @@ class OpenReadResponse {
 
 class InfoRequest : public PathControlRequest {
  public:
-  explicit InfoRequest(string &path) : PathControlRequest("", path, "", false, false, map<string, string>()) {}
+  InfoRequest(const string& userName, const string &path);
 
- private:
-  int commandId() override {
-    return 3;
-  }
+  int commandId() override;
 };
 
 class InfoResponse {
  public:
-  void read(Reader &r) {
-    fileInfo = IgfsFile();
-    fileInfo.read(r);
-  }
-
   InfoResponse() = default;
 
-  IgfsFile getFileInfo() {
-    return fileInfo;
-  }
+  void read(Reader &r);
+
+  IgfsFile getFileInfo();
 
  private:
   IgfsFile fileInfo;
