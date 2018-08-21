@@ -269,7 +269,7 @@ class ListPathsRequest : public ListRequest {
  public:
   explicit ListPathsRequest(const string &path) : ListRequest(path) {}
 
-  int commandId();
+  int commandId() override;
 };
 
 class ListPathsResponse : public ListResponse<IgnitePath> {
@@ -348,9 +348,7 @@ class OpenReadResponse {
 
   long getStreamId();
 
-  long getLength() {
-    return len;
-  }
+  long getLength();
 
  private:
   long streamId{};
@@ -378,26 +376,18 @@ class InfoResponse {
 
 class MakeDirectoriesRequest : public PathControlRequest {
  public:
-  explicit MakeDirectoriesRequest(const string &path) : PathControlRequest("", path, "", false, false,
-                                                                           map<string, string>()) {}
+  MakeDirectoriesRequest(const string& userName, const string &path);
 
- private:
-  int commandId() override {
-    return 8;
-  }
+  int commandId() override;
 };
 
 class MakeDirectoriesResponse {
  public:
-  void read(Reader &r) {
-    succ = r.readBool();
-  }
+  MakeDirectoriesResponse();
 
-  MakeDirectoriesResponse() = default;
+  void read(Reader &r);
 
-  bool successful() {
-    return succ;
-  }
+  bool successful();
 
  private:
   bool succ{};
@@ -407,26 +397,18 @@ class MakeDirectoriesResponse {
 
 class CloseRequest : public StreamControlRequest {
  public:
-  explicit CloseRequest(long streamId) : StreamControlRequest(streamId, 0) {}
+  explicit CloseRequest(long streamId);
 
-  int commandId() override {
-    return 16;
-  }
+  int commandId() override;
 };
 
 class CloseResponse {
  public:
-  CloseResponse() : successful(false) {
+  CloseResponse();
 
-  }
+  void read(Reader &r);
 
-  void read(Reader &r) {
-    successful = r.readBool();
-  }
-
-  bool isSuccessful() {
-    return successful;
-  }
+  bool isSuccessful();
 
  private:
   bool successful;
@@ -434,17 +416,11 @@ class CloseResponse {
 
 class ReadBlockRequest : public StreamControlRequest {
  public:
-  ReadBlockRequest(long streamId, long pos, int len) : StreamControlRequest(streamId, len), pos(pos) {}
+  ReadBlockRequest(long streamId, long pos, int len);
 
-  void write(Writer &w) override {
-    StreamControlRequest::write(w);
+  void write(Writer &w) override;
 
-    w.writeLong(pos);
-  }
-
-  int commandId() override {
-    return 17;
-  }
+  int commandId() override;
 
  private:
   long pos;
@@ -452,17 +428,11 @@ class ReadBlockRequest : public StreamControlRequest {
 
 class ReadBlockResponse {
  public:
-  void read(Reader &r, int length, char *dst) {
-    successfulyRead = r.readBytes(dst, length);
-  }
+  void read(Reader &r, int length, char *dst);
 
-  void read(Reader &r) {
-    // No-op
-  }
+  void read(Reader &r);
 
-  streamsize getSuccessfulyRead() {
-    return successfulyRead;
-  }
+  streamsize getSuccessfulyRead();
 
  private:
   int length;
@@ -471,20 +441,11 @@ class ReadBlockResponse {
 
 class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
  public:
-  explicit ReadBlockControlResponse(char *dst) : dst(dst) {}
+  explicit ReadBlockControlResponse(char *dst);
 
-  void read(Reader &r) override {
-    Response::read(r);
+  void read(Reader &r) override;
 
-    if (isOk()) {
-      res = ReadBlockResponse();
-      res.read(r, len, dst);
-    }
-  }
-
-  int getLength() {
-    return len;
-  }
+  int getLength();
 
  private:
   char *dst;
@@ -492,55 +453,30 @@ class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
 
 class WriteBlockRequest : public StreamControlRequest {
  public:
-  WriteBlockRequest(long streamId, const char *data, int len) : StreamControlRequest(streamId, len), data(data) {}
+  WriteBlockRequest(long streamId, const char *data, int len);
 
-  void write(Writer &w) override {
-    StreamControlRequest::write(w);
+  void write(Writer &w) override;
 
-    w.writeBytes(data, len);
-  }
-
-  int commandId() override {
-    return 18;
-  }
+  int commandId() override;
 
  private:
   const char *data;
 };
 
-class WriteBlockResponse {
- public:
-  WriteBlockResponse() = default;
-
-  void read(Reader &r) {
-
-  }
-};
-
 class RenameRequest : public PathControlRequest {
  public:
-  RenameRequest(const std::string &path, const std::string &destPath) : PathControlRequest("", path,
-                                                                                           destPath, false,
-                                                                                           false,
-                                                                                           std::map<std::string, std::string>()) {}
+  RenameRequest(const std::string &path, const std::string &destPath);
 
- private:
-  int commandId() override {
-    return 6;
-  }
+  int commandId() override;
 };
 
 class RenameResponse {
  public:
-  void read(Reader &r) {
-    ex = r.readBool();
-  }
+  RenameResponse();
 
-  RenameResponse() = default;
+  void read(Reader &r);
 
-  bool successful() {
-    return ex;
-  }
+  bool successful();
 
  private:
   bool ex{};

@@ -142,7 +142,7 @@ ControlResponse<ExistsResponse> IgfsClient::exists(const std::string& path) {
 }
 
 ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(const std::string& path) {
-  MakeDirectoriesRequest req(path);
+  MakeDirectoriesRequest req("", path);
   req.write(*w);
   w->flush();
 

@@ -280,8 +280,13 @@ long OpenReadResponse::getStreamId() {
   return streamId;
 }
 
-InfoRequest::InfoRequest(const string &userName, const string &path) : PathControlRequest(userName, path, "", false, false,
-                                                                              map<string, string>()) {}
+long OpenReadResponse::getLength() {
+  return len;
+}
+
+InfoRequest::InfoRequest(const string &userName, const string &path) : PathControlRequest(userName, path, "", false,
+                                                                                          false,
+                                                                                          map<string, string>()) {}
 
 int InfoRequest::commandId() {
   return 3;
@@ -294,6 +299,113 @@ void InfoResponse::read(Reader &r) {
 
 IgfsFile InfoResponse::getFileInfo() {
   return fileInfo;
+}
+
+MakeDirectoriesRequest::MakeDirectoriesRequest(const string &userName, const string &path) : PathControlRequest(
+    userName, path, "", false, false,
+    map<string, string>()) {}
+
+int MakeDirectoriesRequest::commandId() {
+  return 8;
+}
+
+void MakeDirectoriesResponse::read(Reader &r) {
+  succ = r.readBool();
+}
+
+MakeDirectoriesResponse::MakeDirectoriesResponse() = default;
+
+bool MakeDirectoriesResponse::successful() {
+  return succ;
+}
+
+CloseRequest::CloseRequest(long streamId) : StreamControlRequest(streamId, 0) {}
+
+int CloseRequest::commandId() {
+  return 16;
+}
+
+CloseResponse::CloseResponse() : successful(false) {
+
+}
+
+void CloseResponse::read(Reader &r) {
+  successful = r.readBool();
+}
+
+bool CloseResponse::isSuccessful() {
+  return successful;
+}
+
+ReadBlockRequest::ReadBlockRequest(long streamId, long pos, int len) : StreamControlRequest(streamId, len), pos(pos) {}
+
+void ReadBlockRequest::write(Writer &w) {
+  StreamControlRequest::write(w);
+
+  w.writeLong(pos);
+}
+
+int ReadBlockRequest::commandId() {
+  return 17;
+}
+
+void ReadBlockResponse::read(Reader &r, int length, char *dst) {
+  successfulyRead = r.readBytes(dst, length);
+}
+
+void ReadBlockResponse::read(Reader &r) {
+  // No-op
+}
+
+streamsize ReadBlockResponse::getSuccessfulyRead() {
+  return successfulyRead;
+}
+
+ReadBlockControlResponse::ReadBlockControlResponse(char *dst) : dst(dst) {}
+
+void ReadBlockControlResponse::read(Reader &r) {
+  Response::read(r);
+
+  if (isOk()) {
+    res = ReadBlockResponse();
+    res.read(r, len, dst);
+  }
+}
+
+int ReadBlockControlResponse::getLength() {
+  return len;
+}
+
+WriteBlockRequest::WriteBlockRequest(long streamId, const char *data, int len) :
+    StreamControlRequest(streamId, len), data(data) {}
+
+void WriteBlockRequest::write(Writer &w) {
+  StreamControlRequest::write(w);
+
+  w.writeBytes(data, len);
+}
+
+int WriteBlockRequest::commandId() {
+  return 18;
+}
+
+RenameRequest::RenameRequest(const std::string &path, const std::string &destPath) : PathControlRequest("", path,
+                                                                                                        destPath, false,
+                                                                                                        false,
+                                                                                                        std::map<std::string, std::string>()) {}
+
+int RenameRequest::commandId() {
+  return 6;
+}
+
+RenameResponse::RenameResponse() = default;
+
+void RenameResponse::read(Reader &r) {
+  ex = r.readBool();
+}
+
+bool RenameResponse::successful() {
+  return ex;
 }
 
 }
