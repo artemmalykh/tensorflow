@@ -1,31 +1,10 @@
 #include "client.h"
+#include "ignite_plain_client.h"
 
 namespace tensorflow {
 
-IgfsClient::IgfsClient(int port, std::string host, std::string fsName) :
-    port(port),
-    host(host),
-    fsName(fsName) {
-  struct sockaddr_in serv_addr;
-
-  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    printf("\n  \n");
-    throw Network("Socket creation error");
-  }
-
-  memset(&serv_addr, '0', sizeof(serv_addr));
-
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(port);
-
-  // Convert IPv4 and IPv6 addresses from text to binary form
-  if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
-    throw Network("Invalid address/ Address not supported");
-  }
-
-  if (connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-    throw Network("Connection Failed");
-  }
+IgfsClient::IgfsClient(int port, std::string host, std::string fsName) : plainClient(host, port), fsName(fsName) {
+  plainClient.Connect();
 
   w = createWriter();
   r = createReader();
@@ -34,7 +13,7 @@ IgfsClient::IgfsClient(int port, std::string host, std::string fsName) :
 ControlResponse<Optional<HandshakeResponse>> IgfsClient::handshake() {
   HandshakeRequest req(fsName, "");
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<Optional<HandshakeResponse>> resp = {};
   resp.read(*r);
@@ -48,7 +27,7 @@ ControlResponse<Optional<HandshakeResponse>> IgfsClient::handshake() {
 ControlResponse<ListFilesResponse> IgfsClient::listFiles(std::string path) {
   ListFilesRequest req(path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<ListFilesResponse> resp = {};
   resp.read(*r);
@@ -60,7 +39,7 @@ ControlResponse<ListFilesResponse> IgfsClient::listFiles(std::string path) {
 ControlResponse<ListPathsResponse> IgfsClient::listPaths(std::string path) {
   ListPathsRequest req(path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<ListPathsResponse> resp = {};
   resp.read(*r);
@@ -72,7 +51,7 @@ ControlResponse<ListPathsResponse> IgfsClient::listPaths(std::string path) {
 ControlResponse<InfoResponse> IgfsClient::info(std::string path) {
   InfoRequest req("", path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<InfoResponse> resp = {};
   resp.read(*r);
@@ -84,7 +63,7 @@ ControlResponse<InfoResponse> IgfsClient::info(std::string path) {
 ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string& path) {
   OpenCreateRequest req(path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<OpenCreateResponse> resp = {};
   resp.read(*r);
@@ -102,7 +81,7 @@ ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string& path) {
 ControlResponse<OpenAppendResponse> IgfsClient::openAppend(std::string userName, std::string path) {
   OpenAppendRequest req(userName, path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<OpenAppendResponse> resp = {};
   resp.read(*r);
@@ -120,7 +99,7 @@ ControlResponse<OpenAppendResponse> IgfsClient::openAppend(std::string userName,
 ControlResponse<Optional<OpenReadResponse>> IgfsClient::openRead(std::string userName, std::string path) {
   OpenReadRequest req(userName, path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<Optional<OpenReadResponse>> resp = {};
   resp.read(*r);
@@ -132,7 +111,7 @@ ControlResponse<Optional<OpenReadResponse>> IgfsClient::openRead(std::string use
 ControlResponse<ExistsResponse> IgfsClient::exists(const std::string& path) {
   ExistsRequest req(path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<ExistsResponse> resp = {};
   resp.read(*r);
@@ -144,7 +123,7 @@ ControlResponse<ExistsResponse> IgfsClient::exists(const std::string& path) {
 ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(const std::string& path) {
   MakeDirectoriesRequest req("", path);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<MakeDirectoriesResponse> resp = {};
   resp.read(*r);
@@ -156,7 +135,7 @@ ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(const std::string& pa
 ControlResponse<DeleteResponse> IgfsClient::del(std::string path, bool recursive) {
   DeleteRequest req(path, recursive);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<DeleteResponse> resp = {};
   resp.read(*r);
@@ -168,13 +147,13 @@ ControlResponse<DeleteResponse> IgfsClient::del(std::string path, bool recursive
 void IgfsClient::writeBlock(long streamId, const char *data, int len) {
   WriteBlockRequest req(streamId, data, len);
   req.write(*w);
-  w->flush();
+  w->reset();
 }
 
 ReadBlockControlResponse IgfsClient::readBlock(long streamId, long pos, int len, char* dst) {
   ReadBlockRequest req(streamId, pos, len);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ReadBlockControlResponse resp(dst);
   resp.read(*r);
@@ -186,7 +165,7 @@ ReadBlockControlResponse IgfsClient::readBlock(long streamId, long pos, int len,
 ControlResponse<CloseResponse> IgfsClient::close(long streamId) {
   CloseRequest req(streamId);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<CloseResponse> resp = {};
   resp.read(*r);
@@ -198,7 +177,7 @@ ControlResponse<CloseResponse> IgfsClient::close(long streamId) {
 ControlResponse<RenameResponse> IgfsClient::rename(const std::string &source, const std::string &dest) {
   RenameRequest req(source, dest);
   req.write(*w);
-  w->flush();
+  w->reset();
 
   ControlResponse<RenameResponse> resp = {};
   resp.read(*r);
@@ -208,17 +187,13 @@ ControlResponse<RenameResponse> IgfsClient::rename(const std::string &source, co
 }
 
 Writer *IgfsClient::createWriter() {
-  auto *sBuf1 = new Socketbuf(sock);
-  auto *out = new std::ostream(sBuf1);
-  auto w = new Writer(out);
+  auto w = new Writer(plainClient);
 
   return w;
 }
 
 Reader *IgfsClient::createReader() {
-  auto *sBuf2 = new Socketbuf(sock);
-  auto *in = new std::istream(sBuf2);
-  auto r = new Reader(in);
+  auto r = new Reader(plainClient);
 
   return r;
 }

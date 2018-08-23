@@ -27,6 +27,8 @@ limitations under the License.
 #include <bits/unique_ptr.h>
 #include "utils.h"
 #include "messages.h"
+#include "ignite_plain_client.h"
+
 
 using namespace std;
 
@@ -78,10 +80,8 @@ class IgfsClient {
   ControlResponse<RenameResponse> rename(const string &source, const string &dest);
 
  private:
-  int port;
-  string host;
+  ignite::PlainClient plainClient;
   string fsName;
-  int sock = 0;
 
   Writer *w;
   Reader *r;

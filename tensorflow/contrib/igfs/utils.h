@@ -22,88 +22,18 @@ limitations under the License.
 #include <memory>
 #include <streambuf>
 #include <sys/socket.h>
+#include "ignite_plain_client.h"
 
 using namespace std;
 
-class Socketbuf : public std::streambuf {
-  typedef std::streambuf::traits_type traits_type;
-  int d_fd;
-  static const int bufSize = 17; // Hardcode for now
-  char d_buffer[bufSize + 1];
-
-  int overflow(int c) override {
-    if (c == traits_type::eof()) {
-      return traits_type::eof();
-    }
-
-    d_buffer[bufSize] = c;
-    pbump(1);
-
-    int syncRes = sync();
-
-    return syncRes == 0 ? static_cast<char_type>(c) : traits_type::eof();
-  }
-
-  int sync() override {
-    unsigned long toSend = pptr() - pbase();
-    ssize_t n = send(d_fd, d_buffer, toSend, 0);
-    pbump(-n);
-
-    std::cout << "sync " << n << std::endl;
-    for (int i = 0; i < n; i++) {
-      std::cout << d_buffer[i] << '\t';
-    }
-    std::cout << std::endl;
-
-    return n >= 0 ? 0 : -1;
-  }
-
-  int underflow() override {
-    if (gptr() == egptr()) {
-      std::streamsize size = ::recv(d_fd, d_buffer, sizeof(d_buffer), 0);
-
-      std::cout << "underflow " << size << std::endl;
-      for (int i = 0; i < size; i++) {
-        std::cout << (static_cast<int>(d_buffer[i]) & 0xFF) << '\t';
-      }
-      std::cout << std::endl;
-
-      setg(d_buffer, d_buffer, d_buffer + size);
-    }
-    return gptr() == egptr()
-           ? traits_type::eof()
-           : traits_type::to_int_type(*this->gptr());
-  }
-
- public:
-  Socketbuf(int fd) : d_fd(fd) {
-    setp(d_buffer, d_buffer + bufSize);
-    setg(d_buffer, d_buffer, d_buffer);
-  }
-};
-
 class Reader {
  public:
-  Reader(istream* is) : is(is) {
+  Reader(ignite::PlainClient& is) : is(is) {
     pos = 0;
   }
 
-  Reader() : Reader(&cin) {
-
-  }
-
-  void printEverything() {
-    std::cout << "=======Printing everything=======" << std::endl;
-    char c = 0;
-    do {
-      *is >>  c;
-      std::cout << c << '\t';
-    } while(c != std::streambuf::traits_type::eof());
-    std::cout << std::endl;
-  }
-
   int skip(int n) {
-    is->ignore(n);
+    is.Ignore(n);
 
     pos += n;
 
@@ -112,7 +42,7 @@ class Reader {
 
   int skipToPos(int pos) {
     int toSkip = std::max(0, pos - this->pos);
-    is->ignore(toSkip);
+    is.Ignore(toSkip);
 
     this->pos += toSkip;
 
@@ -122,7 +52,7 @@ class Reader {
   // 4 bytes
   int readInt() {
     char buf[4];
-    is->read(buf, 4);
+    is.ReadData(buf, 4);
 
     pos += 4;
 
@@ -135,7 +65,7 @@ class Reader {
   // 4 bytes
   long readLong() {
     char buf[8];
-    is->read(buf, 8);
+    is.ReadData(buf, 8);
 
     pos += 8;
 
@@ -150,15 +80,16 @@ class Reader {
   }
 
   streamsize readBytes(char* dest, int len) {
-    is->read(dest, len);
+    is.ReadData(dest, len);
 
-    return is->gcount();
+    //TODO: this is not needed, it is either len or error during reading.
+    return len;
   }
 
   // 2 bytes
   short readShort() {
     char buf[2];
-    is->read(buf, 2);
+    is.ReadData(buf, 2);
 
     pos += 2;
 
@@ -167,7 +98,7 @@ class Reader {
 
   char readChar() {
     char d = 0;
-    *is >> d;
+    is.ReadData(&d, 1);
 
     pos += 1;
 
@@ -176,7 +107,7 @@ class Reader {
 
   bool readBool() {
     char d = 0;
-    *is >> d;
+    is.ReadData(&d, 1);
 
     pos += 1;
 
@@ -210,7 +141,7 @@ class Reader {
     short len = readShort();
     auto *cStr = new char[len + 1];
     cStr[len] = 0;
-    is->read(cStr, len);
+    is.ReadData(cStr, len);
 
     pos += len;
 
@@ -224,71 +155,83 @@ class Reader {
  private:
   // Position to be read next
   int pos;
-  unique_ptr<istream> is;
+  ignite::PlainClient is;
 };
 
 class Writer {
  private:
-  std::unique_ptr<std::ostream> os;
+  ignite::PlainClient os;
   int pos;
 
  public:
-  Writer() : os(&std::cout) {
-
-  }
-
-  Writer(std::ostream* os) : os(os) {
+  Writer(ignite::PlainClient& os) : os(os) {
     pos = 0;
   }
 
   void writeShort(unsigned short s) {
-    *os <<  (char) ((s >> 8) & 0xFF);
-    *os <<  (char) (s & 0xFF);
+    char buf[2];
+
+    buf[0] = (char) ((s >> 8) & 0xFF);
+    buf[1] = (char) (s & 0xFF);
+
+    os.WriteData(buf, 2);
 
     pos += 2;
   }
 
   void writeInt(int s) {
-    *os <<  (char) ((s >> 24) & 0xFF)
-        << (char) ((s >> 16) & 0xFF)
-        << (char) ((s >> 8) & 0xFF)
-        << (char) (s & 0xFF);
+    char buf[4];
+
+    buf[0] = (char) ((s >> 24) & 0xFF);
+    buf[1] = (char) ((s >> 16) & 0xFF);
+    buf[2] = (char) ((s >> 8) & 0xFF);
+    buf[3] = (char) (s & 0xFF);
+
+    os.WriteData(buf, 4);
 
     pos += 4;
   }
 
   void writeLong(long s) {
-    *os <<  (char) ((s >> 56) & 0xFF)
-        << (char) ((s >> 48) & 0xFF)
-        << (char) ((s >> 40) & 0xFF)
-        << (char) ((s >> 32) & 0xFF)
-        << (char) ((s >> 24) & 0xFF)
-        << (char) ((s >> 16) & 0xFF)
-        << (char) ((s >> 8) & 0xFF)
-        << (char) (s & 0xFF);
+    char buf[8];
+
+    buf[0] = (char) ((s >> 56) & 0xFF);
+    buf[1] = (char) ((s >> 48) & 0xFF);
+    buf[2] = (char) ((s >> 40) & 0xFF);
+    buf[3] = (char) ((s >> 32) & 0xFF);
+    buf[4] = (char) ((s >> 24) & 0xFF);
+    buf[5] = (char) ((s >> 16) & 0xFF);
+    buf[6] = (char) ((s >> 8) & 0xFF);
+    buf[7] = (char) (s & 0xFF);
+
+    os.WriteData(buf, 8);
 
     pos += 8;
   }
 
   // TODO: get rid of specifying concrete map parameters
   void writeSize(map<string, string>::size_type s) {
-    *os <<  (char) ((s >> 24) & 0xFF)
-        << (char) ((s >> 16) & 0xFF)
-        << (char) ((s >> 8) & 0xFF)
-        << (char) (s & 0xFF);
+    char buf[4];
+
+    buf[0] = (char) ((s >> 24) & 0xFF);
+    buf[1] = (char) ((s >> 16) & 0xFF);
+    buf[2] = (char) ((s >> 8) & 0xFF);
+    buf[3] = (char) (s & 0xFF);
+
+    os.WriteData(buf, 4);
 
     pos += 4;
   }
 
   void writeChar(char c) {
-    *os <<  c;
+    os.WriteData(&c, 1);
 
     pos += 1;
   }
 
   void skip(int n) {
     for (int i = 0; i < n; i++) {
-      *os <<  (char) 0;
+      writeChar(0);
     }
 
     pos += n;
@@ -298,16 +241,14 @@ class Writer {
     int toSkip = std::max(0, n - pos);
 
     for (int i = 0; i < toSkip; i++) {
-      *os <<  (char) 0;
+      writeChar(0);
     }
 
-    pos += toSkip;
+    // No inc of position, it is done in writeChar.
   }
 
   void writeBoolean(bool val) {
-    *os <<  (char) (val ? 1 : 0);
-
-    pos += 1;
+    writeChar((char) (val ? 1 : 0));
   }
 
   void writeString(string str) {
@@ -315,7 +256,9 @@ class Writer {
       writeBoolean(false);
       unsigned short l = str.length();
       writeShort(l);
-      *os <<  str;
+
+      //TODO: Check if it is actually c_str needed
+      os.WriteData(str.c_str(), str.length());
 
       int size = 1 + 2 + l;
       pos += size;
@@ -325,7 +268,7 @@ class Writer {
   }
 
   void writeBytes(const char* bytes, int len) {
-    os->write(bytes, len);
+    os.WriteData(bytes, len);
   }
 
   void writeStringMap(map<string, string> map) {
@@ -338,8 +281,7 @@ class Writer {
     }
   }
 
-  void flush() {
-    os->flush();
+  void reset() {
     pos = 0;
   }
 };
