@@ -73,7 +73,7 @@ Status IgniteDataset::AsGraphDefInternal(SerializationContext* ctx,
                                          DatasetGraphDefBuilder* b,
                                          Node** output) const {
   return errors::Unimplemented(
-      "IgniteDataset does not support_ 'AsGraphDefInternal'");
+      "IgniteDataset does not support 'AsGraphDefInternal'");
 }
 
 void IgniteDataset::SchemaToTypes() {
