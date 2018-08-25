@@ -17,9 +17,10 @@ limitations under the License.
 #include <stdlib.h>
 #include "tensorflow/core/framework/dataset.h"
 
+namespace tensorflow {
 namespace {
 
-class IgniteDatasetOp : public tensorflow::DatasetOpKernel {
+class IgniteDatasetOp : public DatasetOpKernel {
  public:
   using DatasetOpKernel::DatasetOpKernel;
 
@@ -132,7 +133,7 @@ class IgniteDatasetOp : public tensorflow::DatasetOpKernel {
       permutation.push_back(permutation_tensor->flat<int32>()(i));
     }
 
-    *output = new ignite::IgniteDataset(
+    *output = new IgniteDataset(
         ctx, cache_name, host, port, local, part, page_size, username, password,
         certfile, keyfile, cert_password, std::move(schema),
         std::move(permutation));
@@ -142,4 +143,5 @@ class IgniteDatasetOp : public tensorflow::DatasetOpKernel {
 REGISTER_KERNEL_BUILDER(Name("IgniteDataset").Device(DEVICE_CPU),
                         IgniteDatasetOp);
 
-}  // anonymous namespace
+}  // namespace
+}  // namespace tensorflow

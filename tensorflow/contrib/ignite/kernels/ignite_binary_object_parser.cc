@@ -256,7 +256,7 @@ Status BinaryObjectParser::Parse(
       int32_t byte_arr_size = *((int32_t*)*ptr);
       *ptr += 4;
 
-      Status status = Parse(*ptr, out_tensors, types);
+      Status status = Parse(ptr, out_tensors, types);
       if (!status.ok()) return status;
 
       int32_t offset = *((int32_t*)*ptr);
@@ -284,7 +284,7 @@ Status BinaryObjectParser::Parse(
       int32_t i = 0;
       while (*ptr < end) {
         i++;
-        Status status = Parse(*ptr, out_tensors, types);
+        Status status = Parse(ptr, out_tensors, types);
         if (!status.ok()) return status;
       }
 
