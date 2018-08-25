@@ -97,7 +97,7 @@ void IgniteDataset::SchemaToTypes() {
     } else if (e == STRING || e == STRING_ARR) {
       dtypes.push_back(DT_STRING);
     } else {
-      LOG(ERROR) << "Unexpected type in schema_ [type_id=" << e << "]";
+      LOG(ERROR) << "Unexpected type in schema [type_id=" << e << "]";
     }
   }
 }
@@ -109,7 +109,7 @@ void IgniteDataset::SchemaToShapes() {
     } else if (e >= 12 && e < 21) {
       shapes.push_back(PartialTensorShape({-1}));
     } else {
-      LOG(ERROR) << "Unexpected type in schema_ [type_id=" << e << "]";
+      LOG(ERROR) << "Unexpected type in schema [type_id=" << e << "]";
     }
   }
 }
