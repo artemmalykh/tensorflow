@@ -16,36 +16,36 @@ limitations under the License.
 #include "ignite_binary_object_parser.h"
 #include "ignite_dataset.h"
 
-#ifndef IGNITE_CLIENT_H
-#define IGNITE_CLIENT_H
+#ifndef TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
+#define TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
 #include "ignite_client.h"
 #endif
 
-namespace ignite {
+namespace tensorflow {
 
 class IgniteDatasetIterator
-    : public tensorflow::DatasetIterator<IgniteDataset> {
+    : public DatasetIterator<IgniteDataset> {
  public:
   IgniteDatasetIterator(const Params& params, std::string host,
-                        tensorflow::int32 port, std::string cache_name,
-                        bool local, tensorflow::int32 part,
-                        tensorflow::int32 page_size, std::string username,
+                        int32 port, std::string cache_name,
+                        bool local, int32 part,
+                        int32 page_size, std::string username,
                         std::string password, std::string certfile,
                         std::string keyfile, std::string cert_password,
-                        std::vector<tensorflow::int32> schema,
-                        std::vector<tensorflow::int32> permutation);
+                        std::vector<int32> schema,
+                        std::vector<int32> permutation);
   ~IgniteDatasetIterator();
-  tensorflow::Status GetNextInternal(
-      tensorflow::IteratorContext* ctx,
-      std::vector<tensorflow::Tensor>* out_tensors,
+  Status GetNextInternal(
+      IteratorContext* ctx,
+      std::vector<Tensor>* out_tensors,
       bool* end_of_sequence) override;
 
  protected:
-  tensorflow::Status SaveInternal(
-      tensorflow::IteratorStateWriter* writer) override;
-  tensorflow::Status RestoreInternal(
-      tensorflow::IteratorContext* ctx,
-      tensorflow::IteratorStateReader* reader) override;
+  Status SaveInternal(
+      IteratorStateWriter* writer) override;
+  Status RestoreInternal(
+      IteratorContext* ctx,
+      IteratorStateReader* reader) override;
 
  private:
   std::unique_ptr<Client> client;
@@ -53,12 +53,12 @@ class IgniteDatasetIterator
 
   const std::string cache_name;
   const bool local;
-  const tensorflow::int32 part;
-  const tensorflow::int32 page_size;
+  const int32 part;
+  const int32 page_size;
   const std::string username;
   const std::string password;
-  const std::vector<tensorflow::int32> schema;
-  const std::vector<tensorflow::int32> permutation;
+  const std::vector<int32> schema;
+  const std::vector<int32> permutation;
 
   int32_t remainder;
   int64_t cursor_id;
@@ -67,11 +67,11 @@ class IgniteDatasetIterator
   std::unique_ptr<uint8_t> page;
   uint8_t* ptr;
 
-  tensorflow::Status EstablishConnection();
-  tensorflow::Status CloseConnection();
-  tensorflow::Status Handshake();
-  tensorflow::Status ScanQuery();
-  tensorflow::Status LoadNextPage();
+  Status EstablishConnection();
+  Status CloseConnection();
+  Status Handshake();
+  Status ScanQuery();
+  Status LoadNextPage();
   int32_t JavaHashCode(std::string str);
 };
 
@@ -84,4 +84,4 @@ constexpr int16_t scan_query_opcode = 2000;
 constexpr int16_t load_next_page_opcode = 2001;
 constexpr int16_t close_connection_opcode = 0;
 
-}  // namespace ignite
+}  // namespace tensorflow

@@ -21,7 +21,7 @@ limitations under the License.
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
-namespace ignite {
+namespace tensorflow {
 
 static int PasswordCb(char *buf, int size, int rwflag, void *password) {
   strncpy(buf, (char *)(password), size);
@@ -39,7 +39,7 @@ SslWrapper::SslWrapper(std::shared_ptr<Client> client, std::string certfile,
 
 SslWrapper::~SslWrapper() {
   if (IsConnected()) {
-    tensorflow::Status status = Disconnect();
+    Status status = Disconnect();
     if (!status.ok()) LOG(WARNING) << status.ToString();
   }
 
@@ -49,32 +49,32 @@ SslWrapper::~SslWrapper() {
   }
 }
 
-tensorflow::Status SslWrapper::InitSslContext() {
+Status SslWrapper::InitSslContext() {
   OpenSSL_add_all_algorithms();
   SSL_load_error_strings();
 
   ctx = SSL_CTX_new(SSLv23_method());
   if (ctx == NULL)
-    return tensorflow::errors::Internal("Couldn't create SSL context");
+    return errors::Internal("Couldn't create SSL context");
 
   SSL_CTX_set_default_passwd_cb(ctx, PasswordCb);
   SSL_CTX_set_default_passwd_cb_userdata(ctx, (void *)cert_password.c_str());
 
   if (SSL_CTX_use_certificate_chain_file(ctx, certfile.c_str()) != 1)
-    return tensorflow::errors::Internal(
+    return errors::Internal(
         "Couldn't load cetificate chain (file '", certfile, "')");
 
   std::string private_key_file = keyfile.empty() ? certfile : keyfile;
   if (SSL_CTX_use_PrivateKey_file(ctx, private_key_file.c_str(),
                                   SSL_FILETYPE_PEM) != 1)
-    return tensorflow::errors::Internal("Couldn't load private key (file '",
+    return errors::Internal("Couldn't load private key (file '",
                                         private_key_file, "')");
 
-  return tensorflow::Status::OK();
+  return Status::OK();
 }
 
-tensorflow::Status SslWrapper::Connect() {
-  tensorflow::Status status;
+Status SslWrapper::Connect() {
+  Status status;
 
   if (ctx == NULL) {
     status = InitSslContext();
@@ -83,21 +83,21 @@ tensorflow::Status SslWrapper::Connect() {
 
   ssl = SSL_new(ctx);
   if (ssl == NULL)
-    return tensorflow::errors::Internal("Failed to establish SSL connection");
+    return errors::Internal("Failed to establish SSL connection");
 
   status = client->Connect();
   if (!status.ok()) return status;
 
   SSL_set_fd(ssl, client->GetSocketDescriptor());
   if (SSL_connect(ssl) != 1)
-    return tensorflow::errors::Internal("Failed to establish SSL connection");
+    return errors::Internal("Failed to establish SSL connection");
 
   LOG(INFO) << "SSL connection established";
 
-  return tensorflow::Status::OK();
+  return Status::OK();
 }
 
-tensorflow::Status SslWrapper::Disconnect() {
+Status SslWrapper::Disconnect() {
   SSL_free(ssl);
 
   LOG(INFO) << "SSL connection closed";
@@ -109,41 +109,41 @@ bool SslWrapper::IsConnected() { return client->IsConnected(); }
 
 int SslWrapper::GetSocketDescriptor() { return client->GetSocketDescriptor(); }
 
-tensorflow::Status SslWrapper::ReadData(uint8_t *buf, int32_t length) {
+Status SslWrapper::ReadData(uint8_t *buf, int32_t length) {
   int recieved = 0;
 
   while (recieved < length) {
     int res = SSL_read(ssl, buf, length - recieved);
 
     if (res < 0)
-      return tensorflow::errors::Internal(
+      return errors::Internal(
           "Error occured while reading from SSL socket: ", res);
 
     if (res == 0)
-      return tensorflow::errors::Internal("Server closed SSL connection");
+      return errors::Internal("Server closed SSL connection");
 
     recieved += res;
     buf += res;
   }
 
-  return tensorflow::Status::OK();
+  return Status::OK();
 }
 
-tensorflow::Status SslWrapper::WriteData(uint8_t *buf, int32_t length) {
+Status SslWrapper::WriteData(uint8_t *buf, int32_t length) {
   int sent = 0;
 
   while (sent < length) {
     int res = SSL_write(ssl, buf, length - sent);
 
     if (res < 0)
-      return tensorflow::errors::Internal(
+      return errors::Internal(
           "Error occured while writing into socket: ", res);
 
     sent += res;
     buf += res;
   }
 
-  return tensorflow::Status::OK();
+  return Status::OK();
 }
 
-}  // namespace ignite
+}  // namespace tensorflow

@@ -17,9 +17,9 @@ limitations under the License.
 #include <stdlib.h>
 #include "tensorflow/core/framework/dataset.h"
 
-namespace tensorflow {
+namespace {
 
-class IgniteDatasetOp : public DatasetOpKernel {
+class IgniteDatasetOp : public tensorflow::DatasetOpKernel {
  public:
   using DatasetOpKernel::DatasetOpKernel;
 
@@ -142,4 +142,4 @@ class IgniteDatasetOp : public DatasetOpKernel {
 REGISTER_KERNEL_BUILDER(Name("IgniteDataset").Device(DEVICE_CPU),
                         IgniteDatasetOp);
 
-}  // namespace tensorflow
+}  // anonymous namespace

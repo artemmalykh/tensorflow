@@ -27,25 +27,25 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/logging.h"
 
-namespace ignite {
+namespace tensorflow {
 
 PlainClient::PlainClient(std::string host, int port)
     : host(host), port(port), sock(INVALID_SOCKET) {}
 
 PlainClient::~PlainClient() {
   if (IsConnected()) {
-    tensorflow::Status status = Disconnect();
+    Status status = Disconnect();
     if (!status.ok()) LOG(WARNING) << status.ToString();
   }
 }
 
-tensorflow::Status PlainClient::Connect() {
+Status PlainClient::Connect() {
   WSADATA wsaData;
   addrinfo *result = NULL, *ptr = NULL, hints;
 
   int res = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (res != 0)
-    return tensorflow::errors::Internal("WSAStartup failed with error: ", res);
+    return errors::Internal("WSAStartup failed with error: ", res);
 
   ZeroMemory(&hints, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
@@ -55,13 +55,13 @@ tensorflow::Status PlainClient::Connect() {
   res =
       getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
   if (res != 0)
-    return tensorflow::errors::Internal("Getaddrinfo failed with error: ", res);
+    return errors::Internal("Getaddrinfo failed with error: ", res);
 
   for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
     sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
     if (sock == INVALID_SOCKET) {
       WSACleanup();
-      return tensorflow::errors::Internal("Socket failed with error: ",
+      return errors::Internal("Socket failed with error: ",
                                           WSAGetLastError());
     }
 
@@ -79,65 +79,65 @@ tensorflow::Status PlainClient::Connect() {
 
   if (sock == INVALID_SOCKET) {
     WSACleanup();
-    return tensorflow::errors::Internal("Unable to connect to server");
+    return errors::Internal("Unable to connect to server");
   }
 
   LOG(INFO) << "Connection to \"" << host << ":" << port << "\" established";
 
-  return tensorflow::Status::OK();
+  return Status::OK();
 }
 
-tensorflow::Status PlainClient::Disconnect() {
+Status PlainClient::Disconnect() {
   int res = shutdown(sock, SD_SEND);
   closesocket(sock);
   WSACleanup();
 
   if (res == SOCKET_ERROR)
-    return tensorflow::errors::Internal("Shutdown failed with error: ",
+    return errors::Internal("Shutdown failed with error: ",
                                         WSAGetLastError());
   else
-    return tensorflow::Status::OK();
+    return Status::OK();
 }
 
 bool PlainClient::IsConnected() { return sock != INVALID_SOCKET; }
 
 int PlainClient::GetSocketDescriptor() { return sock; }
 
-tensorflow::Status PlainClient::ReadData(uint8_t *buf, int32_t length) {
+Status PlainClient::ReadData(uint8_t *buf, int32_t length) {
   int recieved = 0;
 
   while (recieved < length) {
     int res = recv(sock, buf, length - recieved, 0);
 
     if (res < 0)
-      return tensorflow::errors::Internal(
+      return errors::Internal(
           "Error occured while reading from socket: ", res);
 
     if (res == 0)
-      return tensorflow::errors::Internal("Server closed connection");
+      return errors::Internal("Server closed connection");
 
     recieved += res;
     buf += res;
   }
 
-  return tensorflow::Status::OK();
+  return Status::OK();
 }
 
-tensorflow::Status PlainClient::WriteData(uint8_t *buf, int32_t length) {
+Status PlainClient::WriteData(uint8_t *buf, int32_t length) {
   int sent = 0;
 
   while (sent < length) {
     int res = send(sock, buf, length - sent, 0);
 
     if (res < 0)
-      return tensorflow::errors::Internal(
+      return errors::Internal(
           "Error occured while writing into socket: ", res);
 
     sent += res;
     buf += res;
   }
 
-  return tensorflow::Status::OK();
+  return Status::OK();
 }
 
-}  // namespace ignite
+}  // namespace tensorflow

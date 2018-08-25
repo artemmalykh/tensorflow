@@ -15,26 +15,26 @@ limitations under the License.
 
 #include "tensorflow/core/lib/core/status.h"
 
-namespace ignite {
+namespace tensorflow {
 
 class Client {
  public:
-  virtual tensorflow::Status Connect() = 0;
-  virtual tensorflow::Status Disconnect() = 0;
+  virtual Status Connect() = 0;
+  virtual Status Disconnect() = 0;
   virtual bool IsConnected() = 0;
   virtual int GetSocketDescriptor() = 0;
 
-  virtual tensorflow::Status ReadByte(uint8_t& data);
-  virtual tensorflow::Status ReadShort(int16_t& data);
-  virtual tensorflow::Status ReadInt(int32_t& data);
-  virtual tensorflow::Status ReadLong(int64_t& data);
-  virtual tensorflow::Status ReadData(uint8_t* buf, int32_t length) = 0;
+  virtual Status ReadByte(uint8_t& data);
+  virtual Status ReadShort(int16_t& data);
+  virtual Status ReadInt(int32_t& data);
+  virtual Status ReadLong(int64_t& data);
+  virtual Status ReadData(uint8_t* buf, int32_t length) = 0;
 
-  virtual tensorflow::Status WriteByte(uint8_t data);
-  virtual tensorflow::Status WriteShort(int16_t data);
-  virtual tensorflow::Status WriteInt(int32_t data);
-  virtual tensorflow::Status WriteLong(int64_t data);
-  virtual tensorflow::Status WriteData(uint8_t* buf, int32_t length) = 0;
+  virtual Status WriteByte(uint8_t data);
+  virtual Status WriteShort(int16_t data);
+  virtual Status WriteInt(int32_t data);
+  virtual Status WriteLong(int64_t data);
+  virtual Status WriteData(uint8_t* buf, int32_t length) = 0;
 };
 
-}  // namespace ignite
+}  // namespace tensorflow

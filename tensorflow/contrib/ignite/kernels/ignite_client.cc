@@ -13,43 +13,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef IGNITE_CLIENT_H
-#define IGNITE_CLIENT_H
+#ifndef TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
+#define TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
 #include "ignite_client.h"
 #endif
 
-namespace ignite {
+namespace tensorflow {
 
-tensorflow::Status Client::ReadByte(uint8_t& data) {
+Status Client::ReadByte(uint8_t& data) {
   return ReadData((uint8_t*)&data, 1);
 }
 
-tensorflow::Status Client::ReadShort(int16_t& data) {
+Status Client::ReadShort(int16_t& data) {
   return ReadData((uint8_t*)&data, 2);
 }
 
-tensorflow::Status Client::ReadInt(int32_t& data) {
+Status Client::ReadInt(int32_t& data) {
   return ReadData((uint8_t*)&data, 4);
 }
 
-tensorflow::Status Client::ReadLong(int64_t& data) {
+Status Client::ReadLong(int64_t& data) {
   return ReadData((uint8_t*)&data, 8);
 }
 
-tensorflow::Status Client::WriteByte(uint8_t data) {
+Status Client::WriteByte(uint8_t data) {
   return WriteData((uint8_t*)&data, 1);
 }
 
-tensorflow::Status Client::WriteShort(int16_t data) {
+Status Client::WriteShort(int16_t data) {
   return WriteData((uint8_t*)&data, 2);
 }
 
-tensorflow::Status Client::WriteInt(int32_t data) {
+Status Client::WriteInt(int32_t data) {
   return WriteData((uint8_t*)&data, 4);
 }
 
-tensorflow::Status Client::WriteLong(int64_t data) {
+Status Client::WriteLong(int64_t data) {
   return WriteData((uint8_t*)&data, 8);
 }
 
-}  // namespace ignite
+}  // namespace tensorflow
