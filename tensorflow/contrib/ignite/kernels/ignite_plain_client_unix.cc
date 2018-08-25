@@ -44,8 +44,7 @@ PlainClient::~PlainClient() {
 Status PlainClient::Connect() {
   if (sock_ == -1) {
     sock_ = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_ == -1)
-      return errors::Internal("Failed to create socket");
+    if (sock_ == -1) return errors::Internal("Failed to create socket");
   }
 
   sockaddr_in server;
@@ -56,8 +55,7 @@ Status PlainClient::Connect() {
     in_addr** addr_list;
 
     if ((he = gethostbyname(host_.c_str())) == NULL)
-      return errors::Internal("Failed to resolve hostname \"", host_,
-                                          "\"");
+      return errors::Internal("Failed to resolve hostname \"", host_, "\"");
 
     addr_list = (in_addr**)he->h_addr_list;
     if (addr_list[0] != NULL) server.sin_addr = *addr_list[0];
@@ -67,8 +65,7 @@ Status PlainClient::Connect() {
   server.sin_port = htons(port_);
 
   if (connect(sock_, (sockaddr*)&server, sizeof(server)) < 0)
-    return errors::Internal("Failed to connect to \"", host_, ":",
-                                        port_, "\"");
+    return errors::Internal("Failed to connect to \"", host_, ":", port_, "\"");
 
   LOG(INFO) << "Connection to \"" << host_ << ":" << port_ << "\" established";
 
@@ -81,14 +78,14 @@ Status PlainClient::Disconnect() {
 
   LOG(INFO) << "Connection to \"" << host_ << ":" << port_ << "\" is closed";
 
-  return close_res == 0 ? Status::OK()
-                        : errors::Internal(
-                              "Failed to correctly close connection");
+  return close_res == 0
+             ? Status::OK()
+             : errors::Internal("Failed to correctly close connection");
 }
 
 bool PlainClient::IsConnected() { return sock_ != -1; }
 
-int PlainClient::GetSocketDescriptor() { return sock; }
+int PlainClient::GetSocketDescriptor() { return sock_; }
 
 Status PlainClient::ReadData(uint8_t* buf, int32_t length) {
   int recieved = 0;
@@ -97,12 +94,10 @@ Status PlainClient::ReadData(uint8_t* buf, int32_t length) {
     int res = recv(sock_, buf, length - recieved, 0);
 
     if (res < 0)
-      return errors::Internal(
-          "Error occured while reading from socket: ", res, ", ",
-          std::string(strerror(errno)));
+      return errors::Internal("Error occured while reading from socket: ", res,
+                              ", ", std::string(strerror(errno)));
 
-    if (res == 0)
-      return errors::Internal("Server closed connection");
+    if (res == 0) return errors::Internal("Server closed connection");
 
     recieved += res;
     buf += res;
@@ -118,9 +113,8 @@ Status PlainClient::WriteData(uint8_t* buf, int32_t length) {
     int res = send(sock_, buf, length - sent, 0);
 
     if (res < 0)
-      return errors::Internal(
-          "Error occured while writing into socket: ", res, ", ",
-          std::string(strerror(errno)));
+      return errors::Internal("Error occured while writing into socket: ", res,
+                              ", ", std::string(strerror(errno)));
 
     sent += res;
     buf += res;
