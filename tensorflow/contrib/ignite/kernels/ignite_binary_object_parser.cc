@@ -226,8 +226,7 @@ Status BinaryObjectParser::Parse(uint8_t** ptr,
       int32_t byte_arr_size = *((int32_t*)*ptr);
       *ptr += 4;
 
-      Status status = Parse(ptr, out_tensors, types);
-      if (!status.ok()) return status;
+      TF_RETURN_IF_ERROR(Parse(ptr, out_tensors, types));
 
       int32_t offset = *((int32_t*)*ptr);
       *ptr += 4;
@@ -254,8 +253,7 @@ Status BinaryObjectParser::Parse(uint8_t** ptr,
       int32_t i = 0;
       while (*ptr < end) {
         i++;
-        Status status = Parse(ptr, out_tensors, types);
-        if (!status.ok()) return status;
+        TF_RETURN_IF_ERROR(Parse(ptr, out_tensors, types));
       }
 
       *ptr += (length - schema_offset);
