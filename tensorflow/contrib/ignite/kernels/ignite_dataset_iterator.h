@@ -48,31 +48,31 @@ class IgniteDatasetIterator
       IteratorStateReader* reader) override;
 
  private:
-  std::unique_ptr<Client> client;
-  BinaryObjectParser parser;
+  std::unique_ptr<Client> client_;
+  BinaryObjectParser parser_;
 
-  const std::string cache_name;
-  const bool local;
-  const int32 part;
-  const int32 page_size;
-  const std::string username;
-  const std::string password;
-  const std::vector<int32> schema;
-  const std::vector<int32> permutation;
+  const std::string cache_name_;
+  const bool local_;
+  const int32 part_;
+  const int32 page_size_;
+  const std::string username_;
+  const std::string password_;
+  const std::vector<int32> schema_;
+  const std::vector<int32> permutation_;
 
-  int32_t remainder;
-  int64_t cursor_id;
-  bool last_page;
+  int32_t remainder_;
+  int64_t cursor_id_;
+  bool last_page_;
 
-  std::unique_ptr<uint8_t> page;
-  uint8_t* ptr;
+  std::unique_ptr<uint8_t> page_;
+  uint8_t* ptr_;
 
   Status EstablishConnection();
   Status CloseConnection();
   Status Handshake();
   Status ScanQuery();
   Status LoadNextPage();
-  int32_t JavaHashCode(std::string str);
+  int32_t JavaHashCode(std::string str) const;
 };
 
 constexpr uint8_t null_val = 101;

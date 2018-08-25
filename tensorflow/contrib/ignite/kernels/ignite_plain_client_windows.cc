@@ -30,7 +30,7 @@ limitations under the License.
 namespace tensorflow {
 
 PlainClient::PlainClient(std::string host, int port)
-    : host(host), port(port), sock(INVALID_SOCKET) {}
+    : host_(host), port_(port), sock_(INVALID_SOCKET) {}
 
 PlainClient::~PlainClient() {
   if (IsConnected()) {
@@ -53,22 +53,22 @@ Status PlainClient::Connect() {
   hints.ai_protocol = IPPROTO_TCP;
 
   res =
-      getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
+      getaddrinfo(host_.c_str(), std::to_string(port_).c_str(), &hints, &result);
   if (res != 0)
     return errors::Internal("Getaddrinfo failed with error: ", res);
 
   for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
-    sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-    if (sock == INVALID_SOCKET) {
+    sock_ = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+    if (sock_ == INVALID_SOCKET) {
       WSACleanup();
       return errors::Internal("Socket failed with error: ",
                                           WSAGetLastError());
     }
 
-    res = connect(sock, ptr->ai_addr, (int)ptr->ai_addrlen);
+    res = connect(sock_, ptr->ai_addr, (int)ptr->ai_addrlen);
     if (res == SOCKET_ERROR) {
-      closesocket(sock);
-      sock = INVALID_SOCKET;
+      closesocket(sock_);
+      sock_ = INVALID_SOCKET;
       continue;
     }
 
@@ -77,19 +77,19 @@ Status PlainClient::Connect() {
 
   freeaddrinfo(result);
 
-  if (sock == INVALID_SOCKET) {
+  if (sock_ == INVALID_SOCKET) {
     WSACleanup();
     return errors::Internal("Unable to connect to server");
   }
 
-  LOG(INFO) << "Connection to \"" << host << ":" << port << "\" established";
+  LOG(INFO) << "Connection to \"" << host_ << ":" << port_ << "\" established";
 
   return Status::OK();
 }
 
 Status PlainClient::Disconnect() {
-  int res = shutdown(sock, SD_SEND);
-  closesocket(sock);
+  int res = shutdown(sock_, SD_SEND);
+  closesocket(sock_);
   WSACleanup();
 
   if (res == SOCKET_ERROR)
@@ -99,15 +99,15 @@ Status PlainClient::Disconnect() {
     return Status::OK();
 }
 
-bool PlainClient::IsConnected() { return sock != INVALID_SOCKET; }
+bool PlainClient::IsConnected() { return sock_ != INVALID_SOCKET; }
 
-int PlainClient::GetSocketDescriptor() { return sock; }
+int PlainClient::GetSocketDescriptor() { return sock_; }
 
 Status PlainClient::ReadData(uint8_t *buf, int32_t length) {
   int recieved = 0;
 
   while (recieved < length) {
-    int res = recv(sock, buf, length - recieved, 0);
+    int res = recv(sock_, buf, length - recieved, 0);
 
     if (res < 0)
       return errors::Internal(
@@ -127,7 +127,7 @@ Status PlainClient::WriteData(uint8_t *buf, int32_t length) {
   int sent = 0;
 
   while (sent < length) {
-    int res = send(sock, buf, length - sent, 0);
+    int res = send(sock_, buf, length - sent, 0);
 
     if (res < 0)
       return errors::Internal(

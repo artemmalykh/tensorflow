@@ -37,12 +37,13 @@ class SslWrapper : public Client {
   virtual Status WriteData(uint8_t* buf, int32_t length);
 
  private:
-  std::shared_ptr<Client> client;
-  std::string certfile;
-  std::string keyfile;
-  std::string cert_password;
-  SSL_CTX* ctx;
-  SSL* ssl;
+  std::shared_ptr<Client> client_;
+  std::string certfile_;
+  std::string keyfile_;
+  std::string cert_password_;
+  SSL_CTX* ctx_;
+  SSL* ssl_;
+  
   Status InitSslContext();
 };
 

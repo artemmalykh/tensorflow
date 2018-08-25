@@ -32,7 +32,7 @@ limitations under the License.
 namespace tensorflow {
 
 PlainClient::PlainClient(std::string host, int port)
-    : host(host), port(port), sock(-1) {}
+    : host_(host), port_(port), sock_(-1) {}
 
 PlainClient::~PlainClient() {
   if (IsConnected()) {
@@ -42,21 +42,21 @@ PlainClient::~PlainClient() {
 }
 
 Status PlainClient::Connect() {
-  if (sock == -1) {
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1)
+  if (sock_ == -1) {
+    sock_ = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock_ == -1)
       return errors::Internal("Failed to create socket");
   }
 
   sockaddr_in server;
 
-  server.sin_addr.s_addr = inet_addr(host.c_str());
+  server.sin_addr.s_addr = inet_addr(host_.c_str());
   if (server.sin_addr.s_addr == -1) {
     hostent* he;
     in_addr** addr_list;
 
-    if ((he = gethostbyname(host.c_str())) == NULL)
-      return errors::Internal("Failed to resolve hostname \"", host,
+    if ((he = gethostbyname(host_.c_str())) == NULL)
+      return errors::Internal("Failed to resolve hostname \"", host_,
                                           "\"");
 
     addr_list = (in_addr**)he->h_addr_list;
@@ -64,29 +64,29 @@ Status PlainClient::Connect() {
   }
 
   server.sin_family = AF_INET;
-  server.sin_port = htons(port);
+  server.sin_port = htons(port_);
 
-  if (connect(sock, (sockaddr*)&server, sizeof(server)) < 0)
-    return errors::Internal("Failed to connect to \"", host, ":",
-                                        port, "\"");
+  if (connect(sock_, (sockaddr*)&server, sizeof(server)) < 0)
+    return errors::Internal("Failed to connect to \"", host_, ":",
+                                        port_, "\"");
 
-  LOG(INFO) << "Connection to \"" << host << ":" << port << "\" established";
+  LOG(INFO) << "Connection to \"" << host_ << ":" << port_ << "\" established";
 
   return Status::OK();
 }
 
 Status PlainClient::Disconnect() {
-  int close_res = close(sock);
-  sock = -1;
+  int close_res = close(sock_);
+  sock_ = -1;
 
-  LOG(INFO) << "Connection to \"" << host << ":" << port << "\" is closed";
+  LOG(INFO) << "Connection to \"" << host_ << ":" << port_ << "\" is closed";
 
   return close_res == 0 ? Status::OK()
                         : errors::Internal(
                               "Failed to correctly close connection");
 }
 
-bool PlainClient::IsConnected() { return sock != -1; }
+bool PlainClient::IsConnected() { return sock_ != -1; }
 
 int PlainClient::GetSocketDescriptor() { return sock; }
 
@@ -94,7 +94,7 @@ Status PlainClient::ReadData(uint8_t* buf, int32_t length) {
   int recieved = 0;
 
   while (recieved < length) {
-    int res = recv(sock, buf, length - recieved, 0);
+    int res = recv(sock_, buf, length - recieved, 0);
 
     if (res < 0)
       return errors::Internal(
@@ -115,7 +115,7 @@ Status PlainClient::WriteData(uint8_t* buf, int32_t length) {
   int sent = 0;
 
   while (sent < length) {
-    int res = send(sock, buf, length - sent, 0);
+    int res = send(sock_, buf, length - sent, 0);
 
     if (res < 0)
       return errors::Internal(

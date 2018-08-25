@@ -19,7 +19,7 @@ namespace tensorflow {
 
 Status BinaryObjectParser::Parse(
     uint8_t** ptr, std::vector<Tensor>* out_tensors,
-    std::vector<int32_t>* types) {
+    std::vector<int32_t>* types) const {
   uint8_t object_type_id = **ptr;
   *ptr += 1;
 

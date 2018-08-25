@@ -21,20 +21,42 @@ class Client {
  public:
   virtual Status Connect() = 0;
   virtual Status Disconnect() = 0;
-  virtual bool IsConnected() = 0;
-  virtual int GetSocketDescriptor() = 0;
+  virtual bool IsConnected() const = 0;
+  virtual int GetSocketDescriptor() const = 0;
+  virtual Status ReadData(uint8_t* buf, int32_t length) const = 0;
+  virtual Status WriteData(uint8_t* buf, int32_t length) const = 0;
 
-  virtual Status ReadByte(uint8_t& data);
-  virtual Status ReadShort(int16_t& data);
-  virtual Status ReadInt(int32_t& data);
-  virtual Status ReadLong(int64_t& data);
-  virtual Status ReadData(uint8_t* buf, int32_t length) = 0;
+  inline Status ReadByte(uint8_t* data) const {
+    return ReadData(data, 1);
+  }
 
-  virtual Status WriteByte(uint8_t data);
-  virtual Status WriteShort(int16_t data);
-  virtual Status WriteInt(int32_t data);
-  virtual Status WriteLong(int64_t data);
-  virtual Status WriteData(uint8_t* buf, int32_t length) = 0;
+  inline Status ReadShort(int16_t* data) const {
+    return ReadData((uint8_t*)data, 2);
+  }
+
+  inline Status ReadInt(int32_t* data) const {
+    return ReadData((uint8_t*)data, 4);
+  }
+
+  inline Status ReadLong(int64_t* data) const {
+    return ReadData((uint8_t*)data, 8);
+  }
+
+  inline Status WriteByte(uint8_t data) const {
+    return WriteData(&data, 1);
+  }
+
+  inline Status WriteShort(int16_t data) const {
+    return WriteData((uint8_t*)&data, 2);
+  }
+
+  inline Status WriteInt(int32_t data) const {
+    return WriteData((uint8_t*)&data, 4);
+  }
+
+  inline Status WriteLong(int64_t data) const {
+    return WriteData((uint8_t*)&data, 8);
+  }
 };
 
 }  // namespace tensorflow

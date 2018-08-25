@@ -31,11 +31,11 @@ static int PasswordCb(char *buf, int size, int rwflag, void *password) {
 
 SslWrapper::SslWrapper(std::shared_ptr<Client> client, std::string certfile,
                        std::string keyfile, std::string cert_password)
-    : client(client),
-      certfile(certfile),
-      keyfile(keyfile),
-      cert_password(cert_password),
-      ctx(NULL) {}
+    : client_(client),
+      certfile_(certfile),
+      keyfile_(keyfile),
+      cert_password_(cert_password),
+      ctx_(NULL) {}
 
 SslWrapper::~SslWrapper() {
   if (IsConnected()) {
@@ -43,9 +43,9 @@ SslWrapper::~SslWrapper() {
     if (!status.ok()) LOG(WARNING) << status.ToString();
   }
 
-  if (ctx != NULL) {
-    SSL_CTX_free(ctx);
-    ctx = NULL;
+  if (ctx_ != NULL) {
+    SSL_CTX_free(ctx_);
+    ctx_ = NULL;
   }
 }
 
@@ -53,43 +53,39 @@ Status SslWrapper::InitSslContext() {
   OpenSSL_add_all_algorithms();
   SSL_load_error_strings();
 
-  ctx = SSL_CTX_new(SSLv23_method());
-  if (ctx == NULL)
+  ctx_ = SSL_CTX_new(SSLv23_method());
+  if (ctx_ == NULL)
     return errors::Internal("Couldn't create SSL context");
 
-  SSL_CTX_set_default_passwd_cb(ctx, PasswordCb);
-  SSL_CTX_set_default_passwd_cb_userdata(ctx, (void *)cert_password.c_str());
+  SSL_CTX_set_default_passwd_cb(ctx_, PasswordCb);
+  SSL_CTX_set_default_passwd_cb_userdata(ctx_, (void *)cert_password_.c_str());
 
-  if (SSL_CTX_use_certificate_chain_file(ctx, certfile.c_str()) != 1)
+  if (SSL_CTX_use_certificate_chain_file(ctx_, certfile_.c_str()) != 1)
     return errors::Internal(
-        "Couldn't load cetificate chain (file '", certfile, "')");
+        "Couldn't load cetificate chain (file '", certfile_, "')");
 
-  std::string private_key_file = keyfile.empty() ? certfile : keyfile;
-  if (SSL_CTX_use_PrivateKey_file(ctx, private_key_file.c_str(),
+  std::string private_key_file = keyfile_.empty() ? certfile_ : keyfile_;
+  if (SSL_CTX_use_PrivateKey_file(ctx_, private_key_file_.c_str(),
                                   SSL_FILETYPE_PEM) != 1)
     return errors::Internal("Couldn't load private key (file '",
-                                        private_key_file, "')");
+                                        private_key_file_, "')");
 
   return Status::OK();
 }
 
 Status SslWrapper::Connect() {
-  Status status;
-
-  if (ctx == NULL) {
-    status = InitSslContext();
-    if (!status.ok()) return status;
+  if (ctx_ == NULL) {
+    TF_RETURN_IF_ERROR(InitSslContext());
   }
 
-  ssl = SSL_new(ctx);
-  if (ssl == NULL)
+  ssl_ = SSL_new(ctx_);
+  if (ssl_ == NULL)
     return errors::Internal("Failed to establish SSL connection");
 
-  status = client->Connect();
-  if (!status.ok()) return status;
+  TF_RETURN_IF_ERROR(client_->Connect());
 
-  SSL_set_fd(ssl, client->GetSocketDescriptor());
-  if (SSL_connect(ssl) != 1)
+  SSL_set_fd(ssl_, client_->GetSocketDescriptor());
+  if (SSL_connect(ssl_) != 1)
     return errors::Internal("Failed to establish SSL connection");
 
   LOG(INFO) << "SSL connection established";
@@ -98,22 +94,22 @@ Status SslWrapper::Connect() {
 }
 
 Status SslWrapper::Disconnect() {
-  SSL_free(ssl);
+  SSL_free(ssl_);
 
   LOG(INFO) << "SSL connection closed";
 
-  return client->Disconnect();
+  return client_->Disconnect();
 }
 
-bool SslWrapper::IsConnected() { return client->IsConnected(); }
+bool SslWrapper::IsConnected() { return client_->IsConnected(); }
 
-int SslWrapper::GetSocketDescriptor() { return client->GetSocketDescriptor(); }
+int SslWrapper::GetSocketDescriptor() { return client_->GetSocketDescriptor(); }
 
 Status SslWrapper::ReadData(uint8_t *buf, int32_t length) {
   int recieved = 0;
 
   while (recieved < length) {
-    int res = SSL_read(ssl, buf, length - recieved);
+    int res = SSL_read(ssl_, buf, length - recieved);
 
     if (res < 0)
       return errors::Internal(
@@ -133,7 +129,7 @@ Status SslWrapper::WriteData(uint8_t *buf, int32_t length) {
   int sent = 0;
 
   while (sent < length) {
-    int res = SSL_write(ssl, buf, length - sent);
+    int res = SSL_write(ssl_, buf, length - sent);
 
     if (res < 0)
       return errors::Internal(

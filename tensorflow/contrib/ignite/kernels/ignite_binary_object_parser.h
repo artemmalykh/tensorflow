@@ -21,9 +21,8 @@ namespace tensorflow {
 
 class BinaryObjectParser {
  public:
-  Status Parse(uint8_t** ptr,
-                           std::vector<Tensor>* out_tensors,
-                           std::vector<int32_t>* types);
+  Status Parse(uint8_t** ptr, std::vector<Tensor>* out_tensors,
+                           std::vector<int32_t>* types) const;
 };
 
 enum ObjectType {

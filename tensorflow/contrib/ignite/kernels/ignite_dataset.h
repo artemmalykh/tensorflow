@@ -41,19 +41,19 @@ class IgniteDataset : public DatasetBase {
       Node** output) const override;
 
  private:
-  const std::string cache_name;
-  const std::string host;
-  const int32 port;
-  const bool local;
-  const int32 part;
-  const int32 page_size;
-  const std::string username;
-  const std::string password;
-  const std::string certfile;
-  const std::string keyfile;
-  const std::string cert_password;
-  const std::vector<int32> schema;
-  const std::vector<int32> permutation;
+  const std::string cache_name_;
+  const std::string host_;
+  const int32 port_;
+  const bool local_;
+  const int32 part_;
+  const int32 page_size_;
+  const std::string username_;
+  const std::string password_;
+  const std::string certfile_;
+  const std::string keyfile_;
+  const std::string cert_password_;
+  const std::vector<int32> schema_;
+  const std::vector<int32> permutation_;
 
   DataTypeVector dtypes;
   std::vector<PartialTensorShape> shapes;

@@ -35,9 +35,9 @@ class PlainClient : public Client {
   virtual Status WriteData(uint8_t* buf, int32_t length);
 
  private:
-  std::string host;
-  int port;
-  int sock;
+  const std::string host_;
+  const int port_;
+  int sock_;
 };
 
 }  // namespace tensorflow
