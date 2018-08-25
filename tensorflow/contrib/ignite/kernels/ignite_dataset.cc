@@ -42,11 +42,11 @@ IgniteDataset::IgniteDataset(OpKernelContext* ctx, std::string cache_name,
   SchemaToTypes();
   SchemaToShapes();
 
-  LOG(INFO) << "Ignite Dataset created [cache_name_='" << cache_name
-            << "', host_='" << host << "', port_=" << port
-            << ", local_=" << local << ", part_=" << part
-            << ", page_size_=" << page_size << ", username_='" << username
-            << "', certfile_='" << certfile << "', keyfile_='"
+  LOG(INFO) << "Ignite Dataset created [cache_name='" << cache_name
+            << "', host='" << host << "', port=" << port
+            << ", local=" << local << ", part=" << part
+            << ", page_size=" << page_size << ", username='" << username
+            << "', certfile='" << certfile << "', keyfile='"
             << keyfile + "']";
 }
 
