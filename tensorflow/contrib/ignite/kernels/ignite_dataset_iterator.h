@@ -15,11 +15,7 @@ limitations under the License.
 
 #include "ignite_binary_object_parser.h"
 #include "ignite_dataset.h"
-
-#ifndef TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
-#define TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
 #include "ignite_client.h"
-#endif
 
 namespace tensorflow {
 
