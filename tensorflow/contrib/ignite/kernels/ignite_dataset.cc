@@ -60,10 +60,10 @@ std::unique_ptr<IteratorBase> IgniteDataset::MakeIteratorInternal(
       this->cert_password_, this->schema_, this->permutation_));
 }
 
-const DataTypeVector& IgniteDataset::output_dtypes() const { return dtypes; }
+const DataTypeVector& IgniteDataset::output_dtypes() const { return dtypes_; }
 
 const std::vector<PartialTensorShape>& IgniteDataset::output_shapes() const {
-  return shapes;
+  return shapes_;
 }
 
 string IgniteDataset::DebugString() const { return "IgniteDatasetOp::Dataset"; }
@@ -78,23 +78,23 @@ Status IgniteDataset::AsGraphDefInternal(SerializationContext* ctx,
 void IgniteDataset::SchemaToTypes() {
   for (auto e : schema_) {
     if (e == BYTE || e == BYTE_ARR) {
-      dtypes.push_back(DT_UINT8);
+      dtypes_.push_back(DT_UINT8);
     } else if (e == SHORT || e == SHORT_ARR) {
-      dtypes.push_back(DT_INT16);
+      dtypes_.push_back(DT_INT16);
     } else if (e == INT || e == INT_ARR) {
-      dtypes.push_back(DT_INT32);
+      dtypes_.push_back(DT_INT32);
     } else if (e == LONG || e == LONG_ARR) {
-      dtypes.push_back(DT_INT64);
+      dtypes_.push_back(DT_INT64);
     } else if (e == FLOAT || e == FLOAT_ARR) {
-      dtypes.push_back(DT_FLOAT);
+      dtypes_.push_back(DT_FLOAT);
     } else if (e == DOUBLE || e == DOUBLE_ARR) {
-      dtypes.push_back(DT_DOUBLE);
+      dtypes_.push_back(DT_DOUBLE);
     } else if (e == UCHAR || e == UCHAR_ARR) {
-      dtypes.push_back(DT_UINT8);
+      dtypes_.push_back(DT_UINT8);
     } else if (e == BOOL || e == BOOL_ARR) {
-      dtypes.push_back(DT_BOOL);
+      dtypes_.push_back(DT_BOOL);
     } else if (e == STRING || e == STRING_ARR) {
-      dtypes.push_back(DT_STRING);
+      dtypes_.push_back(DT_STRING);
     } else {
       LOG(ERROR) << "Unexpected type in schema [type_id=" << e << "]";
     }
@@ -104,9 +104,9 @@ void IgniteDataset::SchemaToTypes() {
 void IgniteDataset::SchemaToShapes() {
   for (auto e : schema_) {
     if (e >= 1 && e < 10) {
-      shapes.push_back(PartialTensorShape({}));
+      shapes_.push_back(PartialTensorShape({}));
     } else if (e >= 12 && e < 21) {
-      shapes.push_back(PartialTensorShape({-1}));
+      shapes_.push_back(PartialTensorShape({-1}));
     } else {
       LOG(ERROR) << "Unexpected type in schema [type_id=" << e << "]";
     }

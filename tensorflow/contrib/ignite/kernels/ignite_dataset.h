@@ -52,8 +52,8 @@ class IgniteDataset : public DatasetBase {
   const std::vector<int32> schema_;
   const std::vector<int32> permutation_;
 
-  DataTypeVector dtypes;
-  std::vector<PartialTensorShape> shapes;
+  DataTypeVector dtypes_;
+  std::vector<PartialTensorShape> shapes_;
 
   void SchemaToTypes();
   void SchemaToShapes();
