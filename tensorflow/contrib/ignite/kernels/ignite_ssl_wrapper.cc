@@ -54,21 +54,20 @@ Status SslWrapper::InitSslContext() {
   SSL_load_error_strings();
 
   ctx_ = SSL_CTX_new(SSLv23_method());
-  if (ctx_ == NULL)
-    return errors::Internal("Couldn't create SSL context");
+  if (ctx_ == NULL) return errors::Internal("Couldn't create SSL context");
 
   SSL_CTX_set_default_passwd_cb(ctx_, PasswordCb);
   SSL_CTX_set_default_passwd_cb_userdata(ctx_, (void *)cert_password_.c_str());
 
   if (SSL_CTX_use_certificate_chain_file(ctx_, certfile_.c_str()) != 1)
-    return errors::Internal(
-        "Couldn't load cetificate chain (file '", certfile_, "')");
+    return errors::Internal("Couldn't load cetificate chain (file '", certfile_,
+                            "')");
 
   std::string private_key_file = keyfile_.empty() ? certfile_ : keyfile_;
-  if (SSL_CTX_use_PrivateKey_file(ctx_, private_key_file_.c_str(),
+  if (SSL_CTX_use_PrivateKey_file(ctx_, private_key_file.c_str(),
                                   SSL_FILETYPE_PEM) != 1)
     return errors::Internal("Couldn't load private key (file '",
-                                        private_key_file_, "')");
+                            private_key_file, "')");
 
   return Status::OK();
 }
@@ -112,11 +111,10 @@ Status SslWrapper::ReadData(uint8_t *buf, int32_t length) {
     int res = SSL_read(ssl_, buf, length - recieved);
 
     if (res < 0)
-      return errors::Internal(
-          "Error occured while reading from SSL socket: ", res);
+      return errors::Internal("Error occured while reading from SSL socket: ",
+                              res);
 
-    if (res == 0)
-      return errors::Internal("Server closed SSL connection");
+    if (res == 0) return errors::Internal("Server closed SSL connection");
 
     recieved += res;
     buf += res;
@@ -132,8 +130,7 @@ Status SslWrapper::WriteData(uint8_t *buf, int32_t length) {
     int res = SSL_write(ssl_, buf, length - sent);
 
     if (res < 0)
-      return errors::Internal(
-          "Error occured while writing into socket: ", res);
+      return errors::Internal("Error occured while writing into socket: ", res);
 
     sent += res;
     buf += res;

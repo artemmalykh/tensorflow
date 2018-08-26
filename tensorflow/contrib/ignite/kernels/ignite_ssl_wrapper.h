@@ -40,7 +40,7 @@ class SslWrapper : public Client {
   std::string cert_password_;
   SSL_CTX* ctx_;
   SSL* ssl_;
-  
+
   Status InitSslContext();
 };
 

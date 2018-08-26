@@ -19,26 +19,23 @@ namespace tensorflow {
 
 class IgniteDataset : public DatasetBase {
  public:
-  IgniteDataset(OpKernelContext* ctx, std::string cache_name,
-                std::string host, int32 port, bool local,
-                int32 part, int32 page_size,
+  IgniteDataset(OpKernelContext* ctx, std::string cache_name, std::string host,
+                int32 port, bool local, int32 part, int32 page_size,
                 std::string username, std::string password,
                 std::string certfile, std::string keyfile,
-                std::string cert_password,
-                std::vector<int32> schema,
+                std::string cert_password, std::vector<int32> schema,
                 std::vector<int32> permutation);
   ~IgniteDataset();
   std::unique_ptr<IteratorBase> MakeIteratorInternal(
       const string& prefix) const override;
   const DataTypeVector& output_dtypes() const override;
-  const std::vector<PartialTensorShape>& output_shapes()
-      const override;
+  const std::vector<PartialTensorShape>& output_shapes() const override;
   string DebugString() const override;
 
  protected:
-  Status AsGraphDefInternal(
-      SerializationContext* ctx, DatasetGraphDefBuilder* b,
-      Node** output) const override;
+  Status AsGraphDefInternal(SerializationContext* ctx,
+                            DatasetGraphDefBuilder* b,
+                            Node** output) const override;
 
  private:
   const std::string cache_name_;

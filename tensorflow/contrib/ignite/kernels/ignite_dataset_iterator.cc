@@ -15,7 +15,7 @@ limitations under the License.
 
 #include "ignite_dataset_iterator.h"
 
-#include "ignite_plain_client_.h"
+#include "ignite_plain_client.h"
 #include "ignite_ssl_wrapper.h"
 #include "tensorflow/core/platform/logging.h"
 
@@ -25,31 +25,30 @@ limitations under the License.
 namespace tensorflow {
 
 IgniteDatasetIterator::IgniteDatasetIterator(
-    const Params& params, std::string host, int32 port,
-    std::string cache_name_, bool local_, int32 part_,
-    int32 page_size_, std::string username_, std::string password_,
-    std::string certfile, std::string keyfile, std::string cert_password_,
-    std::vector<int32> schema_,
-    std::vector<int32> permutation_)
+    const Params& params, std::string host, int32 port, std::string cache_name,
+    bool local, int32 part, int32 page_size, std::string username,
+    std::string password, std::string certfile, std::string keyfile,
+    std::string cert_password, std::vector<int32> schema,
+    std::vector<int32> permutation)
     : DatasetIterator<IgniteDataset>(params),
-      cache_name_(cache_name_),
-      local_(local_),
-      part_(part_),
-      page_size_(page_size_),
-      username_(username_),
-      password_(password_),
-      schema_(schema_),
-      permutation_(permutation_),
+      cache_name_(cache_name),
+      local_(local),
+      part_(part),
+      page_size_(page_size),
+      username_(username),
+      password_(password),
+      schema_(schema),
+      permutation_(permutation),
       remainder_(-1),
       cursor_id_(-1),
       last_page_(false) {
-  client_* p_client_ = new PlainClient(host, port);
+  Client* p_client = new PlainClient(host, port);
 
   if (certfile.empty())
-    client_ = std::unique_ptr<client_>(p_client_);
+    client_ = std::unique_ptr<Client>(p_client);
   else
-    client_ = std::unique_ptr<client_>(new SslWrapper(
-        std::unique_ptr<client_>(p_client_), certfile, keyfile, cert_password_));
+    client_ = std::unique_ptr<Client>(new SslWrapper(
+        std::unique_ptr<Client>(p_client), certfile, keyfile, cert_password));
 
   LOG(INFO) << "Ignite Dataset Iterator created";
 }
@@ -85,15 +84,14 @@ Status IgniteDatasetIterator::CloseConnection() {
 
     TF_RETURN_IF_ERROR(client_->WriteInt(18));  // Message length
     TF_RETURN_IF_ERROR(
-        client_->WriteShort(close_connection_opcode));  // Operation code
-    TF_RETURN_IF_ERROR(client_->WriteLong(0));                // Request ID
-    TF_RETURN_IF_ERROR(client_->WriteLong(cursor_id_));        // Resource ID
+        client_->WriteShort(close_connection_opcode));   // Operation code
+    TF_RETURN_IF_ERROR(client_->WriteLong(0));           // Request ID
+    TF_RETURN_IF_ERROR(client_->WriteLong(cursor_id_));  // Resource ID
 
     int32_t res_len;
     TF_RETURN_IF_ERROR(client_->ReadInt(&res_len));
     if (res_len < 12)
-      return errors::Internal(
-          "Close Resource Response is corrupted");
+      return errors::Internal("Close Resource Response is corrupted");
 
     int64_t req_id;
     TF_RETURN_IF_ERROR(client_->ReadLong(&req_id));
@@ -110,11 +108,10 @@ Status IgniteDatasetIterator::CloseConnection() {
         std::string err_msg((char*)err_msg_c, err_msg_length);
         delete[] err_msg_c;
 
-        return errors::Internal("Close Resource Error [status=",
-                                            status, ", message=", err_msg, "]");
+        return errors::Internal("Close Resource Error [status=", status,
+                                ", message=", err_msg, "]");
       }
-      return errors::Internal("Close Resource Error [status=",
-                                          status, "]");
+      return errors::Internal("Close Resource Error [status=", status, "]");
     }
 
     LOG(INFO) << "Query Cursor " << cursor_id_ << " is closed";
@@ -126,13 +123,12 @@ Status IgniteDatasetIterator::CloseConnection() {
     LOG(INFO) << "Query Cursor " << cursor_id_ << " is already closed";
   }
 
-  return client_->IsConnected() ? client_->Disconnect()
-                               : Status::OK();
+  return client_->IsConnected() ? client_->Disconnect() : Status::OK();
 }
 
-Status IgniteDatasetIterator::GetNextInternal(
-    IteratorContext* ctx,
-    std::vector<Tensor>* out_tensors, bool* end_of_sequence) {
+Status IgniteDatasetIterator::GetNextInternal(IteratorContext* ctx,
+                                              std::vector<Tensor>* out_tensors,
+                                              bool* end_of_sequence) {
   if (remainder_ == 0 && last_page_) {
     LOG(INFO) << "Query Cursor " << cursor_id_ << " is closed";
 
@@ -144,8 +140,7 @@ Status IgniteDatasetIterator::GetNextInternal(
     if (!status.ok()) return status;
 
     if (remainder_ == -1 || remainder_ == 0) {
-      Status status =
-          remainder_ == -1 ? ScanQuery() : LoadNextPage();
+      Status status = remainder_ == -1 ? ScanQuery() : LoadNextPage();
       if (!status.ok()) return status;
     }
 
@@ -173,14 +168,13 @@ Status IgniteDatasetIterator::GetNextInternal(
   return Status::OK();
 }
 
-Status IgniteDatasetIterator::SaveInternal(
-    IteratorStateWriter* writer) {
+Status IgniteDatasetIterator::SaveInternal(IteratorStateWriter* writer) {
   return errors::Unimplemented(
       "Iterator for IgniteDataset does not support 'SaveInternal'");
 }
 
-Status IgniteDatasetIterator::RestoreInternal(
-    IteratorContext* ctx, IteratorStateReader* reader) {
+Status IgniteDatasetIterator::RestoreInternal(IteratorContext* ctx,
+                                              IteratorStateReader* reader) {
   return errors::Unimplemented(
       "Iterator for IgniteDataset does not support 'RestoreInternal')");
 }
@@ -248,18 +242,18 @@ Status IgniteDatasetIterator::Handshake() {
       std::string err_msg((char*)err_msg_c, length);
       delete[] err_msg_c;
 
-      return errors::Internal(
-          "Handshake Error [result=", handshake_res, ", version=",
-          serv_ver_major, ".", serv_ver_minor, ".", serv_ver_patch,
-          ", message='", err_msg, "']");
+      return errors::Internal("Handshake Error [result=", handshake_res,
+                              ", version=", serv_ver_major, ".", serv_ver_minor,
+                              ".", serv_ver_patch, ", message='", err_msg,
+                              "']");
     } else if (header == null_val) {
-      return errors::Internal(
-          "Handshake Error [result=", handshake_res, ", version=",
-          serv_ver_major, ".", serv_ver_minor, ".", serv_ver_patch, "]");
+      return errors::Internal("Handshake Error [result=", handshake_res,
+                              ", version=", serv_ver_major, ".", serv_ver_minor,
+                              ".", serv_ver_patch, "]");
     } else {
-      return errors::Internal(
-          "Handshake Error [result=", handshake_res, ", version=",
-          serv_ver_major, ".", serv_ver_minor, ".", serv_ver_patch, "]");
+      return errors::Internal("Handshake Error [result=", handshake_res,
+                              ", version=", serv_ver_major, ".", serv_ver_minor,
+                              ".", serv_ver_patch, "]");
     }
   }
 
@@ -267,15 +261,16 @@ Status IgniteDatasetIterator::Handshake() {
 }
 
 Status IgniteDatasetIterator::ScanQuery() {
-  TF_RETURN_IF_ERROR(client_->WriteInt(25));                        // Message length
-  TF_RETURN_IF_ERROR(client_->WriteShort(scan_query_opcode));       // Operation code
-  TF_RETURN_IF_ERROR(client_->WriteLong(0));                        // Request ID
-  TF_RETURN_IF_ERROR(client_->WriteInt(JavaHashCode(cache_name_)));  // Cache name
-  TF_RETURN_IF_ERROR(client_->WriteByte(0));                        // Flags
-  TF_RETURN_IF_ERROR(client_->WriteByte(null_val));                 // Filter object
-  TF_RETURN_IF_ERROR(client_->WriteInt(page_size_));                 // Cursor page size
-  TF_RETURN_IF_ERROR(client_->WriteInt(part_));    // part_ition to query
-  TF_RETURN_IF_ERROR(client_->WriteByte(local_));  // local_ flag
+  TF_RETURN_IF_ERROR(client_->WriteInt(25));                   // Message length
+  TF_RETURN_IF_ERROR(client_->WriteShort(scan_query_opcode));  // Operation code
+  TF_RETURN_IF_ERROR(client_->WriteLong(0));                   // Request ID
+  TF_RETURN_IF_ERROR(
+      client_->WriteInt(JavaHashCode(cache_name_)));  // Cache name
+  TF_RETURN_IF_ERROR(client_->WriteByte(0));          // Flags
+  TF_RETURN_IF_ERROR(client_->WriteByte(null_val));   // Filter object
+  TF_RETURN_IF_ERROR(client_->WriteInt(page_size_));  // Cursor page size
+  TF_RETURN_IF_ERROR(client_->WriteInt(part_));       // part_ition to query
+  TF_RETURN_IF_ERROR(client_->WriteByte(local_));     // local_ flag
 
   int64_t wait_start = std::chrono::duration_cast<std::chrono::milliseconds>(
                            std::chrono::system_clock::now().time_since_epoch())
@@ -290,8 +285,7 @@ Status IgniteDatasetIterator::ScanQuery() {
 
   LOG(INFO) << "Scan Query waited " << (wait_stop - wait_start) << " ms";
 
-  if (res_len < 12)
-    return errors::Internal("Scan Query Response is corrupted");
+  if (res_len < 12) return errors::Internal("Scan Query Response is corrupted");
 
   int64_t req_id;
   TF_RETURN_IF_ERROR(client_->ReadLong(&req_id));
@@ -312,11 +306,10 @@ Status IgniteDatasetIterator::ScanQuery() {
       std::string err_msg((char*)err_msg_c, err_msg_length);
       delete[] err_msg_c;
 
-      return errors::Internal("Scan Query Error [status=", status,
-                                          ", message=", err_msg, "]");
+      return errors::Internal("Scan Query Error [status=", status, ", message=",
+                              err_msg, "]");
     }
-    return errors::Internal("Scan Query Error [status=", status,
-                                        "]");
+    return errors::Internal("Scan Query Error [status=", status, "]");
   }
 
   TF_RETURN_IF_ERROR(client_->ReadLong(&cursor_id_));
@@ -355,10 +348,11 @@ Status IgniteDatasetIterator::ScanQuery() {
 }
 
 Status IgniteDatasetIterator::LoadNextPage() {
-  TF_RETURN_IF_ERROR(client_->WriteInt(18));                       // Message length
-  TF_RETURN_IF_ERROR(client_->WriteShort(load_next_page_opcode));  // Operation code
-  TF_RETURN_IF_ERROR(client_->WriteLong(0));                       // Request ID
-  TF_RETURN_IF_ERROR(client_->WriteLong(cursor_id_));               // Cursor ID
+  TF_RETURN_IF_ERROR(client_->WriteInt(18));  // Message length
+  TF_RETURN_IF_ERROR(
+      client_->WriteShort(load_next_page_opcode));     // Operation code
+  TF_RETURN_IF_ERROR(client_->WriteLong(0));           // Request ID
+  TF_RETURN_IF_ERROR(client_->WriteLong(cursor_id_));  // Cursor ID
 
   int64_t wait_start = std::chrono::duration_cast<std::chrono::milliseconds>(
                            std::chrono::system_clock::now().time_since_epoch())
@@ -395,11 +389,10 @@ Status IgniteDatasetIterator::LoadNextPage() {
       std::string err_msg((char*)err_msg_c, err_msg_length);
       delete[] err_msg_c;
 
-      return errors::Internal("Load Next Page Error [status=",
-                                          status, ", message=", err_msg, "]");
+      return errors::Internal("Load Next Page Error [status=", status,
+                              ", message=", err_msg, "]");
     }
-    return errors::Internal("Load Next Page Error [status=", status,
-                                        "]");
+    return errors::Internal("Load Next Page Error [status=", status, "]");
   }
 
   int32_t row_cnt;

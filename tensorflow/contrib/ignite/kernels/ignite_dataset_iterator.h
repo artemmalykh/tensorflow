@@ -19,29 +19,23 @@ limitations under the License.
 
 namespace tensorflow {
 
-class IgniteDatasetIterator
-    : public DatasetIterator<IgniteDataset> {
+class IgniteDatasetIterator : public DatasetIterator<IgniteDataset> {
  public:
-  IgniteDatasetIterator(const Params& params, std::string host,
-                        int32 port, std::string cache_name,
-                        bool local, int32 part,
+  IgniteDatasetIterator(const Params& params, std::string host, int32 port,
+                        std::string cache_name, bool local, int32 part,
                         int32 page_size, std::string username,
                         std::string password, std::string certfile,
                         std::string keyfile, std::string cert_password,
                         std::vector<int32> schema,
                         std::vector<int32> permutation);
   ~IgniteDatasetIterator();
-  Status GetNextInternal(
-      IteratorContext* ctx,
-      std::vector<Tensor>* out_tensors,
-      bool* end_of_sequence) override;
+  Status GetNextInternal(IteratorContext* ctx, std::vector<Tensor>* out_tensors,
+                         bool* end_of_sequence) override;
 
  protected:
-  Status SaveInternal(
-      IteratorStateWriter* writer) override;
-  Status RestoreInternal(
-      IteratorContext* ctx,
-      IteratorStateReader* reader) override;
+  Status SaveInternal(IteratorStateWriter* writer) override;
+  Status RestoreInternal(IteratorContext* ctx,
+                         IteratorStateReader* reader) override;
 
  private:
   std::unique_ptr<Client> client_;
