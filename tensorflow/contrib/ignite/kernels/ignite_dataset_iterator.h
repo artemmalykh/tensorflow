@@ -14,8 +14,8 @@ limitations under the License.
 ==============================================================================*/
 
 #include "ignite_binary_object_parser.h"
-#include "ignite_dataset.h"
 #include "ignite_client.h"
+#include "ignite_dataset.h"
 
 namespace tensorflow {
 
