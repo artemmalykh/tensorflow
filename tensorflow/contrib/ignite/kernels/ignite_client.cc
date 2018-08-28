@@ -14,21 +14,32 @@ limitations under the License.
 ==============================================================================*/
 
 #include "ignite_client.h"
+#include <byteswap.h>
 
 namespace ignite {
 
-Client::Client(bool bigEndian) : Client::bigEndian(bigEndian) {
+Client::Client(bool bigEndian) : bigEndian(bigEndian) {
   int x = 1;
   bool isLittleEndian = (*(char *)&x == 1);
-  Client::shouldSwap = bigEndian != isLittleEndian;
+  Client::shouldSwap = bigEndian == isLittleEndian;
 }
 
-#define bswap_N(x) bswap_##x
-
-template <typename A, int N> tensorflow::Status Client::Read(A d) {
-  const tensorflow::Status res = Client::ReadData((uint8_t*)&d, N);
+template <typename A, int Z> tensorflow::Status Client::Read(A d) {
+  const tensorflow::Status res = ReadData((uint8_t*)&d, Z);
   if (Client::shouldSwap) {
-    d = bswap_N(N)(d);
+    switch(Z) {
+      case 2:
+        d = bswap_16(d);
+        break;
+      case 4:
+        d = bswap_32(d);
+        break;
+      case 8:
+        d = bswap_64(d);
+        break;
+      default:
+        d = bswap_16(d);
+    }
   }
   return res;
 };
