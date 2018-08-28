@@ -32,6 +32,7 @@ from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import variables
 from tensorflow.python.platform import gfile
 from tensorflow.python.platform import test
+from tensorflow.python.training import checkpoint_management
 from tensorflow.python.training import saver as saver_lib
 from tensorflow.python.util import nest
 
@@ -251,7 +252,7 @@ class DatasetSerializationTestBase(test.TestCase):
       init_op, get_next_op = self._get_iterator_ops_from_collection(
           ds_fn, sparse_tensors=sparse_tensors)
       get_next_op = remove_variants(get_next_op)
-      with self.test_session(graph=g) as sess:
+      with self.session(graph=g) as sess:
         self._restore(saver, sess)
         self._initialize(init_op, sess)
         for _ in range(num_outputs):
@@ -314,7 +315,7 @@ class DatasetSerializationTestBase(test.TestCase):
       _, get_next_op, saver = self._build_graph(
           ds_fn2, sparse_tensors=sparse_tensors)
       get_next_op = remove_variants(get_next_op)
-      with self.test_session(graph=g) as sess:
+      with self.session(graph=g) as sess:
         self._restore(saver, sess)
         for _ in range(num_outputs - break_point):
           actual.append(sess.run(get_next_op))
@@ -375,7 +376,7 @@ class DatasetSerializationTestBase(test.TestCase):
       get_next_op, saver = self._build_empty_graph(
           ds_fn, sparse_tensors=sparse_tensors)
       get_next_op = remove_variants(get_next_op)
-      with self.test_session(graph=g) as sess:
+      with self.session(graph=g) as sess:
         self._restore(saver, sess)
         for _ in range(num_outputs - break_point):
           actual.append(sess.run(get_next_op))
@@ -409,7 +410,7 @@ class DatasetSerializationTestBase(test.TestCase):
       init_op, get_next_op, saver = self._build_graph(
           ds_fn, sparse_tensors=sparse_tensors)
       get_next_op = remove_variants(get_next_op)
-      with self.test_session(graph=g) as sess:
+      with self.session(graph=g) as sess:
         self._initialize(init_op, sess)
         for _ in range(break_point):
           sess.run(get_next_op)
@@ -516,7 +517,7 @@ class DatasetSerializationTestBase(test.TestCase):
       with ops.Graph().as_default() as g:
         init_op, get_next_op, saver = get_ops()
         get_next_op = remove_variants(get_next_op)
-        with self.test_session(graph=g) as sess:
+        with self.session(graph=g) as sess:
           if ckpt_saved:
             if init_before_restore:
               self._initialize(init_op, sess)
@@ -655,7 +656,7 @@ class DatasetSerializationTestBase(test.TestCase):
     return os.path.join(self.get_temp_dir(), "iterator")
 
   def _latest_ckpt(self):
-    return saver_lib.latest_checkpoint(self.get_temp_dir())
+    return checkpoint_management.latest_checkpoint(self.get_temp_dir())
 
   def _save(self, sess, saver):
     saver.save(sess, self._ckpt_path())

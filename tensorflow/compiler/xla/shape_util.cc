@@ -22,6 +22,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "tensorflow/compiler/xla/index_util.h"
 #include "tensorflow/compiler/xla/layout_util.h"
 #include "tensorflow/compiler/xla/overflow_util.h"
@@ -32,7 +33,6 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/gtl/iterator_range.h"
-#include "tensorflow/core/lib/gtl/optional.h"
 #include "tensorflow/core/lib/hash/hash.h"
 #include "tensorflow/core/lib/strings/numbers.h"
 #include "tensorflow/core/lib/strings/str_util.h"
@@ -596,8 +596,7 @@ StatusOr<Shape> ParseShapeStringInternal(tensorflow::StringPiece* s) {
     };
 
     auto comma_list_to_int64s =
-        [&s,
-         string_to_int64](const string& input) -> StatusOr<std::vector<int64>> {
+        [string_to_int64](const string& input) -> StatusOr<std::vector<int64>> {
       std::vector<int64> results;
       for (const string& piece : tensorflow::str_util::Split(input, ',')) {
         TF_ASSIGN_OR_RETURN(int64 element, string_to_int64(piece));
@@ -792,7 +791,7 @@ StatusOr<Shape> ParseShapeStringInternal(tensorflow::StringPiece* s) {
   if (LayoutUtil::IsSparseArray(shape)) {
     allocated_element_count = LayoutUtil::MaxSparseElements(shape.layout());
   } else {
-    CHECK(LayoutUtil::IsDenseArray(shape));
+    CHECK(LayoutUtil::IsDenseArray(shape)) << shape.ShortDebugString();
     tensorflow::gtl::ArraySlice<int64> padded_dimensions =
         LayoutUtil::PaddedDimensions(shape);
     if (!padded_dimensions.empty()) {
@@ -1015,12 +1014,13 @@ bool ShapeUtil::IsLeafIndex(const Shape& shape, const ShapeIndex& index) {
 }
 
 /* static */ int64 ShapeUtil::GetLeafCount(const Shape& shape) {
+  if (!IsTuple(shape)) {
+    return 1;
+  }
   int64 count = 0;
-  ForEachSubshape(shape, [&](const Shape&, const ShapeIndex& index) {
-    if (IsLeafIndex(shape, index)) {
-      ++count;
-    }
-  });
+  for (const Shape& subshape : shape.tuple_shapes()) {
+    count += GetLeafCount(subshape);
+  }
   return count;
 }
 
@@ -1460,7 +1460,7 @@ ShapeUtil::DimensionsUnmodifiedByReshape(const Shape& input_shape,
          check_input_unit_indices(output_shape, input_shape);
 }
 
-/* static */ tensorflow::gtl::optional<Shape> ShapeUtil::AlignLayouts(
+/* static */ absl::optional<Shape> ShapeUtil::AlignLayouts(
     const Shape& input_shape, const Shape& output_shape) {
   CHECK(IsArray(input_shape));
   CHECK(IsArray(output_shape));
@@ -1499,7 +1499,7 @@ ShapeUtil::DimensionsUnmodifiedByReshape(const Shape& input_shape,
     if (input_dimension_product < output_dimension_product ||
         j == output_rank) {
       if (i == input_rank) {
-        return tensorflow::gtl::nullopt;
+        return absl::nullopt;
       }
       dimension_to_alignment_index[i] = alignment.size() - 1;
       input_dimension_product *= input_shape.dimensions(i);
@@ -1510,7 +1510,7 @@ ShapeUtil::DimensionsUnmodifiedByReshape(const Shape& input_shape,
     }
   }
   if (input_dimension_product != output_dimension_product) {
-    return tensorflow::gtl::nullopt;
+    return absl::nullopt;
   }
   // We also need to store an end element so that we know where the last
   // alignment part ends.
@@ -1554,7 +1554,7 @@ ShapeUtil::DimensionsUnmodifiedByReshape(const Shape& input_shape,
     for (int64 j = 0; j < num_non_trivial_dimensions_in_alignment_part;
          ++i, ++j) {
       if (i == input_rank) {
-        return tensorflow::gtl::nullopt;
+        return absl::nullopt;
       }
       // Skip trivial dimensions with a bound of 1.
       if (input_shape.dimensions(input_dimension_numbers[i]) == 1) {
@@ -1567,7 +1567,7 @@ ShapeUtil::DimensionsUnmodifiedByReshape(const Shape& input_shape,
       if (dimension_to_alignment_index[input_dimension_numbers[i]] !=
               current_alignment_index ||
           input_dimension_numbers[i] > current_dimension_number) {
-        return tensorflow::gtl::nullopt;
+        return absl::nullopt;
       }
       current_dimension_number = input_dimension_numbers[i];
     }

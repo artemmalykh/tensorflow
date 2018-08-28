@@ -85,11 +85,12 @@ cc_library(
     copts = tf_copts(),
     visibility = ["//visibility:public"],
     deps = [
+        ":test_utils",
         ":trt_allocator",
+        ":trt_conversion",
         ":trt_logging",
         ":trt_plugins",
         ":trt_resources",
-        ":trt_conversion",
         ":utils",
         "//tensorflow/core:gpu_headers_lib",
         "//tensorflow/core:lib_proto_parsing",
@@ -184,6 +185,8 @@ py_library(
     ],
 )
 
+# TODO(aaroey): this wrapper has been causing troubles of double linking, so
+# either get rid of it, or split to make it contain minimum dependencies.
 tf_py_wrap_cc(
     name = "wrap_conversion",
     srcs = ["trt_conversion.i"],
@@ -192,6 +195,7 @@ tf_py_wrap_cc(
         "//tensorflow/python:platform/base.i",
     ],
     deps = [
+        ":test_utils",
         ":trt_conversion",
         ":trt_engine_op_kernel",
         "//third_party/python_runtime:headers",
@@ -264,6 +268,7 @@ tf_cuda_library(
     ],
     deps = [
         ":segment",
+        ":test_utils",
         ":trt_allocator",
         ":trt_plugins",
         ":trt_logging",
@@ -274,8 +279,8 @@ tf_cuda_library(
         "//tensorflow/core/grappler/optimizers:custom_graph_optimizer_registry",
         "//tensorflow/core/grappler:grappler_item",
         "//tensorflow/core/grappler:utils",
-        "//tensorflow/core:gpu_runtime",
         "//tensorflow/core:framework_lite",
+        "//tensorflow/core:gpu_runtime",
         "//tensorflow/core:graph",
         "//tensorflow/core:lib",
         "//tensorflow/core:lib_internal",
@@ -287,6 +292,31 @@ tf_cuda_library(
     ] + if_tensorrt([
         "@local_config_tensorrt//:nv_infer",
     ]) + tf_custom_op_library_additional_deps(),
+)
+
+tf_cuda_cc_test(
+    name = "convert_graph_test",
+    size = "medium",
+    srcs = ["convert/convert_graph_test.cc"],
+    tags = [
+        "no_cuda_on_cpu_tap",
+        "no_windows",
+        "nomac",
+    ],
+    deps = [
+        ":trt_conversion",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler/clusters:cluster",
+        "//tensorflow/core:core_cpu",
+        "//tensorflow/core:core_cpu_base",
+        "//tensorflow/core:direct_session",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:protos_all_cc",
+        "//tensorflow/core:test",
+        "//tensorflow/core:test_main",
+    ] + if_tensorrt([
+        "@local_config_tensorrt//:nv_infer",
+    ]),
 )
 
 # Library for the segmenting portion of TensorRT operation creation
@@ -383,17 +413,19 @@ cuda_py_tests(
     name = "tf_trt_integration_test",
     srcs = [
         "test/base_test.py",
-        # "test/batch_matmul_test.py",
-        # "test/biasadd_matmul_test.py",
-        # "test/binary_tensor_weight_broadcast_test.py",  # Blocked by trt4 installation
-        # "test/concatenation_test.py",  # Blocked by trt4 installation
+        "test/batch_matmul_test.py",
+        "test/biasadd_matmul_test.py",
+        "test/binary_tensor_weight_broadcast_test.py",
+        "test/concatenation_test.py",
         "test/const_broadcast_test.py",
+        "test/manual_test.py",
+        "test/memory_alignment_test.py",
         "test/multi_connection_neighbor_engine_test.py",
         "test/neighboring_engine_test.py",
-        # "test/unary_test.py",  # Blocked by trt4 installation
-        # "test/vgg_block_nchw_test.py",
-        # "test/vgg_block_test.py",
-        "test/memory_alignment_test.py",
+        "test/rank_two_test.py",
+        "test/unary_test.py",
+        "test/vgg_block_nchw_test.py",
+        "test/vgg_block_test.py",
     ],
     additional_deps = [
         ":tf_trt_integration_test_base",
@@ -412,4 +444,17 @@ cc_library(
     srcs = ["convert/utils.cc"],
     hdrs = ["convert/utils.h"],
     copts = tf_copts(),
+    deps = [
+        "//tensorflow/core:lib",
+    ],
+)
+
+cc_library(
+    name = "test_utils",
+    srcs = ["test/utils.cc"],
+    hdrs = ["test/utils.h"],
+    deps = [
+        "//tensorflow/core:lib",
+        "@com_googlesource_code_re2//:re2",
+    ],
 )

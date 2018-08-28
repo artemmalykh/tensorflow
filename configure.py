@@ -839,14 +839,15 @@ def set_tf_cuda_version(environ_cp):
       cuda_toolkit_path = cygpath(cuda_toolkit_path)
 
     if is_windows():
-      cuda_rt_lib_path = 'lib/x64/cudart.lib'
+      cuda_rt_lib_paths = ['lib/x64/cudart.lib']
     elif is_linux():
-      cuda_rt_lib_path = 'lib64/libcudart.so.%s' % tf_cuda_version
+      cuda_rt_lib_paths = ['%s/libcudart.so.%s' % (x, tf_cuda_version)
+                           for x in ['lib64', 'lib/x86_64-linux-gnu']]
     elif is_macos():
-      cuda_rt_lib_path = 'lib/libcudart.%s.dylib' % tf_cuda_version
+      cuda_rt_lib_paths = ['lib/libcudart.%s.dylib' % tf_cuda_version]
 
-    cuda_toolkit_path_full = os.path.join(cuda_toolkit_path, cuda_rt_lib_path)
-    if os.path.exists(cuda_toolkit_path_full):
+    cuda_toolkit_paths_full = [os.path.join(cuda_toolkit_path, x) for x in cuda_rt_lib_paths]
+    if any([os.path.exists(x) for x in cuda_toolkit_paths_full]):
       break
 
     # Reset and retry
@@ -1398,8 +1399,11 @@ def set_grpc_build_flags():
   write_to_bazelrc('build --define grpc_no_ares=true')
 
 
-def set_build_strip_flag():
-  write_to_bazelrc('build --strip=always')
+def set_system_libs_flag(environ_cp):
+  syslibs = environ_cp.get('TF_SYSTEM_LIBS', '')
+  syslibs = ','.join(sorted(syslibs.split(',')))
+  if syslibs and syslibs != '':
+    write_action_env_to_bazelrc('TF_SYSTEM_LIBS', syslibs)
 
 
 def set_windows_build_flags(environ_cp):
@@ -1498,14 +1502,16 @@ def main():
                 'with_aws_support', True, 'aws')
   set_build_var(environ_cp, 'TF_NEED_KAFKA', 'Apache Kafka Platform',
                 'with_kafka_support', True, 'kafka')
-  set_build_var(environ_cp, 'TF_NEED_IGFS', 'Apache Ignite File System',
-                'with_igfs_support', True, 'igfs')
+  set_build_var(environ_cp, 'TF_NEED_IGNITE', 'Apache Ignite',
+                'with_ignite_support', True, 'ignite')
   set_build_var(environ_cp, 'TF_ENABLE_XLA', 'XLA JIT', 'with_xla_support',
                 False, 'xla')
   set_build_var(environ_cp, 'TF_NEED_GDR', 'GDR', 'with_gdr_support',
                 False, 'gdr')
   set_build_var(environ_cp, 'TF_NEED_VERBS', 'VERBS', 'with_verbs_support',
                 False, 'verbs')
+  set_build_var(environ_cp, 'TF_NEED_NGRAPH', 'nGraph',
+                'with_ngraph_support', False, 'ngraph')
 
   set_action_env_var(environ_cp, 'TF_NEED_OPENCL_SYCL', 'OpenCL SYCL', False)
   if environ_cp.get('TF_NEED_OPENCL_SYCL') == '1':
@@ -1560,7 +1566,7 @@ def main():
 
   set_grpc_build_flags()
   set_cc_opt_flags(environ_cp)
-  set_build_strip_flag()
+  set_system_libs_flag(environ_cp)
   if is_windows():
     set_windows_build_flags(environ_cp)
 

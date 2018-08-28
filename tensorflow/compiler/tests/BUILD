@@ -388,6 +388,19 @@ tf_xla_py_test(
 )
 
 tf_xla_py_test(
+    name = "reshape_op_test",
+    size = "small",
+    srcs = ["reshape_op_test.py"],
+    deps = [
+        "//tensorflow/compiler/tests:xla_test",
+        "//tensorflow/compiler/tf2xla/python:xla",
+        "//tensorflow/python:array_ops",
+        "//tensorflow/python:dtypes",
+        "@absl_py//absl/testing:parameterized",
+    ],
+)
+
+tf_xla_py_test(
     name = "dynamic_stitch_test",
     size = "small",
     srcs = ["dynamic_stitch_test.py"],
@@ -691,11 +704,7 @@ tf_xla_py_test(
     size = "small",
     srcs = ["random_ops_test.py"],
     disabled_backends = [
-        # TODO(b/110300529): RngNormal doesn't return values with the expected variance
-        "cpu",
         "cpu_ondemand",
-        # TODO(b/31361304): enable RNG ops on GPU when parallelized.
-        "gpu",
     ],
     deps = [
         ":xla_test",
