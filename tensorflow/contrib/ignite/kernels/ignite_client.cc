@@ -75,7 +75,7 @@ tensorflow::Status Client::WriteInt(int32_t data) {
 }
 
 tensorflow::Status Client::WriteLong(int64_t data) {
-  int16_t d = shouldSwap ? bswap_64(data) : data;
+  int64_t d = shouldSwap ? bswap_64(data) : data;
   return WriteData((uint8_t*)&d, 8);
 }
 
