@@ -66,7 +66,8 @@ class IGFSRandomAccessFile : public RandomAccessFile {
   IGFSRandomAccessFile(const string& fName, long resourceId, shared_ptr<IgfsClient>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
 
   ~IGFSRandomAccessFile() override {
-    client_->close(resourceId_);
+    ControlResponse<CloseResponse> cr = {};
+    client_->close(cr, resourceId_);
   }
 
   Status Read(uint64 offset, size_t n, StringPiece *result,
@@ -74,7 +75,8 @@ class IGFSRandomAccessFile : public RandomAccessFile {
     Status s;
     char *dst = scratch;
     // TODO: check how many bytes were read.
-    ReadBlockControlResponse response = client_->readBlock(resourceId_, offset, n, dst);
+    ReadBlockControlResponse response = ReadBlockControlResponse(dst);
+    TF_RETURN_IF_ERROR(client_->readBlock(response, resourceId_, offset, n, dst));
 
     if (!response.isOk()) {
       // TODO: Make error return right status;
@@ -102,7 +104,9 @@ Status IgniteFileSystem::NewRandomAccessFile(
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
 
-    ControlResponse<Optional<OpenReadResponse>> openCreateResp = client->openRead("", path);
+    ControlResponse<Optional<OpenReadResponse>> openCreateResp = {};
+    TF_RETURN_IF_ERROR(client->openRead(openCreateResp, "", path));
+
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().get().getStreamId();
 
@@ -122,12 +126,13 @@ class IGFSWritableFile : public WritableFile {
 
   ~IGFSWritableFile() override {
     if (resourceId_ >= 0) {
-      client_->close(resourceId_);
+      ControlResponse<CloseResponse> cr = {};
+      client_->close(cr, resourceId_);
     }
   }
 
   Status Append(const StringPiece &data) override {
-    client_->writeBlock(resourceId_, data.data(), data.size());
+    TF_RETURN_IF_ERROR(client_->writeBlock(resourceId_, data.data(), data.size()));
 
     return Status::OK();
   }
@@ -135,7 +140,9 @@ class IGFSWritableFile : public WritableFile {
   Status Close() override {
     Status result;
 
-    if (!client_->close(resourceId_).isOk()) {
+    ControlResponse<CloseResponse> cr = {};
+    client_->close(cr, resourceId_);
+    if (!cr.isOk()) {
       //result = IOError(fName_, errno);
     }
 
@@ -167,11 +174,13 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
   if (hResponse.isOk()) {
     string path = TranslateName(fname);
     // Check if file exists, and if yes delete it.
-    ControlResponse<ExistsResponse> existsResponse = client->exists(path);
+    ControlResponse<ExistsResponse> existsResponse = {};
+    TF_RETURN_IF_ERROR(client->exists(existsResponse, path));
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
-        ControlResponse<DeleteResponse> delResponse = client->del(path, false);
+        ControlResponse<DeleteResponse> delResponse = {};
+        TF_RETURN_IF_ERROR(client->del(delResponse, path, false));
 
         if (!delResponse.isOk()) {
           // TODO: return error with appropriate code.
@@ -183,7 +192,8 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
       return Status(error::INTERNAL, "Error trying to know if file exists.");
     }
 
-    ControlResponse<OpenCreateResponse> openCreateResp = client->openCreate(path);
+    ControlResponse<OpenCreateResponse> openCreateResp = {};
+    TF_RETURN_IF_ERROR(client->openCreate(openCreateResp, path));
 
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().getStreamId();
@@ -207,11 +217,13 @@ Status IgniteFileSystem::NewAppendableFile(
 
   if (hResponse.isOk()) {
     // Check if file exists, and if yes delete it.
-    ControlResponse<ExistsResponse> existsResponse = client->exists(fname);
+    ControlResponse<ExistsResponse> existsResponse = {};
+    TF_RETURN_IF_ERROR(client->exists(existsResponse, fname));
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
-        ControlResponse<DeleteResponse> delResponse = client->del(fname, false);
+        ControlResponse<DeleteResponse> delResponse = {};
+        TF_RETURN_IF_ERROR(client->del(delResponse, fname, false));
 
         if (!delResponse.isOk()) {
           return Status(error::INTERNAL, "Error trying to delete existing file.");
@@ -221,7 +233,8 @@ Status IgniteFileSystem::NewAppendableFile(
       return Status(error::INTERNAL, "Error trying to know if file exists.");
     }
 
-    ControlResponse<OpenAppendResponse> openAppendResp = client->openAppend("", fname);
+    ControlResponse<OpenAppendResponse> openAppendResp = {};
+    TF_RETURN_IF_ERROR(client->openAppend(openAppendResp, "", fname));
 
     if (openAppendResp.isOk()) {
       long resourceId = openAppendResp.getRes().getStreamId();
@@ -249,7 +262,8 @@ Status IgniteFileSystem::FileExists(const string &fname) {
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
-    ControlResponse<ExistsResponse> existsResponse = client->exists(path);
+    ControlResponse<ExistsResponse> existsResponse = {};
+    TF_RETURN_IF_ERROR(client->exists(existsResponse, path));
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
@@ -329,7 +343,8 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
 
-    ControlResponse <DeleteResponse> delResp = client->del(path, false);
+    ControlResponse <DeleteResponse> delResp = {};
+    TF_RETURN_IF_ERROR(client->del(delResp, path, false));
 
     if (!delResp.isOk()) {
       return Status(error::INTERNAL, "Error");
@@ -355,7 +370,8 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
   if (hResponse.isOk()) {
     const string dir = TranslateName(fname);
 
-    ControlResponse <MakeDirectoriesResponse> mkDirResponse = client->mkdir(dir);
+    ControlResponse <MakeDirectoriesResponse> mkDirResponse = {};
+    TF_RETURN_IF_ERROR(client->mkdir(mkDirResponse, dir));
 
     if (!(mkDirResponse.isOk() && mkDirResponse.getRes().successful())) {
       return Status(error::INTERNAL, "Error");
@@ -383,7 +399,8 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
       if (!listFilesResponse.getRes().getEntries().empty()) {
         return errors::FailedPrecondition("Cannot delete a non-empty directory.");
       } else {
-        ControlResponse <DeleteResponse> delResponse = client->del(dir, true);
+        ControlResponse <DeleteResponse> delResponse = {};
+        TF_RETURN_IF_ERROR(client->del(delResponse, dir, true));
         
         if (!delResponse.isOk()) {
           return Status(error::INTERNAL, "Error while trying to delete directory.");
@@ -435,7 +452,8 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
     const string srcPath = TranslateName(src);
     const string targetPath = TranslateName(target);
 
-    ControlResponse <RenameResponse> renameResp = client->rename(srcPath, targetPath);
+    ControlResponse <RenameResponse> renameResp = {};
+    TF_RETURN_IF_ERROR(client->rename(renameResp, srcPath, targetPath));
 
     if (!renameResp.isOk()) {
       return Status(error::INTERNAL, "Error");

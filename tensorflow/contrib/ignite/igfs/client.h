@@ -34,20 +34,6 @@ using namespace ignite;
 
 namespace ignite {
 
-class Network : public std::exception {
- public:
-  Network(const string &s) {
-    cause = s.c_str();
-  }
-
-  const char *what() {
-    return cause;
-  }
-
- private:
-  const char *cause;
-};
-
 class IgfsClient {
  public:
   IgfsClient(int port, string host, string fsName);
@@ -62,25 +48,25 @@ class IgfsClient {
 
   Status info(ControlResponse<InfoResponse> &res, string path);
 
-  ControlResponse<OpenCreateResponse> openCreate(string &path);
+  Status openCreate(ControlResponse<OpenCreateResponse> &res, string &path);
 
-  ControlResponse<OpenAppendResponse> openAppend(string userName, string path);
+  Status openAppend(ControlResponse<OpenAppendResponse> &res, string userName, string path);
 
-  ControlResponse<Optional<OpenReadResponse>> openRead(string userName, string path);
+  Status openRead(ControlResponse<Optional<OpenReadResponse>> &res, string userName, string path);
 
-  ControlResponse<ExistsResponse> exists(const string &path);
+  Status exists(ControlResponse<ExistsResponse> &res, const string &path);
 
-  ControlResponse<MakeDirectoriesResponse> mkdir(const string &path);
+  Status mkdir(ControlResponse<MakeDirectoriesResponse> &res, const string &path);
 
-  ControlResponse<DeleteResponse> del(string path, bool recursive);
+  Status del(ControlResponse<DeleteResponse> &res, string path, bool recursive);
 
-  void writeBlock(long streamId, const char *data, int len);
+  Status writeBlock(long streamId, const char *data, int len);
 
-  ReadBlockControlResponse readBlock(long streamId, long pos, int len, char *dst);
+  Status readBlock(ReadBlockControlResponse &res, long streamId, long pos, int len, char *dst);
 
-  ControlResponse<CloseResponse> close(long streamId);
+  Status close(ControlResponse<CloseResponse> &res, long streamId);
 
-  ControlResponse<RenameResponse> rename(const string &source, const string &dest);
+  Status rename(ControlResponse<RenameResponse> &res, const string &source, const string &dest);
 
  private:
   string fsName;

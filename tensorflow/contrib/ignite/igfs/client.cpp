@@ -58,129 +58,122 @@ Status IgfsClient::info(ControlResponse<InfoResponse> &res, std::string path) {
   return Status::OK();
 }
 
-ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string& path) {
+Status IgfsClient::openCreate(ControlResponse<OpenCreateResponse> &res, std::string& path) {
   OpenCreateRequest req(path);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<OpenCreateResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  if (resp.isOk()) {
-    std::cout << "response stream id: " << resp.getRes().getStreamId() << std::endl;
+  if (res.isOk()) {
+    std::cout << "response stream id: " << res.getRes().getStreamId() << std::endl;
   } else {
-    std::cout << "response error code: " << resp.getErrorCode() << resp.getError() << std::endl;
+    std::cout << "response error code: " << res.getErrorCode() << res.getError() << std::endl;
   }
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<OpenAppendResponse> IgfsClient::openAppend(std::string userName, std::string path) {
+Status IgfsClient::openAppend(ControlResponse<OpenAppendResponse> &res, std::string userName, std::string path) {
   OpenAppendRequest req(userName, path);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<OpenAppendResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  if (resp.isOk()) {
-    std::cout << "response stream id: " << resp.getRes().getStreamId() << std::endl;
+  if (res.isOk()) {
+    std::cout << "response stream id: " << res.getRes().getStreamId() << std::endl;
   } else {
-    std::cout << "response error code: " << resp.getErrorCode() << resp.getError() << std::endl;
+    std::cout << "response error code: " << res.getErrorCode() << res.getError() << std::endl;
   }
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<Optional<OpenReadResponse>> IgfsClient::openRead(std::string userName, std::string path) {
+Status IgfsClient::openRead(ControlResponse<Optional<OpenReadResponse>> &res, std::string userName, std::string path) {
   OpenReadRequest req(userName, path);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<Optional<OpenReadResponse>> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<ExistsResponse> IgfsClient::exists(const std::string& path) {
+Status IgfsClient::exists(ControlResponse<ExistsResponse> &res, const std::string& path) {
   ExistsRequest req(path);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<ExistsResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<MakeDirectoriesResponse> IgfsClient::mkdir(const std::string& path) {
+Status IgfsClient::mkdir(ControlResponse<MakeDirectoriesResponse> &res, const std::string& path) {
   MakeDirectoriesRequest req("", path);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<MakeDirectoriesResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<DeleteResponse> IgfsClient::del(std::string path, bool recursive) {
+Status IgfsClient::del(ControlResponse<DeleteResponse> &res, std::string path, bool recursive) {
   DeleteRequest req(path, recursive);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<DeleteResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-void IgfsClient::writeBlock(long streamId, const char *data, int len) {
+Status IgfsClient::writeBlock(long streamId, const char *data, int len) {
   WriteBlockRequest req(streamId, data, len);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
+
+  return Status::OK();
 }
 
-ReadBlockControlResponse IgfsClient::readBlock(long streamId, long pos, int len, char* dst) {
+Status IgfsClient::readBlock(ReadBlockControlResponse &res, long streamId, long pos, int len, char* dst) {
   ReadBlockRequest req(streamId, pos, len);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ReadBlockControlResponse resp(dst);
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<CloseResponse> IgfsClient::close(long streamId) {
+Status IgfsClient::close(ControlResponse<CloseResponse> &res, long streamId) {
   CloseRequest req(streamId);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<CloseResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<RenameResponse> IgfsClient::rename(const std::string &source, const std::string &dest) {
+Status IgfsClient::rename(ControlResponse<RenameResponse> &res, const std::string &source, const std::string &dest) {
   RenameRequest req(source, dest);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<RenameResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 }
