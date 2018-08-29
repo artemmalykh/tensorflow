@@ -136,12 +136,7 @@ class IGFSClient : public PlainClient {
       writeBoolean(false);
       unsigned short l = str.length();
       TF_RETURN_IF_ERROR(WriteShort(l));
-
-      //TODO: Check if it is actually c_str needed
       TF_RETURN_IF_ERROR(WriteData((uint8_t *)str.c_str(), str.length()));
-
-      int size = 1 + 2 + l;
-      pos += size;
     } else {
       writeBoolean(true);
     }
@@ -149,14 +144,16 @@ class IGFSClient : public PlainClient {
     return tensorflow::Status::OK();
   }
 
-  void writeStringMap(map<string, string> map) {
+  tensorflow::Status writeStringMap(map<string, string> map) {
     std::map<string, string>::size_type size = map.size();
-    writeSize(size);
+    TF_RETURN_IF_ERROR(writeSize(size));
 
     for (auto const &x : map) {
-      writeString(x.first);
-      writeString(x.second);
+      TF_RETURN_IF_ERROR(writeString(x.first));
+      TF_RETURN_IF_ERROR(writeString(x.second));
     }
+
+    return tensorflow::Status();
   }
 
   void reset() {
@@ -201,13 +198,15 @@ class Optional {
     this->val = val;
   }
 
-  void read(IGFSClient &r) {
-    r.ReadBool(hasVal);
+  tensorflow::Status read(IGFSClient &r) {
+    TF_RETURN_IF_ERROR(r.ReadBool(hasVal));
 
     if (hasVal) {
       val = T();
-      val.read(r);
+      TF_RETURN_IF_ERROR(val.read(r));
     }
+
+    return tensorflow::Status::OK();
   }
 
  private:

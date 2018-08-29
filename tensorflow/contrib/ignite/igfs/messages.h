@@ -23,13 +23,14 @@ limitations under the License.
 #include "utils.h"
 
 using namespace std;
+using namespace tensorflow;
 
 namespace ignite {
 
 class IgnitePath {
  public:
-  void read(IGFSClient &r) {
-    r.ReadNullableString(path_);
+  Status read(IGFSClient &r) {
+    return r.ReadNullableString(path_);
   }
 
   string getPath() {
@@ -44,7 +45,7 @@ class IgfsFile {
  public:
   IgfsFile() = default;
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   long getFileSize();
 
@@ -67,14 +68,14 @@ class Request {
  public:
   virtual int commandId() = 0;
 
-  virtual void write(IGFSClient &w);
+  virtual Status write(IGFSClient &w);
 };
 
 class Response {
  public:
   Response();
 
-  virtual void read(IGFSClient &r);
+  virtual Status read(IGFSClient &r);
 
   int getResType();
 
@@ -102,7 +103,7 @@ class PathControlRequest : public Request {
   PathControlRequest(string userName, string path, string destPath, bool flag, bool collocate,
                      map<string, string> props);
 
-  void write(IGFSClient &w);
+  Status write(IGFSClient &w);
 
  protected:
   /** Main path. */
@@ -123,14 +124,14 @@ class PathControlRequest : public Request {
   /** The user name this control request is made on behalf of. */
   string userName;
 
-  void writePath(IGFSClient &w, string &path);
+  Status writePath(IGFSClient &w, string &path);
 };
 
 class StreamControlRequest : public Request {
  public:
   StreamControlRequest(long streamId, int len);
 
-  void write(IGFSClient &w) override;
+  Status write(IGFSClient &w) override;
 
  protected:
   long streamId;
@@ -143,13 +144,15 @@ class ControlResponse : public Response {
  public:
   ControlResponse() = default;
 
-  void read(IGFSClient &r) override {
-    Response::read(r);
+  Status read(IGFSClient &r) override {
+    TF_RETURN_IF_ERROR(Response::read(r));
 
     if (isOk()) {
       res = R();
-      res.read(r);
+      TF_RETURN_IF_ERROR(res.read(r));
     }
+
+    return Status::OK();
   }
 
   R getRes() {
@@ -170,7 +173,7 @@ class DeleteRequest : public PathControlRequest {
 
 class DeleteResponse {
  public:
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   DeleteResponse();
 
@@ -189,7 +192,7 @@ class ExistsRequest : public PathControlRequest {
 
 class ExistsResponse {
  public:
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   ExistsResponse();
 
@@ -205,7 +208,7 @@ class HandshakeRequest : Request {
 
   int commandId() override;
 
-  void write(IGFSClient &w) override;
+  Status write(IGFSClient &w) override;
 
  private:
   string fsName;
@@ -216,7 +219,7 @@ class HandshakeResponse {
  public:
   HandshakeResponse();
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   string getFSName();
 
@@ -234,17 +237,19 @@ class ListRequest : public PathControlRequest {
 template<class T>
 class ListResponse {
  public:
-  void read(IGFSClient &r) {
+  Status read(IGFSClient &r) {
     int len;
-    r.ReadInt(len);
+    TF_RETURN_IF_ERROR(r.ReadInt(len));
 
     entries = vector<T>();
 
     for (int i = 0; i < len; i++) {
       T f = {};
-      f.read(r);
+      TF_RETURN_IF_ERROR(f.read(r));
       entries.push_back(f);
     }
+
+    return Status::OK();
   }
 
   vector<T> getEntries() {
@@ -281,7 +286,7 @@ class OpenCreateRequest : PathControlRequest {
  public:
   explicit OpenCreateRequest(const string &path);
 
-  void write(IGFSClient &w) override;
+  Status write(IGFSClient &w) override;
 
   int commandId() override;
 
@@ -297,7 +302,7 @@ class OpenCreateResponse {
  public:
   OpenCreateResponse() = default;
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   long getStreamId();
 
@@ -309,7 +314,7 @@ class OpenAppendRequest : PathControlRequest {
  public:
   explicit OpenAppendRequest(const string& userName, const string& path);
 
-  void write(IGFSClient &w) override;
+  Status write(IGFSClient &w) override;
 
   int commandId() override;
 };
@@ -318,7 +323,7 @@ class OpenAppendResponse {
  public:
   OpenAppendResponse() = default;
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   long getStreamId();
 
@@ -332,7 +337,7 @@ class OpenReadRequest : PathControlRequest {
 
   OpenReadRequest(const string &userName, const string &path);
 
-  void write(IGFSClient &w) override;
+  Status write(IGFSClient &w) override;
 
   int commandId() override;
 
@@ -345,7 +350,7 @@ class OpenReadResponse {
  public:
   OpenReadResponse();
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   long getStreamId();
 
@@ -367,7 +372,7 @@ class InfoResponse {
  public:
   InfoResponse() = default;
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   IgfsFile getFileInfo();
 
@@ -386,7 +391,7 @@ class MakeDirectoriesResponse {
  public:
   MakeDirectoriesResponse();
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   bool successful();
 
@@ -407,7 +412,7 @@ class CloseResponse {
  public:
   CloseResponse();
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   bool isSuccessful();
 
@@ -419,7 +424,7 @@ class ReadBlockRequest : public StreamControlRequest {
  public:
   ReadBlockRequest(long streamId, long pos, int len);
 
-  void write(IGFSClient &w) override;
+  Status write(IGFSClient &w) override;
 
   int commandId() override;
 
@@ -429,9 +434,9 @@ class ReadBlockRequest : public StreamControlRequest {
 
 class ReadBlockResponse {
  public:
-  void read(IGFSClient &r, int length, char *dst);
+  Status read(IGFSClient &r, int length, char *dst);
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   streamsize getSuccessfulyRead();
 
@@ -444,7 +449,7 @@ class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
  public:
   explicit ReadBlockControlResponse(char *dst);
 
-  void read(IGFSClient &r) override;
+  Status read(IGFSClient &r) override;
 
   int getLength();
 
@@ -456,7 +461,7 @@ class WriteBlockRequest : public StreamControlRequest {
  public:
   WriteBlockRequest(long streamId, const char *data, int len);
 
-  void write(IGFSClient &w) override;
+  Status write(IGFSClient &w) override;
 
   int commandId() override;
 
@@ -475,7 +480,7 @@ class RenameResponse {
  public:
   RenameResponse();
 
-  void read(IGFSClient &r);
+  Status read(IGFSClient &r);
 
   bool successful();
 
