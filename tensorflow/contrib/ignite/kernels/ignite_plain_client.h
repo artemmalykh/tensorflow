@@ -32,7 +32,7 @@ class PlainClient : public Client {
   virtual const bool IsConnected();
   virtual const int GetSocketDescriptor();
   virtual tensorflow::Status ReadData(uint8_t* buf, int32_t length);
-  virtual tensorflow::Status WriteData(uint8_t* buf, int32_t length);
+  virtual tensorflow::Status WriteData(const uint8_t* buf, int32_t length);
 
  private:
   std::string host;

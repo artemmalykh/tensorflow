@@ -65,15 +65,18 @@ tensorflow::Status Client::WriteByte(uint8_t data) {
 }
 
 tensorflow::Status Client::WriteShort(int16_t data) {
-  return WriteData((uint8_t*)&data, 2);
+  int16_t d = shouldSwap ? bswap_16(data) : data;
+  return WriteData((uint8_t*)&d, 2);
 }
 
 tensorflow::Status Client::WriteInt(int32_t data) {
-  return WriteData((uint8_t*)&data, 4);
+  int32_t d = shouldSwap ? bswap_32(data) : data;
+  return WriteData((uint8_t*)&d, 4);
 }
 
 tensorflow::Status Client::WriteLong(int64_t data) {
-  return WriteData((uint8_t*)&data, 8);
+  int16_t d = shouldSwap ? bswap_64(data) : data;
+  return WriteData((uint8_t*)&d, 8);
 }
 
 }  // namespace ignite

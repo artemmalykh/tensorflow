@@ -39,7 +39,7 @@ class Client {
   virtual tensorflow::Status WriteShort(int16_t data);
   virtual tensorflow::Status WriteInt(int32_t data);
   virtual tensorflow::Status WriteLong(int64_t data);
-  virtual tensorflow::Status WriteData(uint8_t* buf, int32_t length) = 0;
+  virtual tensorflow::Status WriteData(const uint8_t* buf, int32_t length) = 0;
  protected:
   template <typename A, int N> tensorflow::Status Read(A d);
   bool bigEndian;

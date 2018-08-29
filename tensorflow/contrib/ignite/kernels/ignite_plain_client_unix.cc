@@ -111,7 +111,7 @@ tensorflow::Status PlainClient::ReadData(uint8_t* buf, int32_t length) {
   return tensorflow::Status::OK();
 }
 
-tensorflow::Status PlainClient::WriteData(uint8_t* buf, int32_t length) {
+tensorflow::Status PlainClient::WriteData(const uint8_t* buf, int32_t length) {
   int sent = 0;
 
   while (sent < length) {
