@@ -12,54 +12,50 @@ IgfsClient::~IgfsClient() {
   cl->Disconnect();
 }
 
-ControlResponse<Optional<HandshakeResponse>> IgfsClient::handshake() {
+Status IgfsClient::handshake(ControlResponse<Optional<HandshakeResponse>>& res) {
   HandshakeRequest req(fsName, "");
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<Optional<HandshakeResponse>> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  std::cout << "response fs: " << resp.getRes().get().getFSName() << std::endl;
+  std::cout << "response fs: " << res.getRes().get().getFSName() << std::endl;
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<ListFilesResponse> IgfsClient::listFiles(std::string path) {
+Status IgfsClient::listFiles(ControlResponse<ListFilesResponse>& res, std::string path) {
   ListFilesRequest req(path);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<ListFilesResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<ListPathsResponse> IgfsClient::listPaths(std::string path) {
+Status IgfsClient::listPaths(ControlResponse<ListPathsResponse> &res, std::string path) {
   ListPathsRequest req(path);
   req.write(*cl);
   cl->reset();
 
-  ControlResponse<ListPathsResponse> resp = {};
-  resp.read(*cl);
+  res.read(*cl);
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
-ControlResponse<InfoResponse> IgfsClient::info(std::string path) {
+Status IgfsClient::info(ControlResponse<InfoResponse> &res, std::string path) {
   InfoRequest req("", path);
-  req.write(*cl);
+  TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  ControlResponse<InfoResponse> resp = {};
-  resp.read(*cl);
+  TF_RETURN_IF_ERROR(res.read(*cl));
   cl->reset();
 
-  return resp;
+  return Status::OK();
 }
 
 ControlResponse<OpenCreateResponse> IgfsClient::openCreate(std::string& path) {

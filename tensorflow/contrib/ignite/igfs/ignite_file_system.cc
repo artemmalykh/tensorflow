@@ -96,7 +96,8 @@ class IGFSRandomAccessFile : public RandomAccessFile {
 Status IgniteFileSystem::NewRandomAccessFile(
     const string &fname, std::unique_ptr<RandomAccessFile> *result) {
   shared_ptr<IgfsClient> client = createClient();
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
@@ -160,7 +161,8 @@ class IGFSWritableFile : public WritableFile {
 Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<WritableFile> *result) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     string path = TranslateName(fname);
@@ -200,7 +202,8 @@ Status IgniteFileSystem::NewAppendableFile(
     const string &fname, std::unique_ptr<WritableFile> *result) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     // Check if file exists, and if yes delete it.
@@ -241,7 +244,8 @@ Status IgniteFileSystem::NewReadOnlyMemoryRegionFromFile(
 Status IgniteFileSystem::FileExists(const string &fname) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
@@ -284,12 +288,14 @@ Status IgniteFileSystem::GetChildren(const string &fname,
                                      std::vector<string> *result) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string dir = TranslateName(fname);
 
-    ControlResponse<ListPathsResponse> listPathsResponse = client->listPaths(dir);
+    ControlResponse<ListPathsResponse> listPathsResponse = {};
+    TF_RETURN_IF_ERROR(client->listPaths(listPathsResponse, dir));
 
     if (!listPathsResponse.isOk()) {
       return Status(error::INTERNAL, "Error");
@@ -317,7 +323,8 @@ Status IgniteFileSystem::GetMatchingPaths(const string& pattern,
 Status IgniteFileSystem::DeleteFile(const string &fname) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
@@ -342,7 +349,8 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
 Status IgniteFileSystem::CreateDir(const string &fname) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string dir = TranslateName(fname);
@@ -362,10 +370,12 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
 Status IgniteFileSystem::DeleteDir(const string &dir) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
-    ControlResponse<ListFilesResponse> listFilesResponse = client->listFiles(dir);
+    ControlResponse<ListFilesResponse> listFilesResponse = {};
+    client->listFiles(listFilesResponse, dir);
 
     if (!listFilesResponse.isOk()) {
       return Status(error::INTERNAL, "Error");
@@ -390,11 +400,13 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
 Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
-    ControlResponse<InfoResponse> infoResponse = client->info(path);
+    ControlResponse<InfoResponse> infoResponse = {};
+    TF_RETURN_IF_ERROR(client->info(infoResponse, path));
 
     if (!infoResponse.isOk()) {
       return Status(error::INTERNAL, "Error");
@@ -416,7 +428,8 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
 
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string srcPath = TranslateName(src);
@@ -441,17 +454,18 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
 Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
   shared_ptr<IgfsClient> client = createClient();
 
-  ControlResponse<Optional<HandshakeResponse>> hResponse = client->handshake();
+  ControlResponse<Optional<HandshakeResponse>> hResponse = {};
+  TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
-    ControlResponse<InfoResponse> infoResponse = client->info(path);
+    ControlResponse<InfoResponse> infoResponse = {};
+    TF_RETURN_IF_ERROR(client->info(infoResponse, path));
 
     if (!infoResponse.isOk()) {
       return Status(error::INTERNAL, "Error");
     } else {
       IgfsFile info = infoResponse.getRes().getFileInfo();
-
 
       *stats = FileStatistics(info.getFileSize(), info.getModificationTime(), (info.getFlags() & 0x1) != 0);
     }

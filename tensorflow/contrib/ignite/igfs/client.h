@@ -29,7 +29,6 @@ limitations under the License.
 #include "messages.h"
 #include "../kernels/ignite_plain_client.h"
 
-
 using namespace std;
 using namespace ignite;
 
@@ -37,7 +36,7 @@ namespace ignite {
 
 class Network : public std::exception {
  public:
-  Network(const string& s) {
+  Network(const string &s) {
     cause = s.c_str();
   }
 
@@ -52,31 +51,32 @@ class Network : public std::exception {
 class IgfsClient {
  public:
   IgfsClient(int port, string host, string fsName);
+
   ~IgfsClient();
 
-  ControlResponse<Optional<HandshakeResponse>> handshake();
+  Status handshake(ControlResponse<Optional<HandshakeResponse>> &res);
 
-  ControlResponse<ListFilesResponse> listFiles(string path);
+  Status listFiles(ControlResponse<ListFilesResponse> &res, string path);
 
-  ControlResponse<ListPathsResponse> listPaths(string path);
+  Status listPaths(ControlResponse<ListPathsResponse> &res, string path);
 
-  ControlResponse<InfoResponse> info(string path);
+  Status info(ControlResponse<InfoResponse> &res, string path);
 
-  ControlResponse<OpenCreateResponse> openCreate(string& path);
+  ControlResponse<OpenCreateResponse> openCreate(string &path);
 
   ControlResponse<OpenAppendResponse> openAppend(string userName, string path);
 
   ControlResponse<Optional<OpenReadResponse>> openRead(string userName, string path);
 
-  ControlResponse<ExistsResponse> exists(const string& path);
+  ControlResponse<ExistsResponse> exists(const string &path);
 
-  ControlResponse<MakeDirectoriesResponse> mkdir(const string& path);
+  ControlResponse<MakeDirectoriesResponse> mkdir(const string &path);
 
   ControlResponse<DeleteResponse> del(string path, bool recursive);
 
   void writeBlock(long streamId, const char *data, int len);
 
-  ReadBlockControlResponse readBlock(long streamId, long pos, int len, char* dst);
+  ReadBlockControlResponse readBlock(long streamId, long pos, int len, char *dst);
 
   ControlResponse<CloseResponse> close(long streamId);
 
