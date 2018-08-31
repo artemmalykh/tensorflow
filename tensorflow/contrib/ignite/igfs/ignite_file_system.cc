@@ -13,7 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include <errno.h>
 #include <memory>
 #include <string>
 #include <utility>
@@ -51,9 +50,9 @@ shared_ptr<IgfsProtocolMessenger> createClient() {
   return std::make_shared<IgfsProtocolMessenger>(port, host, fsName);
 }
 
-IgniteFileSystem::IgniteFileSystem() {}
+IgniteFileSystem::IgniteFileSystem() = default;
 
-IgniteFileSystem::~IgniteFileSystem() {}
+IgniteFileSystem::~IgniteFileSystem() = default;
 
 string IgniteFileSystem::TranslateName(const string &name) const {
   StringPiece scheme, namenode, path;

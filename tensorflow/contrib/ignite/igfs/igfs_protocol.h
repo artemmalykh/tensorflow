@@ -36,29 +36,29 @@ namespace ignite {
 
 class IgfsProtocolMessenger {
  public:
-  IgfsProtocolMessenger(int port, string host, string fsName);
+  IgfsProtocolMessenger(int port, const string &host, const string &fsName);
 
   ~IgfsProtocolMessenger();
 
   Status handshake(ControlResponse<Optional<HandshakeResponse>> &res);
 
-  Status listFiles(ControlResponse<ListFilesResponse> &res, string path);
+  Status listFiles(ControlResponse<ListFilesResponse> &res, const string &path);
 
-  Status listPaths(ControlResponse<ListPathsResponse> &res, string path);
+  Status listPaths(ControlResponse<ListPathsResponse> &res, const string &path);
 
-  Status info(ControlResponse<InfoResponse> &res, string path);
+  Status info(ControlResponse<InfoResponse> &res, const string &path);
 
-  Status openCreate(ControlResponse<OpenCreateResponse> &res, string &path);
+  Status openCreate(ControlResponse<OpenCreateResponse> &res, const string &path);
 
-  Status openAppend(ControlResponse<OpenAppendResponse> &res, string userName, string path);
+  Status openAppend(ControlResponse<OpenAppendResponse> &res, const string &userName, const string &path);
 
-  Status openRead(ControlResponse<Optional<OpenReadResponse>> &res, string userName, string path);
+  Status openRead(ControlResponse<Optional<OpenReadResponse>> &res, const string &userName, const string &path);
 
   Status exists(ControlResponse<ExistsResponse> &res, const string &path);
 
   Status mkdir(ControlResponse<MakeDirectoriesResponse> &res, const string &path);
 
-  Status del(ControlResponse<DeleteResponse> &res, string path, bool recursive);
+  Status del(ControlResponse<DeleteResponse> &res, const string &path, bool recursive);
 
   Status writeBlock(long streamId, const char *data, int len);
 

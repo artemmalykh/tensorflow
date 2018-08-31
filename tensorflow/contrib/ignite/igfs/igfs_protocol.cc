@@ -18,7 +18,7 @@ limitations under the License.
 
 namespace ignite {
 
-IgfsProtocolMessenger::IgfsProtocolMessenger(int port, std::string host, std::string fsName) : fsName(fsName) {
+IgfsProtocolMessenger::IgfsProtocolMessenger(int port, const string &host, const string &fsName) : fsName(fsName) {
   cl = new IGFSClient(host, port);
   cl->Connect();
 }
@@ -40,7 +40,7 @@ Status IgfsProtocolMessenger::handshake(ControlResponse<Optional<HandshakeRespon
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::listFiles(ControlResponse<ListFilesResponse>& res, std::string path) {
+Status IgfsProtocolMessenger::listFiles(ControlResponse<ListFilesResponse>& res, const string &path) {
   ListFilesRequest req(path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -51,7 +51,7 @@ Status IgfsProtocolMessenger::listFiles(ControlResponse<ListFilesResponse>& res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::listPaths(ControlResponse<ListPathsResponse> &res, std::string path) {
+Status IgfsProtocolMessenger::listPaths(ControlResponse<ListPathsResponse> &res, const string &path) {
   ListPathsRequest req(path);
   req.write(*cl);
   cl->reset();
@@ -62,7 +62,7 @@ Status IgfsProtocolMessenger::listPaths(ControlResponse<ListPathsResponse> &res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::info(ControlResponse<InfoResponse> &res, std::string path) {
+Status IgfsProtocolMessenger::info(ControlResponse<InfoResponse> &res, const string &path) {
   InfoRequest req("", path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -73,7 +73,7 @@ Status IgfsProtocolMessenger::info(ControlResponse<InfoResponse> &res, std::stri
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::openCreate(ControlResponse<OpenCreateResponse> &res, std::string& path) {
+Status IgfsProtocolMessenger::openCreate(ControlResponse<OpenCreateResponse> &res, const string &path) {
   OpenCreateRequest req(path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -90,7 +90,7 @@ Status IgfsProtocolMessenger::openCreate(ControlResponse<OpenCreateResponse> &re
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::openAppend(ControlResponse<OpenAppendResponse> &res, std::string userName, std::string path) {
+Status IgfsProtocolMessenger::openAppend(ControlResponse<OpenAppendResponse> &res, const string &userName, const string &path) {
   OpenAppendRequest req(userName, path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -107,7 +107,7 @@ Status IgfsProtocolMessenger::openAppend(ControlResponse<OpenAppendResponse> &re
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::openRead(ControlResponse<Optional<OpenReadResponse>> &res, std::string userName, std::string path) {
+Status IgfsProtocolMessenger::openRead(ControlResponse<Optional<OpenReadResponse>> &res, const string &userName, const string &path) {
   OpenReadRequest req(userName, path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -118,7 +118,7 @@ Status IgfsProtocolMessenger::openRead(ControlResponse<Optional<OpenReadResponse
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::exists(ControlResponse<ExistsResponse> &res, const std::string& path) {
+Status IgfsProtocolMessenger::exists(ControlResponse<ExistsResponse> &res, const string &path) {
   ExistsRequest req(path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -129,7 +129,7 @@ Status IgfsProtocolMessenger::exists(ControlResponse<ExistsResponse> &res, const
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::mkdir(ControlResponse<MakeDirectoriesResponse> &res, const std::string& path) {
+Status IgfsProtocolMessenger::mkdir(ControlResponse<MakeDirectoriesResponse> &res, const string &path) {
   MakeDirectoriesRequest req("", path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -140,7 +140,7 @@ Status IgfsProtocolMessenger::mkdir(ControlResponse<MakeDirectoriesResponse> &re
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::del(ControlResponse<DeleteResponse> &res, std::string path, bool recursive) {
+Status IgfsProtocolMessenger::del(ControlResponse<DeleteResponse> &res, const string &path, bool recursive) {
   DeleteRequest req(path, recursive);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
