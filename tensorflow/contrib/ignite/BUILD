@@ -36,6 +36,24 @@ tf_gen_op_libs(
 )
 
 cc_library(
+    name = "ignite_file_system",
+    srcs = [
+        "igfs/igfs_protocol.h",
+        "igfs/igfs_protocol.cc",
+        "igfs/ignite_file_system.h",
+        "igfs/ignite_file_system.cc",
+        "igfs/messages.h",
+        "igfs/messages.cc",
+        "igfs/utils.h",
+        ],
+    deps = [
+        "//tensorflow/core:lib",
+        "//tensorflow/core:lib_internal"
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
     name = "dataset_kernels",
     srcs = [
         "kernels/ignite_dataset_ops.cc",
@@ -55,6 +73,7 @@ cc_library(
         "kernels/ignite_plain_client_windows.cc",
     ]),
     deps = [
+        ":ignite_file_system",
         "//tensorflow/core:framework_headers_lib",
         "//third_party/eigen3",
         "@boringssl//:ssl",
@@ -131,5 +150,24 @@ tf_py_test(
         "manual",
         "no_windows",
         "notap",
+    ],
+)
+
+tf_cc_test(
+    name = "ignite_file_system_test",
+    size = "small",
+    srcs = [
+        "ignite_file_system_test.cc",
+    ],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":ignite_file_system",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:lib_internal",
+        "//tensorflow/core:test",
+        "//tensorflow/core:test_main",
     ],
 )
