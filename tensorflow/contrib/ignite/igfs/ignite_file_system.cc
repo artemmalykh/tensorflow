@@ -66,7 +66,7 @@ class IGFSRandomAccessFile : public RandomAccessFile {
 
   ~IGFSRandomAccessFile() override {
     ControlResponse<CloseResponse> cr = {};
-    client_->close(cr, resourceId_);
+    client_->close(&cr, resourceId_);
   }
 
   Status Read(uint64 offset, size_t n, StringPiece *result,
@@ -75,7 +75,7 @@ class IGFSRandomAccessFile : public RandomAccessFile {
     char *dst = scratch;
     // TODO: check how many bytes were read.
     ReadBlockControlResponse response = ReadBlockControlResponse(dst);
-    TF_RETURN_IF_ERROR(client_->readBlock(response, resourceId_, offset, n, dst));
+    TF_RETURN_IF_ERROR(client_->readBlock(&response, resourceId_, offset, n, dst));
 
     if (!response.isOk()) {
       // TODO: Make error return right status;
@@ -126,7 +126,7 @@ class IGFSWritableFile : public WritableFile {
   ~IGFSWritableFile() override {
     if (resourceId_ >= 0) {
       ControlResponse<CloseResponse> cr = {};
-      client_->close(cr, resourceId_);
+      client_->close(&cr, resourceId_);
     }
   }
 
@@ -140,7 +140,7 @@ class IGFSWritableFile : public WritableFile {
     Status result;
 
     ControlResponse<CloseResponse> cr = {};
-    client_->close(cr, resourceId_);
+    client_->close(&cr, resourceId_);
     if (!cr.isOk()) {
       //result = IOError(fName_, errno);
     }
@@ -180,7 +180,7 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
         ControlResponse<DeleteResponse> delResponse = {};
-        TF_RETURN_IF_ERROR(client->del(delResponse, path, false));
+        TF_RETURN_IF_ERROR(client->del(&delResponse, path, false));
 
         if (!delResponse.isOk()) {
           return Status(error::INTERNAL, "Error trying to delete existing file.");
@@ -221,7 +221,7 @@ Status IgniteFileSystem::NewAppendableFile(
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
         ControlResponse<DeleteResponse> delResponse = {};
-        TF_RETURN_IF_ERROR(client->del(delResponse, fname, false));
+        TF_RETURN_IF_ERROR(client->del(&delResponse, fname, false));
 
         if (!delResponse.isOk()) {
           return Status(error::INTERNAL, "Error trying to delete existing file.");
@@ -341,7 +341,7 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
     const string path = TranslateName(fname);
 
     ControlResponse <DeleteResponse> delResp = {};
-    TF_RETURN_IF_ERROR(client->del(delResp, path, false));
+    TF_RETURN_IF_ERROR(client->del(&delResp, path, false));
 
     if (!delResp.isOk()) {
       return Status(error::INTERNAL, "Error");
@@ -367,7 +367,7 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
     const string dir = TranslateName(fname);
 
     ControlResponse <MakeDirectoriesResponse> mkDirResponse = {};
-    TF_RETURN_IF_ERROR(client->mkdir(mkDirResponse, dir));
+    TF_RETURN_IF_ERROR(client->mkdir(&mkDirResponse, dir));
 
     if (!(mkDirResponse.isOk() && mkDirResponse.getRes().successful())) {
       return Status(error::INTERNAL, "Error during creating directory.");
@@ -396,7 +396,7 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
         return errors::FailedPrecondition("Cannot delete a non-empty directory.");
       } else {
         ControlResponse <DeleteResponse> delResponse = {};
-        TF_RETURN_IF_ERROR(client->del(delResponse, dir, true));
+        TF_RETURN_IF_ERROR(client->del(&delResponse, dir, true));
         
         if (!delResponse.isOk()) {
           return Status(error::INTERNAL, "Error while trying to delete directory.");
@@ -449,7 +449,7 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
     const string targetPath = TranslateName(target);
 
     ControlResponse <RenameResponse> renameResp = {};
-    TF_RETURN_IF_ERROR(client->rename(renameResp, srcPath, targetPath));
+    TF_RETURN_IF_ERROR(client->rename(&renameResp, srcPath, targetPath));
 
     if (!renameResp.isOk()) {
       return Status(error::INTERNAL, "Error while renaming.");

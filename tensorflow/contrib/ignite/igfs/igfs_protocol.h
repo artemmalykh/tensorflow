@@ -46,17 +46,17 @@ class IgfsProtocolMessenger {
 
   Status exists(ControlResponse<ExistsResponse> *res, const string &path);
 
-  Status mkdir(ControlResponse<MakeDirectoriesResponse> &res, const string &path);
+  Status mkdir(ControlResponse<MakeDirectoriesResponse> *res, const string &path);
 
-  Status del(ControlResponse<DeleteResponse> &res, const string &path, bool recursive);
+  Status del(ControlResponse<DeleteResponse> *res, const string &path, bool recursive);
 
   Status writeBlock(long streamId, const char *data, int len);
 
-  Status readBlock(ReadBlockControlResponse &res, long streamId, long pos, int len, char *dst);
+  Status readBlock(ReadBlockControlResponse *res, long streamId, long pos, int len, char *dst);
 
-  Status close(ControlResponse<CloseResponse> &res, long streamId);
+  Status close(ControlResponse<CloseResponse> *res, long streamId);
 
-  Status rename(ControlResponse<RenameResponse> &res, const string &source, const string &dest);
+  Status rename(ControlResponse<RenameResponse> *res, const string &source, const string &dest);
 
  private:
   string fsName;

@@ -129,23 +129,23 @@ Status IgfsProtocolMessenger::exists(ControlResponse<ExistsResponse>* res, const
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::mkdir(ControlResponse<MakeDirectoriesResponse> &res, const string &path) {
+Status IgfsProtocolMessenger::mkdir(ControlResponse<MakeDirectoriesResponse>* res, const string &path) {
   MakeDirectoriesRequest req("", path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  TF_RETURN_IF_ERROR(res.read(*cl));
+  TF_RETURN_IF_ERROR(res->read(*cl));
   cl->reset();
 
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::del(ControlResponse<DeleteResponse> &res, const string &path, bool recursive) {
+Status IgfsProtocolMessenger::del(ControlResponse<DeleteResponse>* res, const string &path, bool recursive) {
   DeleteRequest req(path, recursive);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  TF_RETURN_IF_ERROR(res.read(*cl));
+  TF_RETURN_IF_ERROR(res->read(*cl));
   cl->reset();
 
   return Status::OK();
@@ -159,34 +159,34 @@ Status IgfsProtocolMessenger::writeBlock(long streamId, const char *data, int le
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::readBlock(ReadBlockControlResponse &res, long streamId, long pos, int len, char* dst) {
+Status IgfsProtocolMessenger::readBlock(ReadBlockControlResponse* res, long streamId, long pos, int len, char* dst) {
   ReadBlockRequest req(streamId, pos, len);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  TF_RETURN_IF_ERROR(res.read(*cl));
+  TF_RETURN_IF_ERROR(res->read(*cl));
   cl->reset();
 
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::close(ControlResponse<CloseResponse> &res, long streamId) {
+Status IgfsProtocolMessenger::close(ControlResponse<CloseResponse>* res, long streamId) {
   CloseRequest req(streamId);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  TF_RETURN_IF_ERROR(res.read(*cl));
+  TF_RETURN_IF_ERROR(res->read(*cl));
   cl->reset();
 
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::rename(ControlResponse<RenameResponse> &res, const std::string &source, const std::string &dest) {
+Status IgfsProtocolMessenger::rename(ControlResponse<RenameResponse>* res, const std::string &source, const std::string &dest) {
   RenameRequest req(source, dest);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
 
-  TF_RETURN_IF_ERROR(res.read(*cl));
+  TF_RETURN_IF_ERROR(res->read(*cl));
   cl->reset();
 
   return Status::OK();
