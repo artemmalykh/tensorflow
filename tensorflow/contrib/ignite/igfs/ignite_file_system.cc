@@ -292,7 +292,6 @@ string makeRelative(const string &a, const string &b) {
   auto r = mismatch(min.begin(), min.end(), max.begin());
 
   // Trim common prefix and '/' (hence '+1')
-
   return string((firstIsShortest ? r.first : r.second) + 1, firstIsShortest ? min.end() : max.end());
 }
 
@@ -352,8 +351,7 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
       return errors::NotFound(path, " not found.");
     }
   } else {
-    // TODO: return error with appropriate code.
-    return Status(error::INTERNAL, "Error");
+    return Status(error::INTERNAL, "Error during handshake.");
   }
 
   return Status::OK();
@@ -372,10 +370,10 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
     TF_RETURN_IF_ERROR(client->mkdir(mkDirResponse, dir));
 
     if (!(mkDirResponse.isOk() && mkDirResponse.getRes().successful())) {
-      return Status(error::INTERNAL, "Error");
+      return Status(error::INTERNAL, "Error during creating directory.");
     }
   } else {
-    return Status(error::INTERNAL, "Error");
+    return Status(error::INTERNAL, "Error during handshake.");
   }
 
   return Status::OK();
@@ -406,7 +404,7 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
       }
     }
   } else {
-    return Status(error::INTERNAL, "Error");
+    return Status(error::INTERNAL, "Error during handshake.");
   }
 
   return Status::OK();
@@ -424,13 +422,13 @@ Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
     TF_RETURN_IF_ERROR(client->info(infoResponse, path));
 
     if (!infoResponse.isOk()) {
-      return Status(error::INTERNAL, "Error");
+      return Status(error::INTERNAL, "Error while getting info.");
     } else {
       *size = infoResponse.getRes().getFileInfo().getFileSize();
     }
 
   } else {
-    return Status(error::INTERNAL, "Error");
+    return Status(error::INTERNAL, "Error during handshake.");
   }
 
   return Status::OK();
@@ -454,14 +452,14 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
     TF_RETURN_IF_ERROR(client->rename(renameResp, srcPath, targetPath));
 
     if (!renameResp.isOk()) {
-      return Status(error::INTERNAL, "Error");
+      return Status(error::INTERNAL, "Error while renaming.");
     }
 
     if (!renameResp.getRes().successful()) {
       return errors::NotFound(srcPath, " not found.");
     }
   } else {
-    return Status(error::INTERNAL, "Error");
+    return Status(error::INTERNAL, "Error during handshake.");
   }
 
   return Status::OK();
@@ -479,7 +477,7 @@ Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
     TF_RETURN_IF_ERROR(client->info(infoResponse, path));
 
     if (!infoResponse.isOk()) {
-      return Status(error::INTERNAL, "Error");
+      return Status(error::INTERNAL, "Error while getting info.");
     } else {
       IgfsFile info = infoResponse.getRes().getFileInfo();
 
@@ -487,7 +485,7 @@ Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
     }
 
   } else {
-    return Status(error::INTERNAL, "Error");
+    return Status(error::INTERNAL, "Error during handshake.");
   }
 
   return Status::OK();
