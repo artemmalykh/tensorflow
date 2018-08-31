@@ -13,6 +13,7 @@ load(
     "tf_gen_op_libs",
     "tf_py_test",
     "tf_cc_test",
+    "tf_cc_shared_object",
     "if_not_windows",
     "if_windows",
     "tf_cc_binary"
@@ -55,7 +56,7 @@ tf_gen_op_libs(
     op_lib_names = ["dataset_ops"],
 )
 
-tf_cc_binary(
+tf_cc_shared_object(
     name = "ignite_file_system.so",
     srcs = [
         "igfs/igfs_protocol.h",
@@ -71,11 +72,17 @@ tf_cc_binary(
         "//tensorflow/core:lib",
         "//tensorflow/core:lib_internal"
     ],
-    linkshared = 1,
+    #linkshared = 1,
+    #alwayslink=1,
 )
 
 cc_library(
     name = "dataset_kernels",
+    hdrs = [
+        "kernels/ignite_client.h",
+        "kernels/ignite_plain_client.h",
+        "kernels/ignite_ssl_wrapper.h",
+    ],
     srcs = [
         "kernels/ignite_dataset_ops.cc",
         "kernels/ignite_client.h",

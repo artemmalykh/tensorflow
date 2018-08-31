@@ -96,7 +96,7 @@ class IGFSRandomAccessFile : public RandomAccessFile {
 
 Status IgniteFileSystem::NewRandomAccessFile(
     const string &fname, std::unique_ptr<RandomAccessFile> *result) {
-  LOG(INFO) << "New RAF " << fName_ << " file";
+  LOG(INFO) << "New RAF " << fname << " file";
 
   shared_ptr<IgfsProtocolMessenger> client = createClient();
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};

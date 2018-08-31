@@ -24,7 +24,7 @@ limitations under the License.
 #include <sys/socket.h>
 
 #include "tensorflow/core/lib/core/errors.h"
-#include "ignite_plain_client.h"
+#include "tensorflow/contrib/ignite/kernels/ignite_plain_client.h"
 
 using namespace std;
 
