@@ -17,7 +17,7 @@ limitations under the License.
 #define TF_CONTRIB_IGNITE_FILE_SYSTEM_H
 
 #include "tensorflow/core/platform/env.h"
-#include <tensorflow/core/platform/file_system.h>
+#include "tensorflow/core/platform/file_system.h"
 #include "utils.h"
 
 using namespace std;

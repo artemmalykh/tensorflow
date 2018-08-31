@@ -28,6 +28,7 @@ IgfsProtocolMessenger::~IgfsProtocolMessenger() {
 }
 
 Status IgfsProtocolMessenger::handshake(ControlResponse<Optional<HandshakeResponse>>* res) {
+  LOG(INFO) << "Handshake !";
   HandshakeRequest req(fsName, "");
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -37,6 +38,7 @@ Status IgfsProtocolMessenger::handshake(ControlResponse<Optional<HandshakeRespon
 
   std::cout << "response fs: " << res->getRes().get().getFSName() << std::endl;
 
+  LOG(INFO) << "Handshake OK";
   return Status::OK();
 }
 

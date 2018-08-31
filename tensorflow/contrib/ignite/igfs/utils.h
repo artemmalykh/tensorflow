@@ -22,8 +22,9 @@ limitations under the License.
 #include <memory>
 #include <streambuf>
 #include <sys/socket.h>
-#include <tensorflow/core/lib/core/errors.h>
-#include "../kernels/ignite_plain_client.h"
+
+#include "tensorflow/core/lib/core/errors.h"
+#include "ignite_plain_client.h"
 
 using namespace std;
 
@@ -32,6 +33,7 @@ namespace tensorflow {
 class IGFSClient : public PlainClient {
  public:
   IGFSClient(std::string host, int port) : PlainClient(host, port, true) {
+    LOG(INFO) << "New IGFS Client " << host << ":" << port;
     pos = 0;
   }
 

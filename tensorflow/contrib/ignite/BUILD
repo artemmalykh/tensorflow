@@ -1,4 +1,4 @@
-package(default_visibility = ["//tensorflow:internal"])
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])  # Apache 2.0
 
@@ -12,8 +12,10 @@ load(
     "tf_custom_op_py_library",
     "tf_gen_op_libs",
     "tf_py_test",
+    "tf_cc_test",
     "if_not_windows",
     "if_windows",
+    "tf_cc_binary"
 )
 
 py_library(
@@ -31,12 +33,30 @@ tf_custom_op_library(
     deps = [":dataset_kernels"],
 )
 
+#tf_cc_shared_object(
+#   name = "igfs/ignite_file_system.so",
+#   srcs = ["igfs/ignite_file_system.cc"],
+#   copts = if_not_windows(["-Wno-sign-compare"]),
+#   linkopts = select({
+#       "//conditions:default": [
+#           "-lm",
+#       ],
+#       "//tensorflow:darwin": [],
+#       "//tensorflow:windows": [],
+#   }),
+#   deps = [
+#       "//tensorflow/core:framework_headers_lib",
+#       "//third_party/eigen3",
+#       "@protobuf_archive//:protobuf_headers",
+#   ],
+#)
+
 tf_gen_op_libs(
     op_lib_names = ["dataset_ops"],
 )
 
-cc_library(
-    name = "ignite_file_system",
+tf_cc_binary(
+    name = "ignite_file_system.so",
     srcs = [
         "igfs/igfs_protocol.h",
         "igfs/igfs_protocol.cc",
@@ -47,10 +67,11 @@ cc_library(
         "igfs/utils.h",
         ],
     deps = [
+        ":dataset_kernels",
         "//tensorflow/core:lib",
         "//tensorflow/core:lib_internal"
     ],
-    alwayslink = 1,
+    linkshared = 1,
 )
 
 cc_library(
@@ -73,7 +94,6 @@ cc_library(
         "kernels/ignite_plain_client_windows.cc",
     ]),
     deps = [
-        ":ignite_file_system",
         "//tensorflow/core:framework_headers_lib",
         "//third_party/eigen3",
         "@boringssl//:ssl",

@@ -16,9 +16,7 @@ limitations under the License.
 #include <memory>
 #include <string>
 #include <utility>
-#include <tensorflow/core/lib/core/errors.h>
-#include <tensorflow/core/platform/file_system.h>
-#include <tensorflow/core/platform/windows/integral_types.h>
+#include "tensorflow/core/platform/file_system.h"
 
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -28,8 +26,6 @@ limitations under the License.
 #include "tensorflow/core/platform/file_system.h"
 #include "tensorflow/core/platform/file_system_helper.h"
 #include "tensorflow/core/platform/logging.h"
-#include "tensorflow/core/platform/mutex.h"
-#include "third_party/hadoop/hdfs.h"
 #include "ignite_file_system.h"
 #include "igfs_protocol.h"
 
@@ -50,7 +46,9 @@ shared_ptr<IgfsProtocolMessenger> createClient() {
   return std::make_shared<IgfsProtocolMessenger>(port, host, fsName);
 }
 
-IgniteFileSystem::IgniteFileSystem() = default;
+IgniteFileSystem::IgniteFileSystem() {
+    LOG(INFO) << "Construct new Ignite File System";
+};
 
 IgniteFileSystem::~IgniteFileSystem() = default;
 
@@ -71,6 +69,8 @@ class IGFSRandomAccessFile : public RandomAccessFile {
 
   Status Read(uint64 offset, size_t n, StringPiece *result,
               char *scratch) const override {
+
+    LOG(INFO) << "Read " << fName_ << " file";
     Status s;
     char *dst = scratch;
     // TODO: check how many bytes were read.
@@ -96,6 +96,8 @@ class IGFSRandomAccessFile : public RandomAccessFile {
 
 Status IgniteFileSystem::NewRandomAccessFile(
     const string &fname, std::unique_ptr<RandomAccessFile> *result) {
+  LOG(INFO) << "New RAF " << fName_ << " file";
+
   shared_ptr<IgfsProtocolMessenger> client = createClient();
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(&hResponse));
@@ -121,7 +123,9 @@ Status IgniteFileSystem::NewRandomAccessFile(
 
 class IGFSWritableFile : public WritableFile {
  public:
-  IGFSWritableFile(const string& fName, long resourceId, shared_ptr<IgfsProtocolMessenger> client) : fName_(fName), resourceId_(resourceId), client_(client) {}
+  IGFSWritableFile(const string& fName, long resourceId, shared_ptr<IgfsProtocolMessenger> client) : fName_(fName), resourceId_(resourceId), client_(client) {
+   LOG(INFO) << "Construct new writable file " << fName;
+ }
 
   ~IGFSWritableFile() override {
     if (resourceId_ >= 0) {
@@ -131,12 +135,14 @@ class IGFSWritableFile : public WritableFile {
   }
 
   Status Append(const StringPiece &data) override {
+    LOG(INFO) << "Append to " << fName_;
     TF_RETURN_IF_ERROR(client_->writeBlock(resourceId_, data.data(), data.size()));
 
     return Status::OK();
   }
 
   Status Close() override {
+    LOG(INFO) << "Close " << fName_;
     Status result;
 
     ControlResponse<CloseResponse> cr = {};
@@ -165,6 +171,8 @@ class IGFSWritableFile : public WritableFile {
 };
 
 Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<WritableFile> *result) {
+  LOG(INFO) << "New writable file " << fname;
+ 
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -208,6 +216,7 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
 
 Status IgniteFileSystem::NewAppendableFile(
     const string &fname, std::unique_ptr<WritableFile> *result) {
+  LOG(INFO) << "New appendable file " << fname;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -253,6 +262,7 @@ Status IgniteFileSystem::NewReadOnlyMemoryRegionFromFile(
 }
 
 Status IgniteFileSystem::FileExists(const string &fname) {
+  LOG(INFO) << "File exists " << fname;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -297,6 +307,7 @@ string makeRelative(const string &a, const string &b) {
 
 Status IgniteFileSystem::GetChildren(const string &fname,
                                      std::vector<string> *result) {
+  LOG(INFO) << "Get children " << fname;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -332,6 +343,7 @@ Status IgniteFileSystem::GetMatchingPaths(const string& pattern,
 }
 
 Status IgniteFileSystem::DeleteFile(const string &fname) {
+  LOG(INFO) << "Delete file " << fname;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -358,6 +370,7 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
 }
 
 Status IgniteFileSystem::CreateDir(const string &fname) {
+  LOG(INFO) << "Get dir " << fname;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -380,6 +393,7 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
 }
 
 Status IgniteFileSystem::DeleteDir(const string &dir) {
+   LOG(INFO) << "Delete dir " << dir;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -411,6 +425,7 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
 }
 
 Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
+  LOG(INFO) << "Get File size " << fname;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
@@ -435,6 +450,7 @@ Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
 }
 
 Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
+  LOG(INFO) << "Rename file " << src;
   if (FileExists(target).ok()) {
     DeleteFile(target);
   }
@@ -466,6 +482,7 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
 }
 
 Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
+  LOG(INFO) << "Stat " << fname;
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};

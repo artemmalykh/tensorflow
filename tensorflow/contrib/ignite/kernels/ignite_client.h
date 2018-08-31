@@ -16,7 +16,7 @@ limitations under the License.
 #ifndef TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
 #define TENSORFLOW_CONTRIB_IGNITE_KERNELS_IGNITE_CLIENT_H_
 
-#include <tensorflow/core/lib/core/errors.h>
+#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 
 #ifdef _MSC_VER
@@ -35,6 +35,8 @@ namespace tensorflow {
 
 class Client {
  public:
+  Client() : Client(false) {};
+
   explicit Client(bool bigEndian)  {
     int x = 1;
     bool isLittleEndian = (*(char *)&x == 1);
