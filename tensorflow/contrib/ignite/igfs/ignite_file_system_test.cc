@@ -167,44 +167,6 @@ TEST_F(IgniteFileSystemTest, StatFile) {
   EXPECT_FALSE(stat.is_directory);
 }
 
-TEST_F(IgniteFileSystemTest, WriteWhileReading) {
-  std::unique_ptr<WritableFile> writer;
-  const string fname = TmpDir("WriteWhileReading");
-  // Skip the test if we're not testing on HDFS. Hadoop's local filesystem
-  // implementation makes no guarantees that writable files are readable while
-  // being written.
-  if (!str_util::StartsWith(fname, "hdfs://")) {
-    return;
-  }
-
-  TF_EXPECT_OK(igfs.NewWritableFile(fname, &writer));
-
-  const string content1 = "content1";
-  TF_EXPECT_OK(writer->Append(content1));
-  TF_EXPECT_OK(writer->Flush());
-
-  std::unique_ptr<RandomAccessFile> reader;
-  TF_EXPECT_OK(igfs.NewRandomAccessFile(fname, &reader));
-
-  string got;
-  got.resize(content1.size());
-  StringPiece result;
-  TF_EXPECT_OK(
-      reader->Read(0, content1.size(), &result, gtl::string_as_array(&got)));
-  EXPECT_EQ(content1, result);
-
-  string content2 = "content2";
-  TF_EXPECT_OK(writer->Append(content2));
-  TF_EXPECT_OK(writer->Flush());
-
-  got.resize(content2.size());
-  TF_EXPECT_OK(reader->Read(content1.size(), content2.size(), &result,
-                            gtl::string_as_array(&got)));
-  EXPECT_EQ(content2, result);
-
-  TF_EXPECT_OK(writer->Close());
-}
-
 }
 }
 
@@ -214,27 +176,3 @@ int main(int argc, char *argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-
-//int main(int argc, char *argv[]) {
-//  IgniteFileSystem igfs = IgniteFileSystem();
-//
-//  auto *wf = new unique_ptr<WritableFile>();
-//
-//  const Status status = igfs.NewWritableFile("/test", wf);
-//
-//  WritableFile *wFile = wf->get();
-//  const string str = "KjmsGns!";
-//  wFile->Append(StringPiece(str));
-//  wFile->Close();
-//
-//  auto *rf = new unique_ptr<RandomAccessFile>();
-//  igfs.NewRandomAccessFile("/test", rf);
-//  RandomAccessFile *rFile = rf->get();
-//  unique_ptr<StringPiece> res(new StringPiece());
-//  char scratch[str.size()] = {};
-//  rFile->Read(0, str.size(), res.get(), scratch);
-//
-//  for (int i = 0; i < str.size(); i++) {
-//    assert (scratch[i] == str.c_str()[i]);
-//  }
-//}
