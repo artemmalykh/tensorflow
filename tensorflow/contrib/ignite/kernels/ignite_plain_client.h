@@ -19,7 +19,7 @@ limitations under the License.
 #include "ignite_client.h"
 #include <string>
 
-namespace ignite {
+namespace tensorflow {
 
 class PlainClient : public Client {
  public:
@@ -27,18 +27,16 @@ class PlainClient : public Client {
   PlainClient(std::string host, int port) : PlainClient(host, port, false) {};
   ~PlainClient();
 
-  virtual tensorflow::Status Connect();
-  virtual tensorflow::Status Disconnect();
-  virtual const bool IsConnected();
-  virtual const int GetSocketDescriptor();
-  virtual tensorflow::Status ReadData(uint8_t* buf, int32_t length);
-  virtual tensorflow::Status WriteData(const uint8_t* buf, int32_t length);
-
+  virtual Status Connect();
+  virtual Status Disconnect();
+  virtual bool IsConnected();
+  virtual int GetSocketDescriptor();
+  virtual Status ReadData(uint8_t* buf, int32_t length);
+  virtual Status WriteData(uint8_t* buf, int32_t length);
  private:
-  std::string host;
-  int port;
-  int sock;
+  const std::string host_;
+  const int port_;
+  int sock_;
 };
-
-}  // namespace ignite
+}  // namespace tensorflow
 #endif

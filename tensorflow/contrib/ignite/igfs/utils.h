@@ -27,7 +27,7 @@ limitations under the License.
 
 using namespace std;
 
-namespace ignite {
+namespace tensorflow {
 
 class IGFSClient : public PlainClient {
  public:
@@ -35,45 +35,45 @@ class IGFSClient : public PlainClient {
     pos = 0;
   }
 
-  virtual tensorflow::Status ReadData(uint8_t* buf, int32_t length) {
+  virtual Status ReadData(uint8_t* buf, int32_t length) {
     TF_RETURN_IF_ERROR(PlainClient::ReadData(buf, length));
     pos += length;
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
-  virtual tensorflow::Status WriteData(const uint8_t* buf, int32_t length) {
+  virtual Status WriteData(uint8_t* buf, int32_t length) {
     TF_RETURN_IF_ERROR(PlainClient::WriteData(buf, length));
     pos += length;
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
-  tensorflow::Status skip(int n) {
+  Status skip(int n) {
     TF_RETURN_IF_ERROR(Ignore(n));
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   };
 
-  tensorflow::Status Ignore(int n) {
+  Status Ignore(int n) {
     uint8_t buf[n];
     return ReadData(buf, n);
   }
 
-  tensorflow::Status skipToPos(int targetPos) {
+  Status skipToPos(int targetPos) {
     int toSkip = std::max(0, targetPos - pos);
     return Ignore(toSkip);
   };
 
-  tensorflow::Status ReadBool(bool& res) {
+  Status ReadBool(bool& res) {
     uint8_t d = 0;
     TF_RETURN_IF_ERROR(ReadData(&d, 1));
     res = d != 0;
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
-  tensorflow::Status ReadNullableString(string &res) {
+  Status ReadNullableString(string &res) {
     bool isEmpty;
     ReadBool(isEmpty);
 
@@ -83,23 +83,23 @@ class IGFSClient : public PlainClient {
       TF_RETURN_IF_ERROR(ReadString(res));
     }
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
-  tensorflow::Status ReadString(string &res) {
+  Status ReadString(string &res) {
     short len;
-    TF_RETURN_IF_ERROR(ReadShort(len));
+    TF_RETURN_IF_ERROR(ReadShort(&len));
     auto *cStr = new uint8_t[len + 1];
     cStr[len] = 0;
     TF_RETURN_IF_ERROR(ReadData(cStr, len));
     res = string((char *)cStr);
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
-  tensorflow::Status ReadStringMap(map<string, string> &res) {
+  Status ReadStringMap(map<string, string> &res) {
     int size;
-    TF_RETURN_IF_ERROR(ReadInt(size));
+    TF_RETURN_IF_ERROR(ReadInt(&size));
 
     for (int i = 0; i < size; i++) {
       string key;
@@ -110,28 +110,28 @@ class IGFSClient : public PlainClient {
       res.insert(std::pair<string, string>(key, val));
     }
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   };
 
-  tensorflow::Status writeSize(map<string, string>::size_type s) {
+  Status writeSize(map<string, string>::size_type s) {
     return WriteInt(s);
   }
 
-  tensorflow::Status skipToPosW(int n) {
+  Status skipToPosW(int n) {
     int toSkip = std::max(0, n - pos);
 
     for (int i = 0; i < toSkip; i++) {
       TF_RETURN_IF_ERROR(WriteByte(0));
     }
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
-  tensorflow::Status writeBoolean(bool val) {
+  Status writeBoolean(bool val) {
     return WriteByte((char) (val ? 1 : 0));
   }
 
-  tensorflow::Status writeString(string str) {
+  Status writeString(string str) {
     if (!str.empty()) {
       writeBoolean(false);
       unsigned short l = str.length();
@@ -141,10 +141,10 @@ class IGFSClient : public PlainClient {
       writeBoolean(true);
     }
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
-  tensorflow::Status writeStringMap(map<string, string> map) {
+  Status writeStringMap(map<string, string> map) {
     std::map<string, string>::size_type size = map.size();
     TF_RETURN_IF_ERROR(writeSize(size));
 
@@ -153,7 +153,7 @@ class IGFSClient : public PlainClient {
       TF_RETURN_IF_ERROR(writeString(x.second));
     }
 
-    return tensorflow::Status();
+    return Status::OK();
   }
 
   void reset() {
@@ -198,7 +198,7 @@ class Optional {
     this->val = val;
   }
 
-  tensorflow::Status read(IGFSClient &r) {
+  Status read(IGFSClient &r) {
     TF_RETURN_IF_ERROR(r.ReadBool(hasVal));
 
     if (hasVal) {
@@ -206,7 +206,7 @@ class Optional {
       TF_RETURN_IF_ERROR(val.read(r));
     }
 
-    return tensorflow::Status::OK();
+    return Status::OK();
   }
 
  private:

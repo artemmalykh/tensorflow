@@ -239,7 +239,7 @@ class ListResponse {
  public:
   Status read(IGFSClient &r) {
     int len;
-    TF_RETURN_IF_ERROR(r.ReadInt(len));
+    TF_RETURN_IF_ERROR(r.ReadInt(&len));
 
     entries = vector<T>();
 

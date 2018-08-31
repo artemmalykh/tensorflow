@@ -1,3 +1,18 @@
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
 #include "messages.h"
 
 using namespace tensorflow;
@@ -8,13 +23,13 @@ Status IgfsFile::read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(path_.read(r));
   props_ = map<string, string>();
 
-  TF_RETURN_IF_ERROR(r.ReadInt(blockSize_));
-  TF_RETURN_IF_ERROR(r.ReadLong(grpBlockSize_));
-  TF_RETURN_IF_ERROR(r.ReadLong(len_));
+  TF_RETURN_IF_ERROR(r.ReadInt(&blockSize_));
+  TF_RETURN_IF_ERROR(r.ReadLong(&grpBlockSize_));
+  TF_RETURN_IF_ERROR(r.ReadLong(&len_));
   TF_RETURN_IF_ERROR(r.ReadStringMap(props_));
-  TF_RETURN_IF_ERROR(r.ReadLong(accessTime_));
-  TF_RETURN_IF_ERROR(r.ReadLong(modificationTime_));
-  TF_RETURN_IF_ERROR(r.ReadByte(reinterpret_cast<uint8_t &>(flags_)));
+  TF_RETURN_IF_ERROR(r.ReadLong(&accessTime_));
+  TF_RETURN_IF_ERROR(r.ReadLong(&modificationTime_));
+  TF_RETURN_IF_ERROR(r.ReadByte((uint8_t *)&flags_));
 
   return Status::OK();
 }
@@ -48,18 +63,18 @@ Status Response::read(IGFSClient &r) {
   //read Header
   TF_RETURN_IF_ERROR(r.Ignore(1));
   TF_RETURN_IF_ERROR(r.skipToPos(8));
-  TF_RETURN_IF_ERROR(r.ReadInt(requestId));
+  TF_RETURN_IF_ERROR(r.ReadInt(&requestId));
   TF_RETURN_IF_ERROR(r.skipToPos(24));
-  TF_RETURN_IF_ERROR(r.ReadInt(resType));
+  TF_RETURN_IF_ERROR(r.ReadInt(&resType));
   bool hasError;
   TF_RETURN_IF_ERROR(r.ReadBool(hasError));
 
   if (hasError) {
     TF_RETURN_IF_ERROR(r.ReadString(error));
-    TF_RETURN_IF_ERROR(r.ReadInt(errorCode));
+    TF_RETURN_IF_ERROR(r.ReadInt(&errorCode));
   } else {
     TF_RETURN_IF_ERROR(r.skipToPos(HEADER_SIZE + 6 - 1));
-    TF_RETURN_IF_ERROR(r.ReadInt(len));
+    TF_RETURN_IF_ERROR(r.ReadInt(&len));
     TF_RETURN_IF_ERROR(r.skipToPos(HEADER_SIZE + RESPONSE_HEADER_SIZE));
   }
 
@@ -195,7 +210,7 @@ HandshakeResponse::HandshakeResponse() = default;
 
 Status HandshakeResponse::read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadNullableString(fsName));
-  TF_RETURN_IF_ERROR(r.ReadLong(blockSize));
+  TF_RETURN_IF_ERROR(r.ReadLong(&blockSize));
 
   bool hasSampling;
   TF_RETURN_IF_ERROR(r.ReadBool(hasSampling));
@@ -241,7 +256,7 @@ int OpenCreateRequest::commandId() {
 }
 
 Status OpenCreateResponse::read(IGFSClient &r) {
-  TF_RETURN_IF_ERROR(r.ReadLong(streamId));
+  TF_RETURN_IF_ERROR(r.ReadLong(&streamId));
 }
 
 long OpenCreateResponse::getStreamId() {
@@ -262,7 +277,7 @@ int OpenAppendRequest::commandId() {
 }
 
 Status OpenAppendResponse::read(IGFSClient &r) {
-  TF_RETURN_IF_ERROR(r.ReadLong(streamId));
+  TF_RETURN_IF_ERROR(r.ReadLong(&streamId));
 
   return Status::OK();
 }
@@ -299,8 +314,8 @@ int OpenReadRequest::commandId() {
 }
 
 Status OpenReadResponse::read(IGFSClient &r) {
-  TF_RETURN_IF_ERROR(r.ReadLong(streamId));
-  TF_RETURN_IF_ERROR(r.ReadLong(len));
+  TF_RETURN_IF_ERROR(r.ReadLong(&streamId));
+  TF_RETURN_IF_ERROR(r.ReadLong(&len));
 
   return Status::OK();
 }
