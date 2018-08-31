@@ -23,9 +23,8 @@ limitations under the License.
 #include "utils.h"
 
 using namespace std;
-using namespace tensorflow;
 
-namespace ignite {
+namespace tensorflow {
 
 class IgnitePath {
  public:

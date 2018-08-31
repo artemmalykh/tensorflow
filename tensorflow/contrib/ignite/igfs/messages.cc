@@ -16,7 +16,6 @@ limitations under the License.
 #include "messages.h"
 
 using namespace tensorflow;
-using namespace ignite;
 
 Status IgfsFile::read(IGFSClient &r) {
   path_ = Optional<IgnitePath>();

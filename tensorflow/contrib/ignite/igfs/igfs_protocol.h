@@ -17,22 +17,12 @@ limitations under the License.
 #define TF_CMAKE_CLIENT_H
 
 #include <string>
-#include <cstdio>
-#include <sys/socket.h>
-#include <cstdlib>
-#include <netinet/in.h>
-#include <cstring>
-#include <arpa/inet.h>
-#include <iostream>
-#include <bits/unique_ptr.h>
-#include "utils.h"
 #include "messages.h"
-#include "../kernels/ignite_plain_client.h"
+#include "utils.h"
 
 using namespace std;
-using namespace ignite;
 
-namespace ignite {
+namespace tensorflow {
 
 class IgfsProtocolMessenger {
  public:
@@ -40,21 +30,21 @@ class IgfsProtocolMessenger {
 
   ~IgfsProtocolMessenger();
 
-  Status handshake(ControlResponse<Optional<HandshakeResponse>> &res);
+  Status handshake(ControlResponse<Optional<HandshakeResponse>>* res);
 
-  Status listFiles(ControlResponse<ListFilesResponse> &res, const string &path);
+  Status listFiles(ControlResponse<ListFilesResponse>* res, const string &path);
 
-  Status listPaths(ControlResponse<ListPathsResponse> &res, const string &path);
+  Status listPaths(ControlResponse<ListPathsResponse>* res, const string &path);
 
-  Status info(ControlResponse<InfoResponse> &res, const string &path);
+  Status info(ControlResponse<InfoResponse> *res, const string &path);
 
-  Status openCreate(ControlResponse<OpenCreateResponse> &res, const string &path);
+  Status openCreate(ControlResponse<OpenCreateResponse> *res, const string &path);
 
-  Status openAppend(ControlResponse<OpenAppendResponse> &res, const string &userName, const string &path);
+  Status openAppend(ControlResponse<OpenAppendResponse> *res, const string &userName, const string &path);
 
-  Status openRead(ControlResponse<Optional<OpenReadResponse>> &res, const string &userName, const string &path);
+  Status openRead(ControlResponse<Optional<OpenReadResponse>> *res, const string &userName, const string &path);
 
-  Status exists(ControlResponse<ExistsResponse> &res, const string &path);
+  Status exists(ControlResponse<ExistsResponse> *res, const string &path);
 
   Status mkdir(ControlResponse<MakeDirectoriesResponse> &res, const string &path);
 
@@ -72,6 +62,6 @@ class IgfsProtocolMessenger {
   string fsName;
   IGFSClient *cl;
 };
-}
+} // namespace tensorflow
 
 #endif //TF_CMAKE_CLIENT_H

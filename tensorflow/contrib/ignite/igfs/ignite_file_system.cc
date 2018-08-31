@@ -98,13 +98,13 @@ Status IgniteFileSystem::NewRandomAccessFile(
     const string &fname, std::unique_ptr<RandomAccessFile> *result) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
 
     ControlResponse<Optional<OpenReadResponse>> openCreateResp = {};
-    TF_RETURN_IF_ERROR(client->openRead(openCreateResp, "", path));
+    TF_RETURN_IF_ERROR(client->openRead(&openCreateResp, "", path));
 
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().get().getStreamId();
@@ -168,14 +168,14 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     string path = TranslateName(fname);
 
     // Check if file exists, and if yes delete it.
     ControlResponse<ExistsResponse> existsResponse = {};
-    TF_RETURN_IF_ERROR(client->exists(existsResponse, path));
+    TF_RETURN_IF_ERROR(client->exists(&existsResponse, path));
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
@@ -191,7 +191,7 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
     }
 
     ControlResponse<OpenCreateResponse> openCreateResp = {};
-    TF_RETURN_IF_ERROR(client->openCreate(openCreateResp, path));
+    TF_RETURN_IF_ERROR(client->openCreate(&openCreateResp, path));
 
     if (openCreateResp.isOk()) {
       long resourceId = openCreateResp.getRes().getStreamId();
@@ -211,12 +211,12 @@ Status IgniteFileSystem::NewAppendableFile(
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     // Check if file exists, and if yes delete it.
     ControlResponse<ExistsResponse> existsResponse = {};
-    TF_RETURN_IF_ERROR(client->exists(existsResponse, fname));
+    TF_RETURN_IF_ERROR(client->exists(&existsResponse, fname));
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
@@ -232,7 +232,7 @@ Status IgniteFileSystem::NewAppendableFile(
     }
 
     ControlResponse<OpenAppendResponse> openAppendResp = {};
-    TF_RETURN_IF_ERROR(client->openAppend(openAppendResp, "", fname));
+    TF_RETURN_IF_ERROR(client->openAppend(&openAppendResp, "", fname));
 
     if (openAppendResp.isOk()) {
       long resourceId = openAppendResp.getRes().getStreamId();
@@ -256,12 +256,12 @@ Status IgniteFileSystem::FileExists(const string &fname) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
     ControlResponse<ExistsResponse> existsResponse = {};
-    TF_RETURN_IF_ERROR(client->exists(existsResponse, path));
+    TF_RETURN_IF_ERROR(client->exists(&existsResponse, path));
 
     if (existsResponse.isOk()) {
       if (existsResponse.getRes().exists()) {
@@ -300,13 +300,13 @@ Status IgniteFileSystem::GetChildren(const string &fname,
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string dir = TranslateName(fname);
 
     ControlResponse<ListPathsResponse> listPathsResponse = {};
-    TF_RETURN_IF_ERROR(client->listPaths(listPathsResponse, dir));
+    TF_RETURN_IF_ERROR(client->listPaths(&listPathsResponse, dir));
 
     if (!listPathsResponse.isOk()) {
       return Status(error::INTERNAL, "Error");
@@ -320,7 +320,7 @@ Status IgniteFileSystem::GetChildren(const string &fname,
     }
   } else {
     // TODO: return error with appropriate code.
-    return Status(error::INTERNAL, "Error");
+    return Status(error::INTERNAL, "Error during handshake.");
   }
 
   return Status::OK();
@@ -335,7 +335,7 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
@@ -361,7 +361,7 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string dir = TranslateName(fname);
@@ -383,11 +383,11 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     ControlResponse<ListFilesResponse> listFilesResponse = {};
-    client->listFiles(listFilesResponse, dir);
+    client->listFiles(&listFilesResponse, dir);
 
     if (!listFilesResponse.isOk()) {
       return Status(error::INTERNAL, "Error");
@@ -414,12 +414,12 @@ Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
     ControlResponse<InfoResponse> infoResponse = {};
-    TF_RETURN_IF_ERROR(client->info(infoResponse, path));
+    TF_RETURN_IF_ERROR(client->info(&infoResponse, path));
 
     if (!infoResponse.isOk()) {
       return Status(error::INTERNAL, "Error while getting info.");
@@ -442,7 +442,7 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string srcPath = TranslateName(src);
@@ -469,12 +469,12 @@ Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
   shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->handshake(hResponse));
+  TF_RETURN_IF_ERROR(client->handshake(&hResponse));
 
   if (hResponse.isOk()) {
     const string path = TranslateName(fname);
     ControlResponse<InfoResponse> infoResponse = {};
-    TF_RETURN_IF_ERROR(client->info(infoResponse, path));
+    TF_RETURN_IF_ERROR(client->info(&infoResponse, path));
 
     if (!infoResponse.isOk()) {
       return Status(error::INTERNAL, "Error while getting info.");
