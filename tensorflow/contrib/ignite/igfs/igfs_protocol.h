@@ -34,11 +34,11 @@ using namespace ignite;
 
 namespace ignite {
 
-class IgfsClient {
+class IgfsProtocolMessenger {
  public:
-  IgfsClient(int port, string host, string fsName);
+  IgfsProtocolMessenger(int port, string host, string fsName);
 
-  ~IgfsClient();
+  ~IgfsProtocolMessenger();
 
   Status handshake(ControlResponse<Optional<HandshakeResponse>> &res);
 

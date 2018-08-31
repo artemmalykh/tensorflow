@@ -13,21 +13,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "client.h"
+#include "igfs_protocol.h"
 #include "../kernels/ignite_plain_client.h"
 
 namespace ignite {
 
-IgfsClient::IgfsClient(int port, std::string host, std::string fsName) : fsName(fsName) {
+IgfsProtocolMessenger::IgfsProtocolMessenger(int port, std::string host, std::string fsName) : fsName(fsName) {
   cl = new IGFSClient(host, port);
   cl->Connect();
 }
 
-IgfsClient::~IgfsClient() {
+IgfsProtocolMessenger::~IgfsProtocolMessenger() {
   cl->Disconnect();
 }
 
-Status IgfsClient::handshake(ControlResponse<Optional<HandshakeResponse>>& res) {
+Status IgfsProtocolMessenger::handshake(ControlResponse<Optional<HandshakeResponse>>& res) {
   HandshakeRequest req(fsName, "");
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -40,7 +40,7 @@ Status IgfsClient::handshake(ControlResponse<Optional<HandshakeResponse>>& res) 
   return Status::OK();
 }
 
-Status IgfsClient::listFiles(ControlResponse<ListFilesResponse>& res, std::string path) {
+Status IgfsProtocolMessenger::listFiles(ControlResponse<ListFilesResponse>& res, std::string path) {
   ListFilesRequest req(path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -51,7 +51,7 @@ Status IgfsClient::listFiles(ControlResponse<ListFilesResponse>& res, std::strin
   return Status::OK();
 }
 
-Status IgfsClient::listPaths(ControlResponse<ListPathsResponse> &res, std::string path) {
+Status IgfsProtocolMessenger::listPaths(ControlResponse<ListPathsResponse> &res, std::string path) {
   ListPathsRequest req(path);
   req.write(*cl);
   cl->reset();
@@ -62,7 +62,7 @@ Status IgfsClient::listPaths(ControlResponse<ListPathsResponse> &res, std::strin
   return Status::OK();
 }
 
-Status IgfsClient::info(ControlResponse<InfoResponse> &res, std::string path) {
+Status IgfsProtocolMessenger::info(ControlResponse<InfoResponse> &res, std::string path) {
   InfoRequest req("", path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -73,7 +73,7 @@ Status IgfsClient::info(ControlResponse<InfoResponse> &res, std::string path) {
   return Status::OK();
 }
 
-Status IgfsClient::openCreate(ControlResponse<OpenCreateResponse> &res, std::string& path) {
+Status IgfsProtocolMessenger::openCreate(ControlResponse<OpenCreateResponse> &res, std::string& path) {
   OpenCreateRequest req(path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -90,7 +90,7 @@ Status IgfsClient::openCreate(ControlResponse<OpenCreateResponse> &res, std::str
   return Status::OK();
 }
 
-Status IgfsClient::openAppend(ControlResponse<OpenAppendResponse> &res, std::string userName, std::string path) {
+Status IgfsProtocolMessenger::openAppend(ControlResponse<OpenAppendResponse> &res, std::string userName, std::string path) {
   OpenAppendRequest req(userName, path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -107,7 +107,7 @@ Status IgfsClient::openAppend(ControlResponse<OpenAppendResponse> &res, std::str
   return Status::OK();
 }
 
-Status IgfsClient::openRead(ControlResponse<Optional<OpenReadResponse>> &res, std::string userName, std::string path) {
+Status IgfsProtocolMessenger::openRead(ControlResponse<Optional<OpenReadResponse>> &res, std::string userName, std::string path) {
   OpenReadRequest req(userName, path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -118,7 +118,7 @@ Status IgfsClient::openRead(ControlResponse<Optional<OpenReadResponse>> &res, st
   return Status::OK();
 }
 
-Status IgfsClient::exists(ControlResponse<ExistsResponse> &res, const std::string& path) {
+Status IgfsProtocolMessenger::exists(ControlResponse<ExistsResponse> &res, const std::string& path) {
   ExistsRequest req(path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -129,7 +129,7 @@ Status IgfsClient::exists(ControlResponse<ExistsResponse> &res, const std::strin
   return Status::OK();
 }
 
-Status IgfsClient::mkdir(ControlResponse<MakeDirectoriesResponse> &res, const std::string& path) {
+Status IgfsProtocolMessenger::mkdir(ControlResponse<MakeDirectoriesResponse> &res, const std::string& path) {
   MakeDirectoriesRequest req("", path);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -140,7 +140,7 @@ Status IgfsClient::mkdir(ControlResponse<MakeDirectoriesResponse> &res, const st
   return Status::OK();
 }
 
-Status IgfsClient::del(ControlResponse<DeleteResponse> &res, std::string path, bool recursive) {
+Status IgfsProtocolMessenger::del(ControlResponse<DeleteResponse> &res, std::string path, bool recursive) {
   DeleteRequest req(path, recursive);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -151,7 +151,7 @@ Status IgfsClient::del(ControlResponse<DeleteResponse> &res, std::string path, b
   return Status::OK();
 }
 
-Status IgfsClient::writeBlock(long streamId, const char *data, int len) {
+Status IgfsProtocolMessenger::writeBlock(long streamId, const char *data, int len) {
   WriteBlockRequest req(streamId, data, len);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -159,7 +159,7 @@ Status IgfsClient::writeBlock(long streamId, const char *data, int len) {
   return Status::OK();
 }
 
-Status IgfsClient::readBlock(ReadBlockControlResponse &res, long streamId, long pos, int len, char* dst) {
+Status IgfsProtocolMessenger::readBlock(ReadBlockControlResponse &res, long streamId, long pos, int len, char* dst) {
   ReadBlockRequest req(streamId, pos, len);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -170,7 +170,7 @@ Status IgfsClient::readBlock(ReadBlockControlResponse &res, long streamId, long 
   return Status::OK();
 }
 
-Status IgfsClient::close(ControlResponse<CloseResponse> &res, long streamId) {
+Status IgfsProtocolMessenger::close(ControlResponse<CloseResponse> &res, long streamId) {
   CloseRequest req(streamId);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();
@@ -181,7 +181,7 @@ Status IgfsClient::close(ControlResponse<CloseResponse> &res, long streamId) {
   return Status::OK();
 }
 
-Status IgfsClient::rename(ControlResponse<RenameResponse> &res, const std::string &source, const std::string &dest) {
+Status IgfsProtocolMessenger::rename(ControlResponse<RenameResponse> &res, const std::string &source, const std::string &dest) {
   RenameRequest req(source, dest);
   TF_RETURN_IF_ERROR(req.write(*cl));
   cl->reset();

@@ -32,7 +32,7 @@ limitations under the License.
 #include "tensorflow/core/platform/mutex.h"
 #include "third_party/hadoop/hdfs.h"
 #include "ignite_file_system.h"
-#include "client.h"
+#include "igfs_protocol.h"
 
 using namespace std;
 
@@ -43,12 +43,12 @@ string getEnvOrElse(const string &env, string defVal) {
   return getenv(envCStr) != nullptr ? getenv(envCStr) : std::move(defVal);
 }
 
-shared_ptr<IgfsClient> createClient() {
+shared_ptr<IgfsProtocolMessenger> createClient() {
   string host = getEnvOrElse("IGFS_HOST", "localhost");
   int port = atoi(getEnvOrElse("IGFS_PORT", "10500").c_str());
   string fsName = getEnvOrElse("IGFS_FS_NAME", "myFileSystem");
 
-  return std::make_shared<IgfsClient>(port, host, fsName);
+  return std::make_shared<IgfsProtocolMessenger>(port, host, fsName);
 }
 
 IgniteFileSystem::IgniteFileSystem() {}
@@ -63,7 +63,7 @@ string IgniteFileSystem::TranslateName(const string &name) const {
 
 class IGFSRandomAccessFile : public RandomAccessFile {
  public:
-  IGFSRandomAccessFile(const string& fName, long resourceId, shared_ptr<IgfsClient>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
+  IGFSRandomAccessFile(const string& fName, long resourceId, shared_ptr<IgfsProtocolMessenger>& client) : fName_(fName), resourceId_(resourceId), client_(client) {}
 
   ~IGFSRandomAccessFile() override {
     ControlResponse<CloseResponse> cr = {};
@@ -90,14 +90,14 @@ class IGFSRandomAccessFile : public RandomAccessFile {
   }
 
  private:
-  shared_ptr<IgfsClient> client_;
+  shared_ptr<IgfsProtocolMessenger> client_;
   long resourceId_;
   string fName_;
 };
 
 Status IgniteFileSystem::NewRandomAccessFile(
     const string &fname, std::unique_ptr<RandomAccessFile> *result) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
@@ -122,7 +122,7 @@ Status IgniteFileSystem::NewRandomAccessFile(
 
 class IGFSWritableFile : public WritableFile {
  public:
-  IGFSWritableFile(const string& fName, long resourceId, shared_ptr<IgfsClient> client) : fName_(fName), resourceId_(resourceId), client_(client) {}
+  IGFSWritableFile(const string& fName, long resourceId, shared_ptr<IgfsProtocolMessenger> client) : fName_(fName), resourceId_(resourceId), client_(client) {}
 
   ~IGFSWritableFile() override {
     if (resourceId_ >= 0) {
@@ -160,19 +160,20 @@ class IGFSWritableFile : public WritableFile {
   }
 
  private:
-  shared_ptr<IgfsClient> client_;
+  shared_ptr<IgfsProtocolMessenger> client_;
   long resourceId_;
   string fName_;
 };
 
 Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<WritableFile> *result) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
 
   if (hResponse.isOk()) {
     string path = TranslateName(fname);
+
     // Check if file exists, and if yes delete it.
     ControlResponse<ExistsResponse> existsResponse = {};
     TF_RETURN_IF_ERROR(client->exists(existsResponse, path));
@@ -183,12 +184,10 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
         TF_RETURN_IF_ERROR(client->del(delResponse, path, false));
 
         if (!delResponse.isOk()) {
-          // TODO: return error with appropriate code.
           return Status(error::INTERNAL, "Error trying to delete existing file.");
         }
       }
     } else {
-      // TODO: return error with appropriate code.
       return Status(error::INTERNAL, "Error trying to know if file exists.");
     }
 
@@ -210,7 +209,7 @@ Status IgniteFileSystem::NewWritableFile(const string &fname, std::unique_ptr<Wr
 
 Status IgniteFileSystem::NewAppendableFile(
     const string &fname, std::unique_ptr<WritableFile> *result) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -255,7 +254,7 @@ Status IgniteFileSystem::NewReadOnlyMemoryRegionFromFile(
 }
 
 Status IgniteFileSystem::FileExists(const string &fname) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -300,7 +299,7 @@ string makeRelative(const string &a, const string &b) {
 
 Status IgniteFileSystem::GetChildren(const string &fname,
                                      std::vector<string> *result) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -335,7 +334,7 @@ Status IgniteFileSystem::GetMatchingPaths(const string& pattern,
 }
 
 Status IgniteFileSystem::DeleteFile(const string &fname) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -362,7 +361,7 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
 }
 
 Status IgniteFileSystem::CreateDir(const string &fname) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -384,7 +383,7 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
 }
 
 Status IgniteFileSystem::DeleteDir(const string &dir) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -415,7 +414,7 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
 }
 
 Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -443,7 +442,7 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
     DeleteFile(target);
   }
 
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -470,7 +469,7 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
 }
 
 Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
-  shared_ptr<IgfsClient> client = createClient();
+  shared_ptr<IgfsProtocolMessenger> client = createClient();
 
   ControlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->handshake(hResponse));
@@ -492,37 +491,6 @@ Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
     return Status(error::INTERNAL, "Error");
   }
 
-  return Status::OK();
-}
-
-/////////////
-
-string FileSystem::TranslateName(const string& name) const {
-  return "";
-}
-
-Status FileSystem::IsDirectory(const string& name) {
-  return Status::OK();
-}
-
-void FileSystem::FlushCaches() {}
-
-bool FileSystem::FilesExist(const std::vector<string>& files,
-                            std::vector<Status>* status) {
-  return false;
-}
-
-Status FileSystem::DeleteRecursively(const string& dirname,
-                                     int64* undeleted_files,
-                                     int64* undeleted_dirs) {
-  return Status::OK();
-}
-
-Status FileSystem::RecursivelyCreateDir(const string& dirname) {
-  return Status::OK();
-}
-
-Status FileSystem::CopyFile(const string& src, const string& target) {
   return Status::OK();
 }
 
