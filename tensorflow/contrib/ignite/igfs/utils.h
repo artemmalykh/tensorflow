@@ -33,26 +33,26 @@ using std::string;
 
 class IGFSClient : public PlainClient {
  public:
-  IGFSClient(std::string host, int port) : PlainClient(host, port, true) {
-    LOG(INFO) << "New IGFS Client " << host << ":" << port;
+  IGFSClient(const string &host, int port) : PlainClient(host, port, true) {
+    LOG(INFO) << "New IGFS Client " << host << ":" << port << ".";
     pos = 0;
   }
 
-  virtual Status ReadData(uint8_t* buf, int32_t length) {
+  Status ReadData(uint8_t* buf, int32_t length) override {
     TF_RETURN_IF_ERROR(PlainClient::ReadData(buf, length));
     pos += length;
 
     return Status::OK();
   }
 
-  virtual Status WriteData(uint8_t* buf, int32_t length) {
+  Status WriteData(uint8_t* buf, int32_t length) override {
     TF_RETURN_IF_ERROR(PlainClient::WriteData(buf, length));
     pos += length;
 
     return Status::OK();
   }
 
-  Status skip(int n) {
+  Status Skip(int n) {
     TF_RETURN_IF_ERROR(Ignore(n));
 
     return Status::OK();
@@ -63,7 +63,7 @@ class IGFSClient : public PlainClient {
     return ReadData(buf, n);
   }
 
-  Status skipToPos(int targetPos) {
+  Status SkipToPos(int targetPos) {
     int toSkip = std::max(0, targetPos - pos);
     return Ignore(toSkip);
   };
@@ -116,11 +116,11 @@ class IGFSClient : public PlainClient {
     return Status::OK();
   };
 
-  Status writeSize(map<string, string>::size_type s) {
+  Status WriteSize(map<string, string>::size_type s) {
     return WriteInt(s);
   }
 
-  Status skipToPosW(int n) {
+  Status FillWithZerosUntil(int n) {
     int toSkip = std::max(0, n - pos);
 
     for (int i = 0; i < toSkip; i++) {
@@ -130,30 +130,30 @@ class IGFSClient : public PlainClient {
     return Status::OK();
   }
 
-  Status writeBoolean(bool val) {
+  Status WriteBool(bool val) {
     return WriteByte((char) (val ? 1 : 0));
   }
 
-  Status writeString(string str) {
+  Status WriteString(string str) {
     if (!str.empty()) {
-      writeBoolean(false);
+      WriteBool(false);
       unsigned short l = str.length();
       TF_RETURN_IF_ERROR(WriteShort(l));
       TF_RETURN_IF_ERROR(WriteData((uint8_t *)str.c_str(), str.length()));
     } else {
-      writeBoolean(true);
+      WriteBool(true);
     }
 
     return Status::OK();
   }
 
-  Status writeStringMap(map<string, string> map) {
+  Status WriteStringMap(map<string, string> map) {
     std::map<string, string>::size_type size = map.size();
-    TF_RETURN_IF_ERROR(writeSize(size));
+    TF_RETURN_IF_ERROR(WriteSize(size));
 
     for (auto const &x : map) {
-      TF_RETURN_IF_ERROR(writeString(x.first));
-      TF_RETURN_IF_ERROR(writeString(x.second));
+      TF_RETURN_IF_ERROR(WriteString(x.first));
+      TF_RETURN_IF_ERROR(WriteString(x.second));
     }
 
     return Status::OK();
@@ -172,24 +172,24 @@ template<class T>
 class Optional {
  public:
   template<class T1>
-  static Optional<T1> of(T1 val) {
+  static Optional<T1> Of(T1 val) {
     return Optional(val);
   }
 
   template<class T1>
-  static Optional<T1> empty() {
+  static Optional<T1> Empty() {
     return Optional();
   }
 
-  bool isEmpty() {
+  bool IsEmpty() {
     return hasVal;
   }
 
-  T getOrElse(T altVal) {
-    return isEmpty() ? altVal : val;
+  T GetOrElse(T altVal) {
+    return IsEmpty() ? altVal : val;
   }
 
-  T get() {
+  T Get() {
     return val;
   }
 
@@ -201,8 +201,8 @@ class Optional {
     this->val = val;
   }
 
-  Status Read(IGFSClient &r) {
-    TF_RETURN_IF_ERROR(r.ReadBool(hasVal));
+  Status Read(IGFSClient* r) {
+    TF_RETURN_IF_ERROR(r->ReadBool(hasVal));
 
     if (hasVal) {
       val = T();

@@ -22,6 +22,8 @@ limitations under the License.
 #ifdef _MSC_VER
 
 #include <stdlib.h>
+
+#define bswap_16(x) _byteswap_ushort(x)
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
 
@@ -37,10 +39,10 @@ class Client {
  public:
   Client() : Client(false) {};
 
-  explicit Client(bool bigEndian)  {
+  explicit Client(bool big_endian)  {
     int x = 1;
-    bool isLittleEndian = (*(char *)&x == 1);
-    shouldSwap_ = (bigEndian == isLittleEndian);
+    bool is_little_endian = (*(char *)&x == 1);
+    should_swap_ = (big_endian == is_little_endian);
   };
 
   virtual Status Connect() = 0;
@@ -61,41 +63,41 @@ class Client {
 
   inline Status ReadShort(int16_t *data) {
     TF_RETURN_IF_ERROR(ReadData((uint8_t *) data, 2));
-    *data = shouldSwap_ ? bswap_16(*data) : *data;
+    *data = should_swap_ ? bswap_16(*data) : *data;
     return Status::OK();
   }
 
   inline Status ReadInt(int32_t *data) {
     TF_RETURN_IF_ERROR(ReadData((uint8_t *) data, 4));
-    *data = shouldSwap_ ? bswap_32(*data) : *data;
+    *data = should_swap_ ? bswap_32(*data) : *data;
     return Status::OK();
   }
 
   inline Status ReadLong(int64_t *data) {
     TF_RETURN_IF_ERROR(ReadData((uint8_t *) data, 8));
-    *data = shouldSwap_ ? bswap_64(*data) : *data;
+    *data = should_swap_ ? bswap_64(*data) : *data;
     return Status::OK();
   }
 
   inline Status WriteByte(uint8_t data) { return WriteData(&data, 1); }
 
   inline Status WriteShort(int16_t data) {
-    int16_t d = shouldSwap_ ? bswap_16(data) : data;
+    int16_t d = should_swap_ ? bswap_16(data) : data;
     return WriteData((uint8_t *) &d, 2);
   }
 
   inline Status WriteInt(int32_t data) {
-    int32_t d = shouldSwap_ ? bswap_32(data) : data;
+    int32_t d = should_swap_ ? bswap_32(data) : data;
     return WriteData((uint8_t *) &d, 4);
   }
 
   inline Status WriteLong(int64_t data) {
-    int64_t d = shouldSwap_ ? bswap_64(data) : data;
+    int64_t d = should_swap_ ? bswap_64(data) : data;
     return WriteData((uint8_t *) &d, 8);
   }
 
  protected:
-  bool shouldSwap_;
+  bool should_swap_;
 };
 
 }  // namespace tensorflow

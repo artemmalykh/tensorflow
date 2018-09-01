@@ -30,7 +30,7 @@ class IgniteFileSystem : public FileSystem {
   ~IgniteFileSystem();
 
   Status NewRandomAccessFile(
-      const string& fname, std::unique_ptr<RandomAccessFile>* result) override;
+      const string& file_name, std::unique_ptr<RandomAccessFile>* result) override;
 
   Status NewWritableFile(const string& fname,
                          std::unique_ptr<WritableFile>* result) override;
