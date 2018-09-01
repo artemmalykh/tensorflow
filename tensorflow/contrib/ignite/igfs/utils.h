@@ -201,12 +201,12 @@ class Optional {
     this->val = val;
   }
 
-  Status read(IGFSClient &r) {
+  Status Read(IGFSClient &r) {
     TF_RETURN_IF_ERROR(r.ReadBool(hasVal));
 
     if (hasVal) {
       val = T();
-      TF_RETURN_IF_ERROR(val.read(r));
+      TF_RETURN_IF_ERROR(val.Read(r));
     }
 
     return Status::OK();

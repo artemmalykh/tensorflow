@@ -62,9 +62,6 @@ class IgniteFileSystem : public FileSystem {
   Status Stat(const string& fname, FileStatistics* stat) override;
 
   string TranslateName(const string& name) const override;
-
- private:
-  Status Connect(StringPiece fname);
 };
 
 }  // namespace tensorflow

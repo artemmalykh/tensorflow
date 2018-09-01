@@ -17,9 +17,9 @@ limitations under the License.
 
 using namespace tensorflow;
 
-Status IgfsFile::read(IGFSClient &r) {
+Status IgfsFile::Read(IGFSClient &r) {
   path_ = Optional<IgnitePath>();
-  TF_RETURN_IF_ERROR(path_.read(r));
+  TF_RETURN_IF_ERROR(path_.Read(r));
   properties_ = map<string, string>();
 
   TF_RETURN_IF_ERROR(r.ReadInt(&block_size_));
@@ -33,22 +33,22 @@ Status IgfsFile::read(IGFSClient &r) {
   return Status::OK();
 }
 
-long IgfsFile::getFileSize() {
+long IgfsFile::GetFileSize() {
   return length_;
 }
 
-long IgfsFile::getModificationTime() {
+long IgfsFile::GetModificationTime() {
   return modification_time_;
 }
 
-char IgfsFile::getFlags() {
+char IgfsFile::GetFlags() {
   return flags_;
 }
 
 Status Request::write(IGFSClient &w) {
   TF_RETURN_IF_ERROR(w.WriteByte(0));
   TF_RETURN_IF_ERROR(w.skipToPosW(8));
-  TF_RETURN_IF_ERROR(w.WriteInt(commandId()));
+  TF_RETURN_IF_ERROR(w.WriteInt(CommandId()));
   TF_RETURN_IF_ERROR(w.skipToPosW(24));
 
   return Status::OK();
@@ -58,7 +58,7 @@ Response::Response() {
 
 }
 
-Status Response::read(IGFSClient &r) {
+Status Response::Read(IGFSClient &r) {
   //read Header
   TF_RETURN_IF_ERROR(r.Ignore(1));
   TF_RETURN_IF_ERROR(r.skipToPos(8));
@@ -139,7 +139,7 @@ Status PathControlRequest::writePath(IGFSClient &w, string &path) {
 Status StreamControlRequest::write(IGFSClient &w) {
   TF_RETURN_IF_ERROR(w.WriteByte(0));
   TF_RETURN_IF_ERROR(w.skipToPosW(8));
-  TF_RETURN_IF_ERROR(w.WriteInt(commandId()));
+  TF_RETURN_IF_ERROR(w.WriteInt(CommandId()));
   TF_RETURN_IF_ERROR(w.WriteLong(stream_id_));
   TF_RETURN_IF_ERROR(w.WriteInt(length_));
 
@@ -160,11 +160,7 @@ DeleteRequest::DeleteRequest(const string &path,
                          false,
                          map<string, string>()) {}
 
-int DeleteRequest::commandId() {
-  return 7;
-}
-
-Status DeleteResponse::read(IGFSClient &r) {
+Status DeleteResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadBool(done));
 
   return Status::OK();
@@ -186,11 +182,8 @@ ExistsRequest::ExistsRequest(const string &path) : PathControlRequest(
     false,
     map<string, string>()) {}
 
-int ExistsRequest::commandId() {
-  return 2;
-}
 
-Status ExistsResponse::read(IGFSClient &r) {
+Status ExistsResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadBool(ex));
 
   return Status::OK();
@@ -208,10 +201,6 @@ HandshakeRequest::HandshakeRequest(string fs_name, string log_dir) :
     fs_name_(std::move(fs_name)),
     log_dir_(std::move(log_dir)) {};
 
-int HandshakeRequest::commandId() {
-  return 0;
-};
-
 Status HandshakeRequest::write(IGFSClient &w) {
   TF_RETURN_IF_ERROR(Request::write(w));
 
@@ -223,7 +212,7 @@ Status HandshakeRequest::write(IGFSClient &w) {
 
 HandshakeResponse::HandshakeResponse() = default;
 
-Status HandshakeResponse::read(IGFSClient &r) {
+Status HandshakeResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadNullableString(fs_name_));
   TF_RETURN_IF_ERROR(r.ReadLong(&block_size_));
 
@@ -251,14 +240,6 @@ ListRequest::ListRequest(const string &path) : PathControlRequest(
 
 ListFilesRequest::ListFilesRequest(const string &path) : ListRequest(path) {}
 
-int ListFilesRequest::commandId() {
-  return 10;
-}
-
-int ListPathsRequest::commandId() {
-  return 9;
-}
-
 OpenCreateRequest::OpenCreateRequest(const string &path) : PathControlRequest(
     "",
     path,
@@ -276,11 +257,7 @@ Status OpenCreateRequest::write(IGFSClient &w) {
   return Status::OK();
 }
 
-int OpenCreateRequest::commandId() {
-  return 15;
-}
-
-Status OpenCreateResponse::read(IGFSClient &r) {
+Status OpenCreateResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadLong(&stream_id_));
 }
 
@@ -303,11 +280,7 @@ Status OpenAppendRequest::write(IGFSClient &w) {
   return Status::OK();
 }
 
-int OpenAppendRequest::commandId() {
-  return 14;
-}
-
-Status OpenAppendResponse::read(IGFSClient &r) {
+Status OpenAppendResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadLong(&stream_id_));
 
   return Status::OK();
@@ -345,11 +318,7 @@ Status OpenReadRequest::write(IGFSClient &w) {
   return Status::OK();
 }
 
-int OpenReadRequest::commandId() {
-  return 13;
-}
-
-Status OpenReadResponse::read(IGFSClient &r) {
+Status OpenReadResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadLong(&stream_id_));
   TF_RETURN_IF_ERROR(r.ReadLong(&length_));
 
@@ -371,13 +340,9 @@ InfoRequest::InfoRequest(const string &userName, const string &path)
                          false,
                          map<string, string>()) {}
 
-int InfoRequest::commandId() {
-  return 3;
-}
-
-Status InfoResponse::read(IGFSClient &r) {
+Status InfoResponse::Read(IGFSClient &r) {
   fileInfo = IgfsFile();
-  TF_RETURN_IF_ERROR(fileInfo.read(r));
+  TF_RETURN_IF_ERROR(fileInfo.Read(r));
 
   return Status::OK();
 }
@@ -392,11 +357,7 @@ MakeDirectoriesRequest::MakeDirectoriesRequest(const string &userName,
     userName, path, "", false, false,
     map<string, string>()) {}
 
-int MakeDirectoriesRequest::commandId() {
-  return 8;
-}
-
-Status MakeDirectoriesResponse::read(IGFSClient &r) {
+Status MakeDirectoriesResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadBool(successful_));
 
   return Status::OK();
@@ -410,15 +371,11 @@ bool MakeDirectoriesResponse::successful() {
 
 CloseRequest::CloseRequest(long streamId) : StreamControlRequest(streamId, 0) {}
 
-int CloseRequest::commandId() {
-  return 16;
-}
-
 CloseResponse::CloseResponse() : successful_(false) {
 
 }
 
-Status CloseResponse::read(IGFSClient &r) {
+Status CloseResponse::Read(IGFSClient &r) {
   r.ReadBool(successful_);
 }
 
@@ -437,18 +394,14 @@ Status ReadBlockRequest::write(IGFSClient &w) {
   return Status::OK();
 }
 
-int ReadBlockRequest::commandId() {
-  return 17;
-}
-
-Status ReadBlockResponse::read(IGFSClient &r, int length, char *dst) {
+Status ReadBlockResponse::Read(IGFSClient &r, int length, char *dst) {
   TF_RETURN_IF_ERROR(r.ReadData(reinterpret_cast<uint8_t *>(dst), length));
   successfulyRead = length;
 
   return Status::OK();
 }
 
-Status ReadBlockResponse::read(IGFSClient &r) {
+Status ReadBlockResponse::Read(IGFSClient &r) {
   // No-op
 }
 
@@ -458,12 +411,12 @@ streamsize ReadBlockResponse::getSuccessfulyRead() {
 
 ReadBlockControlResponse::ReadBlockControlResponse(char *dst) : dst(dst) {}
 
-Status ReadBlockControlResponse::read(IGFSClient &r) {
-  TF_RETURN_IF_ERROR(Response::read(r));
+Status ReadBlockControlResponse::Read(IGFSClient &r) {
+  TF_RETURN_IF_ERROR(Response::Read(r));
 
   if (isOk()) {
     res = ReadBlockResponse();
-    TF_RETURN_IF_ERROR(res.read(r, length_, dst));
+    TF_RETURN_IF_ERROR(res.Read(r, length_, dst));
   }
 
   return Status::OK();
@@ -485,32 +438,24 @@ Status WriteBlockRequest::write(IGFSClient &w) {
   return Status::OK();
 }
 
-int WriteBlockRequest::commandId() {
-  return 18;
-}
-
-RenameRequest::RenameRequest(const std::string &path,
-                             const std::string &destination_path) :
+RenameRequest::RenameRequest(const string &path,
+                             const string &destination_path) :
     PathControlRequest(
     "",
     path,
     destination_path,
     false,
     false,
-    std::map<std::string, std::string>()) {}
-
-int RenameRequest::commandId() {
-  return 6;
-}
+    map<string, string>()) {}
 
 RenameResponse::RenameResponse() = default;
 
-Status RenameResponse::read(IGFSClient &r) {
+Status RenameResponse::Read(IGFSClient &r) {
   TF_RETURN_IF_ERROR(r.ReadBool(ex));
 
   return Status::OK();
 }
 
-bool RenameResponse::successful() {
+bool RenameResponse::IsSuccessful() {
   return ex;
 }

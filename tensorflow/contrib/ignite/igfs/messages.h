@@ -30,7 +30,7 @@ using std::streamsize;
 
 class IgnitePath {
  public:
-  Status read(IGFSClient &r) {
+  Status Read(IGFSClient &r) {
     return r.ReadNullableString(path_);
   }
 
@@ -46,13 +46,13 @@ class IgfsFile {
  public:
   IgfsFile() = default;
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
-  long getFileSize();
+  long GetFileSize();
 
-  long getModificationTime();
+  long GetModificationTime();
 
-  char getFlags();
+  char GetFlags();
 
  private:
   Optional<IgnitePath> path_;
@@ -67,7 +67,7 @@ class IgfsFile {
 
 class Request {
  public:
-  virtual int commandId() = 0;
+  virtual int CommandId() = 0;
 
   virtual Status write(IGFSClient &w);
 };
@@ -76,7 +76,7 @@ class Response {
  public:
   Response();
 
-  virtual Status read(IGFSClient &r);
+  virtual Status Read(IGFSClient &r);
 
   int getResType();
 
@@ -101,7 +101,11 @@ class Response {
 
 class PathControlRequest : public Request {
  public:
-  PathControlRequest(string user_name, string path, string destination_path, bool flag, bool collocate,
+  PathControlRequest(string user_name,
+                     string path,
+                     string destination_path,
+                     bool flag,
+                     bool collocate,
                      map<string, string> properties);
 
   Status write(IGFSClient &w);
@@ -116,7 +120,7 @@ class PathControlRequest : public Request {
   /** Boolean flag, meaning depends on command. */
   bool flag;
 
-  /** Boolean flag which controls whether file will be colocated on single node. */
+  /** Boolean flag controlling whether file will be colocated on single node. */
   bool collocate;
 
   /** Properties. */
@@ -145,12 +149,12 @@ class ControlResponse : public Response {
  public:
   ControlResponse() = default;
 
-  Status read(IGFSClient &r) override {
-    TF_RETURN_IF_ERROR(Response::read(r));
+  Status Read(IGFSClient &r) override {
+    TF_RETURN_IF_ERROR(Response::Read(r));
 
     if (isOk()) {
       res = R();
-      TF_RETURN_IF_ERROR(res.read(r));
+      TF_RETURN_IF_ERROR(res.Read(r));
     }
 
     return Status::OK();
@@ -168,13 +172,14 @@ class DeleteRequest : public PathControlRequest {
  public:
   DeleteRequest(const string &path, bool flag);
 
- private:
-  int commandId() override;
+  inline int CommandId() override {
+    return 7;
+  }
 };
 
 class DeleteResponse {
  public:
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   DeleteResponse();
 
@@ -188,12 +193,14 @@ class ExistsRequest : public PathControlRequest {
  public:
   explicit ExistsRequest(const string &userName);
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 2;
+  }
 };
 
 class ExistsResponse {
  public:
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   ExistsResponse();
 
@@ -207,7 +214,9 @@ class HandshakeRequest : Request {
  public:
   HandshakeRequest(string fs_name, string log_dir);
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 0;
+  }
 
   Status write(IGFSClient &w) override;
 
@@ -220,7 +229,7 @@ class HandshakeResponse {
  public:
   HandshakeResponse();
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   string getFSName();
 
@@ -238,7 +247,7 @@ class ListRequest : public PathControlRequest {
 template<class T>
 class ListResponse {
  public:
-  Status read(IGFSClient &r) {
+  Status Read(IGFSClient &r) {
     int len;
     TF_RETURN_IF_ERROR(r.ReadInt(&len));
 
@@ -246,7 +255,7 @@ class ListResponse {
 
     for (int i = 0; i < len; i++) {
       T f = {};
-      TF_RETURN_IF_ERROR(f.read(r));
+      TF_RETURN_IF_ERROR(f.Read(r));
       entries.push_back(f);
     }
 
@@ -265,7 +274,9 @@ class ListFilesRequest : public ListRequest {
  public:
   explicit ListFilesRequest(const string &path);
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 10;
+  }
 };
 
 class ListFilesResponse : public ListResponse<IgfsFile> {
@@ -276,7 +287,9 @@ class ListPathsRequest : public ListRequest {
  public:
   explicit ListPathsRequest(const string &path) : ListRequest(path) {}
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 9;
+  }
 };
 
 class ListPathsResponse : public ListResponse<IgnitePath> {
@@ -289,13 +302,15 @@ class OpenCreateRequest : PathControlRequest {
 
   Status write(IGFSClient &w) override;
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 15;
+  }
 
  protected:
-  /** Hadoop replication factor. */
+  /** Replication factor. */
   int replication_{};
 
-  /** Hadoop block size. */
+  /** Block size. */
   long blockSize_{};
 };
 
@@ -303,7 +318,7 @@ class OpenCreateResponse {
  public:
   OpenCreateResponse() = default;
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   long getStreamId();
 
@@ -317,14 +332,16 @@ class OpenAppendRequest : PathControlRequest {
 
   Status write(IGFSClient &w) override;
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 14;
+  }
 };
 
 class OpenAppendResponse {
  public:
   OpenAppendResponse() = default;
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   long getStreamId();
 
@@ -334,13 +351,18 @@ class OpenAppendResponse {
 
 class OpenReadRequest : PathControlRequest {
  public:
-  OpenReadRequest(const string &user_name, const string &path, bool flag, int seqReadsBeforePrefetch);
+  OpenReadRequest(const string &user_name,
+                  const string &path,
+                  bool flag,
+                  int seqReadsBeforePrefetch);
 
   OpenReadRequest(const string &userName, const string &path);
 
   Status write(IGFSClient &w) override;
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 13;
+  }
 
  protected:
   /** Sequential reads before prefetch. */
@@ -351,7 +373,7 @@ class OpenReadResponse {
  public:
   OpenReadResponse();
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   long getStreamId();
 
@@ -366,14 +388,16 @@ class InfoRequest : public PathControlRequest {
  public:
   InfoRequest(const string& userName, const string &path);
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 3;
+  }
 };
 
 class InfoResponse {
  public:
   InfoResponse() = default;
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   IgfsFile getFileInfo();
 
@@ -385,14 +409,16 @@ class MakeDirectoriesRequest : public PathControlRequest {
  public:
   MakeDirectoriesRequest(const string& userName, const string &path);
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 8;
+  }
 };
 
 class MakeDirectoriesResponse {
  public:
   MakeDirectoriesResponse();
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   bool successful();
 
@@ -406,14 +432,16 @@ class CloseRequest : public StreamControlRequest {
  public:
   explicit CloseRequest(long streamId);
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 16;
+  }
 };
 
 class CloseResponse {
  public:
   CloseResponse();
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   bool isSuccessful();
 
@@ -427,7 +455,9 @@ class ReadBlockRequest : public StreamControlRequest {
 
   Status write(IGFSClient &w) override;
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 17;
+  }
 
  private:
   long pos;
@@ -435,9 +465,9 @@ class ReadBlockRequest : public StreamControlRequest {
 
 class ReadBlockResponse {
  public:
-  Status read(IGFSClient &r, int length, char *dst);
+  Status Read(IGFSClient &r, int length, char *dst);
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
   streamsize getSuccessfulyRead();
 
@@ -450,7 +480,7 @@ class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
  public:
   explicit ReadBlockControlResponse(char *dst);
 
-  Status read(IGFSClient &r) override;
+  Status Read(IGFSClient &r) override;
 
   int getLength();
 
@@ -464,7 +494,9 @@ class WriteBlockRequest : public StreamControlRequest {
 
   Status write(IGFSClient &w) override;
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 18;
+  }
 
  private:
   const char *data;
@@ -474,16 +506,18 @@ class RenameRequest : public PathControlRequest {
  public:
   RenameRequest(const std::string &path, const std::string &destination_path);
 
-  int commandId() override;
+  inline int CommandId() override {
+    return 6;
+  }
 };
 
 class RenameResponse {
  public:
   RenameResponse();
 
-  Status read(IGFSClient &r);
+  Status Read(IGFSClient &r);
 
-  bool successful();
+  bool IsSuccessful();
 
  private:
   bool ex{};

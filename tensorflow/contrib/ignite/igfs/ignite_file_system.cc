@@ -437,7 +437,7 @@ Status IgniteFileSystem::GetFileSize(const string &fname, uint64 *size) {
     if (!infoResponse.isOk()) {
       return Status(error::INTERNAL, "Error while getting info.");
     } else {
-      *size = infoResponse.getRes().getFileInfo().getFileSize();
+      *size = infoResponse.getRes().getFileInfo().GetFileSize();
     }
 
   } else {
@@ -469,7 +469,7 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
       return Status(error::INTERNAL, "Error while renaming.");
     }
 
-    if (!renameResp.getRes().successful()) {
+    if (!renameResp.getRes().IsSuccessful()) {
       return errors::NotFound(srcPath, " not found.");
     }
   } else {
@@ -496,7 +496,7 @@ Status IgniteFileSystem::Stat(const string &fname, FileStatistics *stats) {
     } else {
       IgfsFile info = infoResponse.getRes().getFileInfo();
 
-      *stats = FileStatistics(info.getFileSize(), info.getModificationTime(), (info.getFlags() & 0x1) != 0);
+      *stats = FileStatistics(info.GetFileSize(), info.GetModificationTime(), (info.GetFlags() & 0x1) != 0);
     }
 
   } else {
