@@ -26,9 +26,10 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/contrib/ignite/kernels/ignite_plain_client.h"
 
-using namespace std;
-
 namespace tensorflow {
+
+using std::map;
+using std::string;
 
 class IGFSClient : public PlainClient {
  public:

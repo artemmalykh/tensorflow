@@ -18,13 +18,15 @@ limitations under the License.
 
 #include <string>
 #include <map>
-#include <utility>
 #include <vector>
 #include "utils.h"
 
-using namespace std;
-
 namespace tensorflow {
+
+using std::map;
+using std::string;
+using std::vector;
+using std::streamsize;
 
 class IgnitePath {
  public:
@@ -54,12 +56,12 @@ class IgfsFile {
 
  private:
   Optional<IgnitePath> path_;
-  int blockSize_{};
-  long grpBlockSize_{};
-  long len_{};
-  map<string, string> props_;
-  long accessTime_{};
-  long modificationTime_{};
+  int block_size_{};
+  long group_block_size_{};
+  long length_{};
+  map<string, string> properties_;
+  long access_time_{};
+  long modification_time_{};
   char flags_{};
 };
 
@@ -88,10 +90,10 @@ class Response {
 
  protected:
   string error;
-  int requestId;
-  int len;
-  int resType;
-  int errorCode = -1;
+  int request_id;
+  int length_;
+  int result_type;
+  int error_code = -1;
   static const int HEADER_SIZE = 24;
   static const int RESPONSE_HEADER_SIZE = 9;
   static const int RES_TYPE_ERR_STREAM_ID = 9;
@@ -99,8 +101,8 @@ class Response {
 
 class PathControlRequest : public Request {
  public:
-  PathControlRequest(string userName, string path, string destPath, bool flag, bool collocate,
-                     map<string, string> props);
+  PathControlRequest(string user_name, string path, string destination_path, bool flag, bool collocate,
+                     map<string, string> properties);
 
   Status write(IGFSClient &w);
 
@@ -109,7 +111,7 @@ class PathControlRequest : public Request {
   string path;
 
   /** Second path, rename command. */
-  string destPath;
+  string destination_path;
 
   /** Boolean flag, meaning depends on command. */
   bool flag;
@@ -121,21 +123,21 @@ class PathControlRequest : public Request {
   map<string, string> props;
 
   /** The user name this control request is made on behalf of. */
-  string userName;
+  string user_name_;
 
   Status writePath(IGFSClient &w, string &path);
 };
 
 class StreamControlRequest : public Request {
  public:
-  StreamControlRequest(long streamId, int len);
+  StreamControlRequest(long stream_id, int length);
 
   Status write(IGFSClient &w) override;
 
  protected:
-  long streamId;
+  long stream_id_;
 
-  int len;
+  int length_;
 };
 
 template<class R>
@@ -203,15 +205,15 @@ class ExistsResponse {
 
 class HandshakeRequest : Request {
  public:
-  HandshakeRequest(string fsName, string logDir);
+  HandshakeRequest(string fs_name, string log_dir);
 
   int commandId() override;
 
   Status write(IGFSClient &w) override;
 
  private:
-  string fsName;
-  string logDir;
+  string fs_name_;
+  string log_dir_;
 };
 
 class HandshakeResponse {
@@ -223,9 +225,9 @@ class HandshakeResponse {
   string getFSName();
 
  private:
-  string fsName;
-  long blockSize{};
-  bool sampling{};
+  string fs_name_;
+  long block_size_{};
+  bool sampling_{};
 };
 
 class ListRequest : public PathControlRequest {
@@ -291,10 +293,10 @@ class OpenCreateRequest : PathControlRequest {
 
  protected:
   /** Hadoop replication factor. */
-  int replication{};
+  int replication_{};
 
   /** Hadoop block size. */
-  long blockSize{};
+  long blockSize_{};
 };
 
 class OpenCreateResponse {
@@ -306,12 +308,12 @@ class OpenCreateResponse {
   long getStreamId();
 
  private:
-  long streamId{};
+  long stream_id_{};
 };
 
 class OpenAppendRequest : PathControlRequest {
  public:
-  explicit OpenAppendRequest(const string& userName, const string& path);
+  explicit OpenAppendRequest(const string& user_name, const string& path);
 
   Status write(IGFSClient &w) override;
 
@@ -327,12 +329,12 @@ class OpenAppendResponse {
   long getStreamId();
 
  private:
-  long streamId{};
+  long stream_id_{};
 };
 
 class OpenReadRequest : PathControlRequest {
  public:
-  OpenReadRequest(const string &userName, const string &path, bool flag, int seqReadsBeforePrefetch);
+  OpenReadRequest(const string &user_name, const string &path, bool flag, int seqReadsBeforePrefetch);
 
   OpenReadRequest(const string &userName, const string &path);
 
@@ -342,7 +344,7 @@ class OpenReadRequest : PathControlRequest {
 
  protected:
   /** Sequential reads before prefetch. */
-  int seqReadsBeforePrefetch;
+  int sequential_reads_before_prefetch;
 };
 
 class OpenReadResponse {
@@ -356,8 +358,8 @@ class OpenReadResponse {
   long getLength();
 
  private:
-  long streamId{};
-  long len{};
+  long stream_id_{};
+  long length_{};
 };
 
 class InfoRequest : public PathControlRequest {
@@ -395,7 +397,7 @@ class MakeDirectoriesResponse {
   bool successful();
 
  private:
-  bool succ{};
+  bool successful_{};
 };
 
 /** Stream control requests. **/
@@ -416,12 +418,12 @@ class CloseResponse {
   bool isSuccessful();
 
  private:
-  bool successful;
+  bool successful_;
 };
 
 class ReadBlockRequest : public StreamControlRequest {
  public:
-  ReadBlockRequest(long streamId, long pos, int len);
+  ReadBlockRequest(long stream_id, long pos, int length);
 
   Status write(IGFSClient &w) override;
 
@@ -458,7 +460,7 @@ class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
 
 class WriteBlockRequest : public StreamControlRequest {
  public:
-  WriteBlockRequest(long streamId, const char *data, int len);
+  WriteBlockRequest(long stream_id, const char *data, int length);
 
   Status write(IGFSClient &w) override;
 
@@ -470,7 +472,7 @@ class WriteBlockRequest : public StreamControlRequest {
 
 class RenameRequest : public PathControlRequest {
  public:
-  RenameRequest(const std::string &path, const std::string &destPath);
+  RenameRequest(const std::string &path, const std::string &destination_path);
 
   int commandId() override;
 };

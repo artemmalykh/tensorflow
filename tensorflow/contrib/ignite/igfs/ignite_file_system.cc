@@ -29,8 +29,6 @@ limitations under the License.
 #include "ignite_file_system.h"
 #include "igfs_protocol.h"
 
-using namespace std;
-
 namespace tensorflow {
 
 string getEnvOrElse(const string &env, string defVal) {

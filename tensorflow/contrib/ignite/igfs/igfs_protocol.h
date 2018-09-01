@@ -20,13 +20,11 @@ limitations under the License.
 #include "messages.h"
 #include "utils.h"
 
-using namespace std;
-
 namespace tensorflow {
 
 class IgfsProtocolMessenger {
  public:
-  IgfsProtocolMessenger(int port, const string &host, const string &fsName);
+  IgfsProtocolMessenger(int port, const string &host, const string &fs_name);
 
   ~IgfsProtocolMessenger();
 
@@ -42,7 +40,7 @@ class IgfsProtocolMessenger {
 
   Status openAppend(ControlResponse<OpenAppendResponse> *res, const string &userName, const string &path);
 
-  Status openRead(ControlResponse<Optional<OpenReadResponse>> *res, const string &userName, const string &path);
+  Status openRead(ControlResponse<Optional<OpenReadResponse>> *res, const string &user_name, const string &path);
 
   Status exists(ControlResponse<ExistsResponse> *res, const string &path);
 
@@ -50,16 +48,16 @@ class IgfsProtocolMessenger {
 
   Status del(ControlResponse<DeleteResponse> *res, const string &path, bool recursive);
 
-  Status writeBlock(long streamId, const char *data, int len);
+  Status writeBlock(long stream_id, const char *data, int len);
 
-  Status readBlock(ReadBlockControlResponse *res, long streamId, long pos, int len, char *dst);
+  Status readBlock(ReadBlockControlResponse *res, long stream_id, long pos, int length, char *dst);
 
-  Status close(ControlResponse<CloseResponse> *res, long streamId);
+  Status close(ControlResponse<CloseResponse> *res, long stream_id);
 
   Status rename(ControlResponse<RenameResponse> *res, const string &source, const string &dest);
 
  private:
-  string fsName;
+  string fs_name_;
   IGFSClient *cl;
 };
 } // namespace tensorflow
