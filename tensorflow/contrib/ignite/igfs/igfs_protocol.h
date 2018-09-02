@@ -28,34 +28,40 @@ class IgfsProtocolMessenger {
 
   ~IgfsProtocolMessenger();
 
-  Status handshake(ControlResponse<Optional<HandshakeResponse>>* res);
+  Status Handshake(ControlResponse<Optional<HandshakeResponse>> *res);
 
-  Status listFiles(ControlResponse<ListFilesResponse>* res, const string &path);
+  Status ListFiles(ControlResponse<ListFilesResponse> *res, const string &path);
 
-  Status listPaths(ControlResponse<ListPathsResponse>* res, const string &path);
+  Status ListPaths(ControlResponse<ListPathsResponse> *res, const string &path);
 
-  Status info(ControlResponse<InfoResponse> *res, const string &path);
+  Status Info(ControlResponse<InfoResponse> *res, const string &path);
 
-  Status openCreate(ControlResponse<OpenCreateResponse> *res, const string &path);
+  Status OpenCreate(ControlResponse<OpenCreateResponse> *res,
+                    const string &path);
 
-  Status openAppend(ControlResponse<OpenAppendResponse> *res, const string &userName, const string &path);
+  Status OpenAppend(ControlResponse<OpenAppendResponse> *res,
+                    const string &user_name, const string &path);
 
-  Status openRead(ControlResponse<Optional<OpenReadResponse>> *res, const string &user_name, const string &path);
+  Status OpenRead(ControlResponse<Optional<OpenReadResponse>> *res,
+                  const string &user_name, const string &path);
 
-  Status exists(ControlResponse<ExistsResponse> *res, const string &path);
+  Status Exists(ControlResponse<ExistsResponse> *res, const string &path);
 
-  Status mkdir(ControlResponse<MakeDirectoriesResponse> *res, const string &path);
+  Status MkDir(ControlResponse<MakeDirectoriesResponse> *res,
+               const string &path);
 
-  Status del(ControlResponse<DeleteResponse> *res, const string &path, bool recursive);
+  Status Del(ControlResponse<DeleteResponse> *res, const string &path,
+             bool recursive);
 
-  Status writeBlock(long stream_id, const char *data, int len);
+  Status WriteBlock(long stream_id, const char *data, int len);
 
   Status ReadBlock(ReadBlockControlResponse *res, long stream_id, long pos,
                    int length, char *dst);
 
-  Status close(ControlResponse<CloseResponse> *res, long stream_id);
+  Status Close(ControlResponse<CloseResponse> *res, long stream_id);
 
-  Status rename(ControlResponse<RenameResponse> *res, const string &source, const string &dest);
+  Status Rename(ControlResponse<RenameResponse> *res, const string &source,
+                const string &dest);
 
  private:
   string fs_name_;

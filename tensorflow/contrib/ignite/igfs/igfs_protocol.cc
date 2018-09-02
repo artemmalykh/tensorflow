@@ -30,8 +30,8 @@ IgfsProtocolMessenger::~IgfsProtocolMessenger() {
   cl->Disconnect();
 }
 
-Status IgfsProtocolMessenger::handshake(
-    ControlResponse<Optional<HandshakeResponse>>* res) {
+Status IgfsProtocolMessenger::Handshake(
+    ControlResponse<Optional<HandshakeResponse>> *res) {
   LOG(INFO) << "Handshake.";
   HandshakeRequest req(fs_name_, "");
   TF_RETURN_IF_ERROR(req.write(cl));
@@ -44,7 +44,7 @@ Status IgfsProtocolMessenger::handshake(
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::listFiles(ControlResponse<ListFilesResponse>* res,
+Status IgfsProtocolMessenger::ListFiles(ControlResponse<ListFilesResponse> *res,
                                         const string &path) {
   ListFilesRequest req(path);
   TF_RETURN_IF_ERROR(req.write(cl));
@@ -56,7 +56,7 @@ Status IgfsProtocolMessenger::listFiles(ControlResponse<ListFilesResponse>* res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::listPaths(ControlResponse<ListPathsResponse>* res,
+Status IgfsProtocolMessenger::ListPaths(ControlResponse<ListPathsResponse> *res,
                                         const string &path) {
   ListPathsRequest req(path);
   req.write(cl);
@@ -68,7 +68,7 @@ Status IgfsProtocolMessenger::listPaths(ControlResponse<ListPathsResponse>* res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::info(ControlResponse<InfoResponse>* res,
+Status IgfsProtocolMessenger::Info(ControlResponse<InfoResponse> *res,
                                    const string &path) {
   InfoRequest req("", path);
   TF_RETURN_IF_ERROR(req.write(cl));
@@ -80,8 +80,8 @@ Status IgfsProtocolMessenger::info(ControlResponse<InfoResponse>* res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::openCreate(
-    ControlResponse<OpenCreateResponse>* res,
+Status IgfsProtocolMessenger::OpenCreate(
+    ControlResponse<OpenCreateResponse> *res,
     const string &path) {
   OpenCreateRequest req(path);
   TF_RETURN_IF_ERROR(req.write(cl));
@@ -93,11 +93,11 @@ Status IgfsProtocolMessenger::openCreate(
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::openAppend(
-    ControlResponse<OpenAppendResponse>* res,
-    const string &userName,
+Status IgfsProtocolMessenger::OpenAppend(
+    ControlResponse<OpenAppendResponse> *res,
+    const string &user_name,
     const string &path) {
-  OpenAppendRequest req(userName, path);
+  OpenAppendRequest req(user_name, path);
   TF_RETURN_IF_ERROR(req.write(cl));
   cl->reset();
 
@@ -107,8 +107,8 @@ Status IgfsProtocolMessenger::openAppend(
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::openRead(
-    ControlResponse<Optional<OpenReadResponse>>* res,
+Status IgfsProtocolMessenger::OpenRead(
+    ControlResponse<Optional<OpenReadResponse>> *res,
     const string &user_name,
     const string &path) {
   OpenReadRequest req(user_name, path);
@@ -121,7 +121,7 @@ Status IgfsProtocolMessenger::openRead(
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::exists(ControlResponse<ExistsResponse>* res,
+Status IgfsProtocolMessenger::Exists(ControlResponse<ExistsResponse> *res,
                                      const string &path) {
   ExistsRequest req(path);
   TF_RETURN_IF_ERROR(req.write(cl));
@@ -133,8 +133,8 @@ Status IgfsProtocolMessenger::exists(ControlResponse<ExistsResponse>* res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::mkdir(
-    ControlResponse<MakeDirectoriesResponse>* res,
+Status IgfsProtocolMessenger::MkDir(
+    ControlResponse<MakeDirectoriesResponse> *res,
     const string &path) {
   MakeDirectoriesRequest req("", path);
   TF_RETURN_IF_ERROR(req.write(cl));
@@ -146,7 +146,7 @@ Status IgfsProtocolMessenger::mkdir(
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::del(ControlResponse<DeleteResponse>* res,
+Status IgfsProtocolMessenger::Del(ControlResponse<DeleteResponse> *res,
                                   const string &path,
                                   bool recursive) {
   DeleteRequest req(path, recursive);
@@ -159,7 +159,7 @@ Status IgfsProtocolMessenger::del(ControlResponse<DeleteResponse>* res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::writeBlock(long stream_id,
+Status IgfsProtocolMessenger::WriteBlock(long stream_id,
                                          const char *data,
                                          int len) {
   WriteBlockRequest req(stream_id, data, len);
@@ -184,7 +184,7 @@ Status IgfsProtocolMessenger::ReadBlock(ReadBlockControlResponse *res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::close(ControlResponse<CloseResponse>* res,
+Status IgfsProtocolMessenger::Close(ControlResponse<CloseResponse> *res,
                                     long stream_id) {
   CloseRequest req(stream_id);
   TF_RETURN_IF_ERROR(req.write(cl));
@@ -196,7 +196,7 @@ Status IgfsProtocolMessenger::close(ControlResponse<CloseResponse>* res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::rename(ControlResponse<RenameResponse>* res,
+Status IgfsProtocolMessenger::Rename(ControlResponse<RenameResponse> *res,
                                      const string &source,
                                      const string &dest) {
   RenameRequest req(source, dest);
