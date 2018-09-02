@@ -47,7 +47,7 @@ shared_ptr<IgfsProtocolMessenger> CreateClient() {
 }
 
 IgniteFileSystem::IgniteFileSystem() {
-    LOG(INFO) << "Construct new Ignite File System";
+  LOG(INFO) << "Construct new Ignite File System";
 };
 
 IgniteFileSystem::~IgniteFileSystem() = default;
@@ -62,7 +62,7 @@ class IGFSRandomAccessFile : public RandomAccessFile {
  public:
   IGFSRandomAccessFile(string file_name,
                        long resource_id,
-                       shared_ptr<IgfsProtocolMessenger>& client)
+                       shared_ptr<IgfsProtocolMessenger> &client)
       : file_name_(std::move(file_name)),
         resource_id_(resource_id),
         client_(client) {}
@@ -77,7 +77,7 @@ class IGFSRandomAccessFile : public RandomAccessFile {
 
     LOG(INFO) << "Read " << file_name_ << " file";
     Status s;
-    char *dst = scratch;
+    uint8_t *dst = reinterpret_cast<uint8_t *>(scratch);
 
     ReadBlockControlResponse response = ReadBlockControlResponse(dst);
     TF_RETURN_IF_ERROR(
@@ -128,12 +128,12 @@ Status IgniteFileSystem::NewRandomAccessFile(
 
 class IGFSWritableFile : public WritableFile {
  public:
-  IGFSWritableFile(const string& file_name,
+  IGFSWritableFile(const string &file_name,
                    long resource_id,
                    shared_ptr<IgfsProtocolMessenger> client)
       : file_name_(file_name), resource_id_(resource_id), client_(client) {
-   LOG(INFO) << "Construct new writable file " << file_name;
- }
+    LOG(INFO) << "Construct new writable file " << file_name;
+  }
 
   ~IGFSWritableFile() override {
     if (resource_id_ >= 0) {
@@ -145,7 +145,7 @@ class IGFSWritableFile : public WritableFile {
   Status Append(const StringPiece &data) override {
     LOG(INFO) << "Append to " << file_name_;
     TF_RETURN_IF_ERROR(client_->WriteBlock(
-        resource_id_, data.data(), data.size()));
+        resource_id_, (uint8_t *) data.data(), data.size()));
 
     return Status::OK();
   }
@@ -183,7 +183,7 @@ Status IgniteFileSystem::NewWritableFile(
     const string &fname,
     std::unique_ptr<WritableFile> *result) {
   LOG(INFO) << "New writable file " << fname;
- 
+
   shared_ptr<IgfsProtocolMessenger> client = CreateClient();
 
   ControlResponse<Optional<HandshakeResponse>> handshake_response = {};
@@ -341,7 +341,7 @@ Status IgniteFileSystem::GetChildren(const string &fname,
     *result = vector<string>();
     vector<IgnitePath> entries = list_paths_response.GetRes().getEntries();
 
-    for(auto& value: entries) {
+    for (auto &value: entries) {
       result->push_back(makeRelative(value.getPath(), dir));
     }
   } else {
@@ -352,8 +352,8 @@ Status IgniteFileSystem::GetChildren(const string &fname,
   return Status::OK();
 }
 
-Status IgniteFileSystem::GetMatchingPaths(const string& pattern,
-                                          std::vector<string>* results) {
+Status IgniteFileSystem::GetMatchingPaths(const string &pattern,
+                                          std::vector<string> *results) {
   return internal::GetMatchingPaths(this, Env::Default(), pattern, results);
 }
 
@@ -367,7 +367,7 @@ Status IgniteFileSystem::DeleteFile(const string &fname) {
   if (handshake_response.IsOk()) {
     const string path = TranslateName(fname);
 
-    ControlResponse <DeleteResponse> del_response = {};
+    ControlResponse<DeleteResponse> del_response = {};
     TF_RETURN_IF_ERROR(client->Del(&del_response, path, false));
 
     if (!del_response.IsOk()) {
@@ -394,7 +394,7 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
   if (hResponse.IsOk()) {
     const string dir = TranslateName(fname);
 
-    ControlResponse <MakeDirectoriesResponse> mkdir_response = {};
+    ControlResponse<MakeDirectoriesResponse> mkdir_response = {};
     TF_RETURN_IF_ERROR(client->MkDir(&mkdir_response, dir));
 
     if (!(mkdir_response.IsOk() && mkdir_response.GetRes().IsSuccessful())) {
@@ -408,7 +408,7 @@ Status IgniteFileSystem::CreateDir(const string &fname) {
 }
 
 Status IgniteFileSystem::DeleteDir(const string &dir) {
-   LOG(INFO) << "Delete dir " << dir;
+  LOG(INFO) << "Delete dir " << dir;
   shared_ptr<IgfsProtocolMessenger> client = CreateClient();
 
   ControlResponse<Optional<HandshakeResponse>> handshake_response = {};
@@ -425,9 +425,9 @@ Status IgniteFileSystem::DeleteDir(const string &dir) {
         return errors::FailedPrecondition(
             "Cannot delete a non-empty directory.");
       } else {
-        ControlResponse <DeleteResponse> del_response = {};
+        ControlResponse<DeleteResponse> del_response = {};
         TF_RETURN_IF_ERROR(client->Del(&del_response, dir, true));
-        
+
         if (!del_response.IsOk()) {
           return Status(
               error::INTERNAL,
@@ -482,7 +482,7 @@ Status IgniteFileSystem::RenameFile(const string &src, const string &target) {
     const string src_path = TranslateName(src);
     const string target_path = TranslateName(target);
 
-    ControlResponse <RenameResponse> renameResp = {};
+    ControlResponse<RenameResponse> renameResp = {};
     TF_RETURN_IF_ERROR(client->Rename(&renameResp, src_path, target_path));
 
     if (!renameResp.IsOk()) {

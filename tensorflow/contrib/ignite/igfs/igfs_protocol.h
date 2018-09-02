@@ -24,7 +24,8 @@ namespace tensorflow {
 
 class IgfsProtocolMessenger {
  public:
-  IgfsProtocolMessenger(int port, const string &host, const string &fs_name);
+  IgfsProtocolMessenger(int32_t port, const string &host,
+                        const string &fs_name);
 
   ~IgfsProtocolMessenger();
 
@@ -53,12 +54,13 @@ class IgfsProtocolMessenger {
   Status Del(ControlResponse<DeleteResponse> *res, const string &path,
              bool recursive);
 
-  Status WriteBlock(long stream_id, const char *data, int len);
+  Status WriteBlock(int64_t stream_id, const uint8_t *data, int32_t len);
 
-  Status ReadBlock(ReadBlockControlResponse *res, long stream_id, long pos,
-                   int length);
+  Status
+  ReadBlock(ReadBlockControlResponse *res, int64_t stream_id, int64_t pos,
+            int32_t length);
 
-  Status Close(ControlResponse<CloseResponse> *res, long stream_id);
+  Status Close(ControlResponse<CloseResponse> *res, int64_t stream_id);
 
   Status Rename(ControlResponse<RenameResponse> *res, const string &source,
                 const string &dest);

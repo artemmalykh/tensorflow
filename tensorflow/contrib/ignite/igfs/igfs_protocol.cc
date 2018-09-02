@@ -18,7 +18,7 @@ limitations under the License.
 
 namespace tensorflow {
 
-IgfsProtocolMessenger::IgfsProtocolMessenger(int port,
+IgfsProtocolMessenger::IgfsProtocolMessenger(int32_t port,
                                              const string &host,
                                              const string &fs_name)
     : fs_name_(fs_name) {
@@ -159,9 +159,9 @@ Status IgfsProtocolMessenger::Del(ControlResponse<DeleteResponse> *res,
   return Status::OK();
 }
 
-Status IgfsProtocolMessenger::WriteBlock(long stream_id,
-                                         const char *data,
-                                         int len) {
+Status IgfsProtocolMessenger::WriteBlock(int64_t stream_id,
+                                         const uint8_t *data,
+                                         int32_t len) {
   WriteBlockRequest req(stream_id, data, len);
   TF_RETURN_IF_ERROR(req.write(cl));
   cl->reset();
@@ -170,9 +170,9 @@ Status IgfsProtocolMessenger::WriteBlock(long stream_id,
 }
 
 Status IgfsProtocolMessenger::ReadBlock(ReadBlockControlResponse *res,
-                                        long stream_id,
-                                        long pos,
-                                        int length) {
+                                        int64_t stream_id,
+                                        int64_t pos,
+                                        int32_t length) {
   ReadBlockRequest req(stream_id, pos, length);
   TF_RETURN_IF_ERROR(req.write(cl));
   cl->reset();
@@ -184,7 +184,7 @@ Status IgfsProtocolMessenger::ReadBlock(ReadBlockControlResponse *res,
 }
 
 Status IgfsProtocolMessenger::Close(ControlResponse<CloseResponse> *res,
-                                    long stream_id) {
+                                    int64_t stream_id) {
   CloseRequest req(stream_id);
   TF_RETURN_IF_ERROR(req.write(cl));
   cl->reset();

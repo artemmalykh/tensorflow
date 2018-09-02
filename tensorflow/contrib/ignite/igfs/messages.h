@@ -48,26 +48,26 @@ class IgfsFile {
 
   Status Read(IGFSClient *r);
 
-  long GetFileSize();
+  int64_t GetFileSize();
 
-  long GetModificationTime();
+  int64_t GetModificationTime();
 
-  char GetFlags();
+  uint8_t GetFlags();
 
  private:
   Optional<IgnitePath> path_;
-  int block_size_{};
-  long group_block_size_{};
-  long length_{};
+  int32_t block_size_{};
+  int64_t group_block_size_{};
+  int64_t length_{};
   map<string, string> properties_;
-  long access_time_{};
-  long modification_time_{};
-  char flags_{};
+  int64_t access_time_{};
+  int64_t modification_time_{};
+  uint8_t flags_{};
 };
 
 class Request {
  public:
-  virtual int CommandId() = 0;
+  virtual int32_t CommandId() = 0;
 
   virtual Status write(IGFSClient *w);
 };
@@ -76,25 +76,25 @@ class Response {
  public:
   virtual Status Read(IGFSClient *r);
 
-  int GetResType();
+  int32_t GetResType();
 
-  int GetRequestId();
+  int32_t GetRequestId();
 
   bool IsOk();
 
   string GetError();
 
-  int GetErrorCode();
+  int32_t GetErrorCode();
 
  protected:
   string error;
-  int request_id;
-  int length_;
-  int result_type;
-  int error_code = -1;
-  static const int HEADER_SIZE = 24;
-  static const int RESPONSE_HEADER_SIZE = 9;
-  static const int RES_TYPE_ERR_STREAM_ID = 9;
+  int32_t request_id;
+  int32_t length_;
+  int32_t result_type;
+  int32_t error_code = -1;
+  static const int32_t HEADER_SIZE = 24;
+  static const int32_t RESPONSE_HEADER_SIZE = 9;
+  static const int32_t RES_TYPE_ERR_STREAM_ID = 9;
 };
 
 class PathControlRequest : public Request {
@@ -132,14 +132,14 @@ class PathControlRequest : public Request {
 
 class StreamControlRequest : public Request {
  public:
-  StreamControlRequest(long stream_id, int length);
+  StreamControlRequest(int64_t stream_id, int32_t length);
 
   Status write(IGFSClient *w) override;
 
  protected:
-  long stream_id_;
+  int64_t stream_id_;
 
-  int length_;
+  int32_t length_;
 };
 
 template<class R>
@@ -168,7 +168,7 @@ class DeleteRequest : public PathControlRequest {
  public:
   DeleteRequest(const string &path, bool flag);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 7;
   }
 };
@@ -187,7 +187,7 @@ class ExistsRequest : public PathControlRequest {
  public:
   explicit ExistsRequest(const string &path);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 2;
   }
 };
@@ -206,7 +206,7 @@ class HandshakeRequest : Request {
  public:
   HandshakeRequest(const string &fs_name, const string &log_dir);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 0;
   }
 
@@ -225,7 +225,7 @@ class HandshakeResponse {
 
  private:
   string fs_name_;
-  long block_size_{};
+  int64_t block_size_{};
   bool sampling_{};
 };
 
@@ -238,12 +238,12 @@ template<class T>
 class ListResponse {
  public:
   Status Read(IGFSClient *r) {
-    int len;
+    int32_t len;
     TF_RETURN_IF_ERROR(r->ReadInt(&len));
 
     entries = vector<T>();
 
-    for (int i = 0; i < len; i++) {
+    for (int32_t i = 0; i < len; i++) {
       T f = {};
       TF_RETURN_IF_ERROR(f.Read(r));
       entries.push_back(f);
@@ -264,7 +264,7 @@ class ListFilesRequest : public ListRequest {
  public:
   explicit ListFilesRequest(const string &path);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 10;
   }
 };
@@ -277,7 +277,7 @@ class ListPathsRequest : public ListRequest {
  public:
   explicit ListPathsRequest(const string &path) : ListRequest(path) {}
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 9;
   }
 };
@@ -292,26 +292,26 @@ class OpenCreateRequest : PathControlRequest {
 
   Status write(IGFSClient *w) override;
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 15;
   }
 
  protected:
   /** Replication factor. */
-  int replication_{};
+  int32_t replication_{};
 
   /** Block size. */
-  long blockSize_{};
+  int64_t blockSize_{};
 };
 
 class OpenCreateResponse {
  public:
   Status Read(IGFSClient *r);
 
-  long GetStreamId();
+  int64_t GetStreamId();
 
  private:
-  long stream_id_{};
+  int64_t stream_id_{};
 };
 
 class OpenAppendRequest : PathControlRequest {
@@ -320,7 +320,7 @@ class OpenAppendRequest : PathControlRequest {
 
   Status write(IGFSClient *w) override;
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 14;
   }
 };
@@ -331,10 +331,10 @@ class OpenAppendResponse {
 
   Status Read(IGFSClient *r);
 
-  long GetStreamId();
+  int64_t GetStreamId();
 
  private:
-  long stream_id_{};
+  int64_t stream_id_{};
 };
 
 class OpenReadRequest : PathControlRequest {
@@ -342,39 +342,39 @@ class OpenReadRequest : PathControlRequest {
   OpenReadRequest(const string &user_name,
                   const string &path,
                   bool flag,
-                  int seqReadsBeforePrefetch);
+                  int32_t seqReadsBeforePrefetch);
 
-  OpenReadRequest(const string &userName, const string &path);
+  OpenReadRequest(const string &user_name, const string &path);
 
   Status write(IGFSClient *w) override;
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 13;
   }
 
  protected:
   /** Sequential reads before prefetch. */
-  int sequential_reads_before_prefetch;
+  int32_t sequential_reads_before_prefetch;
 };
 
 class OpenReadResponse {
  public:
   Status Read(IGFSClient *r);
 
-  long GetStreamId();
+  int64_t GetStreamId();
 
-  long GetLength();
+  int64_t GetLength();
 
  private:
-  long stream_id_{};
-  long length_{};
+  int64_t stream_id_{};
+  int64_t length_{};
 };
 
 class InfoRequest : public PathControlRequest {
  public:
   InfoRequest(const string &userName, const string &path);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 3;
   }
 };
@@ -393,7 +393,7 @@ class MakeDirectoriesRequest : public PathControlRequest {
  public:
   MakeDirectoriesRequest(const string &userName, const string &path);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 8;
   }
 };
@@ -414,9 +414,9 @@ class MakeDirectoriesResponse {
 
 class CloseRequest : public StreamControlRequest {
  public:
-  explicit CloseRequest(long streamId);
+  explicit CloseRequest(int64_t streamId);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 16;
   }
 };
@@ -433,62 +433,62 @@ class CloseResponse {
 
 class ReadBlockRequest : public StreamControlRequest {
  public:
-  ReadBlockRequest(long stream_id, long pos, int length);
+  ReadBlockRequest(int64_t stream_id, int64_t pos, int32_t length);
 
   Status write(IGFSClient *w) override;
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 17;
   }
 
  private:
-  long pos;
+  int64_t pos;
 };
 
 class ReadBlockResponse {
  public:
-  Status Read(IGFSClient *r, int length, char *dst);
+  Status Read(IGFSClient *r, int32_t length, uint8_t *dst);
 
   Status Read(IGFSClient *r);
 
   streamsize GetSuccessfulyRead();
 
  private:
-  int length;
+  int32_t length;
   streamsize successfuly_read;
 };
 
 class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
  public:
-  explicit ReadBlockControlResponse(char *dst);
+  explicit ReadBlockControlResponse(uint8_t *dst);
 
   Status Read(IGFSClient *r) override;
 
-  int GetLength();
+  int32_t GetLength();
 
  private:
-  char *dst;
+  uint8_t *dst;
 };
 
 class WriteBlockRequest : public StreamControlRequest {
  public:
-  WriteBlockRequest(long stream_id, const char *data, int length);
+  WriteBlockRequest(int64_t stream_id, const uint8_t *data, int32_t length);
 
   Status write(IGFSClient *w) override;
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 18;
   }
 
  private:
-  const char *data;
+  const uint8_t *data;
 };
 
 class RenameRequest : public PathControlRequest {
  public:
   RenameRequest(const std::string &path, const std::string &destination_path);
 
-  inline int CommandId() override {
+  inline int32_t CommandId() override {
     return 6;
   }
 };

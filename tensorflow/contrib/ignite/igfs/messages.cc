@@ -28,20 +28,20 @@ Status IgfsFile::Read(IGFSClient *r) {
   TF_RETURN_IF_ERROR(r->ReadStringMap(properties_));
   TF_RETURN_IF_ERROR(r->ReadLong(&access_time_));
   TF_RETURN_IF_ERROR(r->ReadLong(&modification_time_));
-  TF_RETURN_IF_ERROR(r->ReadByte((uint8_t *) &flags_));
+  TF_RETURN_IF_ERROR(r->ReadByte(&flags_));
 
   return Status::OK();
 }
 
-long IgfsFile::GetFileSize() {
+int64_t IgfsFile::GetFileSize() {
   return length_;
 }
 
-long IgfsFile::GetModificationTime() {
+int64_t IgfsFile::GetModificationTime() {
   return modification_time_;
 }
 
-char IgfsFile::GetFlags() {
+uint8_t IgfsFile::GetFlags() {
   return flags_;
 }
 
@@ -76,11 +76,11 @@ Status Response::Read(IGFSClient *r) {
   return Status::OK();
 }
 
-int Response::GetResType() {
+int32_t Response::GetResType() {
   return result_type;
 }
 
-int Response::GetRequestId() {
+int32_t Response::GetRequestId() {
   return request_id;
 }
 
@@ -92,7 +92,7 @@ string Response::GetError() {
   return error;
 }
 
-int Response::GetErrorCode() {
+int32_t Response::GetErrorCode() {
   return error_code;
 }
 
@@ -142,7 +142,7 @@ Status StreamControlRequest::write(IGFSClient *w) {
   return Status::OK();
 }
 
-StreamControlRequest::StreamControlRequest(long stream_id, int length) :
+StreamControlRequest::StreamControlRequest(int64_t stream_id, int32_t length) :
     stream_id_(stream_id),
     length_(length) {
 }
@@ -153,7 +153,7 @@ DeleteRequest::DeleteRequest(const string &path,
                          path,
                          "",
                          flag,
-                         false,
+                         true,
                          map<string, string>()) {}
 
 Status DeleteResponse::Read(IGFSClient *r) {
@@ -171,7 +171,7 @@ ExistsRequest::ExistsRequest(const string &path) : PathControlRequest(
     path,
     "",
     false,
-    false,
+    true,
     map<string, string>()) {}
 
 
@@ -187,8 +187,8 @@ bool ExistsResponse::Exists() {
 
 HandshakeRequest::HandshakeRequest(const string &fs_name, const string &log_dir)
     :
-    fs_name_(std::move(fs_name)),
-    log_dir_(std::move(log_dir)) {};
+    fs_name_(fs_name),
+    log_dir_(log_dir) {};
 
 Status HandshakeRequest::write(IGFSClient *w) {
   TF_RETURN_IF_ERROR(Request::write(w));
@@ -222,7 +222,7 @@ ListRequest::ListRequest(const string &path) : PathControlRequest(
     path,
     "",
     false,
-    false,
+    true,
     map<string, string>()) {};
 
 ListFilesRequest::ListFilesRequest(const string &path) : ListRequest(path) {}
@@ -232,7 +232,7 @@ OpenCreateRequest::OpenCreateRequest(const string &path) : PathControlRequest(
     path,
     "",
     false,
-    false,
+    true,
     map<string, string>()) {}
 
 Status OpenCreateRequest::write(IGFSClient *w) {
@@ -248,7 +248,7 @@ Status OpenCreateResponse::Read(IGFSClient *r) {
   TF_RETURN_IF_ERROR(r->ReadLong(&stream_id_));
 }
 
-long OpenCreateResponse::GetStreamId() {
+int64_t OpenCreateResponse::GetStreamId() {
   return stream_id_;
 }
 
@@ -273,14 +273,14 @@ Status OpenAppendResponse::Read(IGFSClient *r) {
   return Status::OK();
 }
 
-long OpenAppendResponse::GetStreamId() {
+int64_t OpenAppendResponse::GetStreamId() {
   return stream_id_;
 }
 
 OpenReadRequest::OpenReadRequest(const string &user_name,
                                  const string &path,
                                  bool flag,
-                                 int seqReadsBeforePrefetch)
+                                 int32_t seqReadsBeforePrefetch)
     : sequential_reads_before_prefetch(seqReadsBeforePrefetch),
       PathControlRequest(user_name,
                          path,
@@ -289,8 +289,8 @@ OpenReadRequest::OpenReadRequest(const string &user_name,
                          true,
                          map<string, string>()) {}
 
-OpenReadRequest::OpenReadRequest(const string &userName, const string &path)
-    : OpenReadRequest(userName,
+OpenReadRequest::OpenReadRequest(const string &user_name, const string &path)
+    : OpenReadRequest(user_name,
                       path,
                       false,
                       0) {}
@@ -312,17 +312,17 @@ Status OpenReadResponse::Read(IGFSClient *r) {
   return Status::OK();
 }
 
-long OpenReadResponse::GetStreamId() {
+int64_t OpenReadResponse::GetStreamId() {
   return stream_id_;
 }
 
-long OpenReadResponse::GetLength() {
+int64_t OpenReadResponse::GetLength() {
   return length_;
 }
 
 InfoRequest::InfoRequest(const string &userName, const string &path)
     : PathControlRequest(userName, path, "", false,
-                         false,
+                         true,
                          map<string, string>()) {}
 
 Status InfoResponse::Read(IGFSClient *r) {
@@ -339,7 +339,7 @@ IgfsFile InfoResponse::getFileInfo() {
 MakeDirectoriesRequest::MakeDirectoriesRequest(const string &userName,
                                                const string &path)
     : PathControlRequest(
-    userName, path, "", false, false,
+    userName, path, "", false, true,
     map<string, string>()) {}
 
 Status MakeDirectoriesResponse::Read(IGFSClient *r) {
@@ -354,7 +354,8 @@ bool MakeDirectoriesResponse::IsSuccessful() {
   return successful_;
 }
 
-CloseRequest::CloseRequest(long streamId) : StreamControlRequest(streamId, 0) {}
+CloseRequest::CloseRequest(int64_t streamId) : StreamControlRequest(streamId,
+                                                                    0) {}
 
 Status CloseResponse::Read(IGFSClient *r) {
   r->ReadBool(successful_);
@@ -364,7 +365,8 @@ bool CloseResponse::IsSuccessful() {
   return successful_;
 }
 
-ReadBlockRequest::ReadBlockRequest(long stream_id, long pos, int length)
+ReadBlockRequest::ReadBlockRequest(int64_t stream_id, int64_t pos,
+                                   int32_t length)
     : StreamControlRequest(stream_id, length), pos(pos) {}
 
 Status ReadBlockRequest::write(IGFSClient *w) {
@@ -375,8 +377,8 @@ Status ReadBlockRequest::write(IGFSClient *w) {
   return Status::OK();
 }
 
-Status ReadBlockResponse::Read(IGFSClient *r, int length, char *dst) {
-  TF_RETURN_IF_ERROR(r->ReadData(reinterpret_cast<uint8_t *>(dst), length));
+Status ReadBlockResponse::Read(IGFSClient *r, int32_t length, uint8_t *dst) {
+  TF_RETURN_IF_ERROR(r->ReadData(dst, length));
   successfuly_read = length;
 
   return Status::OK();
@@ -390,7 +392,7 @@ streamsize ReadBlockResponse::GetSuccessfulyRead() {
   return successfuly_read;
 }
 
-ReadBlockControlResponse::ReadBlockControlResponse(char *dst) : dst(dst) {}
+ReadBlockControlResponse::ReadBlockControlResponse(uint8_t *dst) : dst(dst) {}
 
 Status ReadBlockControlResponse::Read(IGFSClient *r) {
   TF_RETURN_IF_ERROR(Response::Read(r));
@@ -403,13 +405,13 @@ Status ReadBlockControlResponse::Read(IGFSClient *r) {
   return Status::OK();
 }
 
-int ReadBlockControlResponse::GetLength() {
+int32_t ReadBlockControlResponse::GetLength() {
   return length_;
 }
 
-WriteBlockRequest::WriteBlockRequest(long stream_id,
-                                     const char *data,
-                                     int length) :
+WriteBlockRequest::WriteBlockRequest(int64_t stream_id,
+                                     const uint8_t *data,
+                                     int32_t length) :
     StreamControlRequest(stream_id, length), data(data) {}
 
 Status WriteBlockRequest::write(IGFSClient *w) {
@@ -426,7 +428,7 @@ RenameRequest::RenameRequest(const string &path,
         path,
         destination_path,
         false,
-        false,
+        true,
         map<string, string>()) {}
 
 Status RenameResponse::Read(IGFSClient *r) {
