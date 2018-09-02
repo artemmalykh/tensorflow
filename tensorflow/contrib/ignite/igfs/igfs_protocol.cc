@@ -172,8 +172,7 @@ Status IgfsProtocolMessenger::WriteBlock(long stream_id,
 Status IgfsProtocolMessenger::ReadBlock(ReadBlockControlResponse *res,
                                         long stream_id,
                                         long pos,
-                                        int length,
-                                        char *dst) {
+                                        int length) {
   ReadBlockRequest req(stream_id, pos, length);
   TF_RETURN_IF_ERROR(req.write(cl));
   cl->reset();

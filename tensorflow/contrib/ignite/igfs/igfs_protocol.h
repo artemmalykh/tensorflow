@@ -56,7 +56,7 @@ class IgfsProtocolMessenger {
   Status WriteBlock(long stream_id, const char *data, int len);
 
   Status ReadBlock(ReadBlockControlResponse *res, long stream_id, long pos,
-                   int length, char *dst);
+                   int length);
 
   Status Close(ControlResponse<CloseResponse> *res, long stream_id);
 
