@@ -1,0 +1,142 @@
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+#include "ignite_ssl_wrapper.h"
+
+#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/platform/logging.h"
+
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+
+namespace tensorflow {
+
+static int PasswordCb(char *buf, int size, int rwflag, void *password) {
+  strncpy(buf, (char *)(password), size);
+  buf[size - 1] = '\0';
+  return (strlen(buf));
+}
+
+SslWrapper::SslWrapper(std::shared_ptr<Client> client, std::string certfile,
+                       std::string keyfile, std::string cert_password)
+    : client_(client),
+      certfile_(certfile),
+      keyfile_(keyfile),
+      cert_password_(cert_password),
+      ctx_(NULL) {}
+
+SslWrapper::~SslWrapper() {
+  if (IsConnected()) {
+    Status status = Disconnect();
+    if (!status.ok()) LOG(WARNING) << status.ToString();
+  }
+
+  if (ctx_ != NULL) {
+    SSL_CTX_free(ctx_);
+    ctx_ = NULL;
+  }
+}
+
+Status SslWrapper::InitSslContext() {
+  OpenSSL_add_all_algorithms();
+  SSL_load_error_strings();
+
+  ctx_ = SSL_CTX_new(SSLv23_method());
+  if (ctx_ == NULL) return errors::Internal("Couldn't create SSL context");
+
+  SSL_CTX_set_default_passwd_cb(ctx_, PasswordCb);
+  SSL_CTX_set_default_passwd_cb_userdata(ctx_, (void *)cert_password_.c_str());
+
+  if (SSL_CTX_use_certificate_chain_file(ctx_, certfile_.c_str()) != 1)
+    return errors::Internal("Couldn't load cetificate chain (file '", certfile_,
+                            "')");
+
+  std::string private_key_file = keyfile_.empty() ? certfile_ : keyfile_;
+  if (SSL_CTX_use_PrivateKey_file(ctx_, private_key_file.c_str(),
+                                  SSL_FILETYPE_PEM) != 1)
+    return errors::Internal("Couldn't load private key (file '",
+                            private_key_file, "')");
+
+  return Status::OK();
+}
+
+Status SslWrapper::Connect() {
+  if (ctx_ == NULL) {
+    TF_RETURN_IF_ERROR(InitSslContext());
+  }
+
+  ssl_ = SSL_new(ctx_);
+  if (ssl_ == NULL)
+    return errors::Internal("Failed to establish SSL connection");
+
+  TF_RETURN_IF_ERROR(client_->Connect());
+
+  SSL_set_fd(ssl_, client_->GetSocketDescriptor());
+  if (SSL_connect(ssl_) != 1)
+    return errors::Internal("Failed to establish SSL connection");
+
+  LOG(INFO) << "SSL connection established";
+
+  return Status::OK();
+}
+
+Status SslWrapper::Disconnect() {
+  SSL_free(ssl_);
+
+  LOG(INFO) << "SSL connection closed";
+
+  return client_->Disconnect();
+}
+
+bool SslWrapper::IsConnected() { return client_->IsConnected(); }
+
+int SslWrapper::GetSocketDescriptor() { return client_->GetSocketDescriptor(); }
+
+Status SslWrapper::ReadData(uint8_t *buf, int32_t length) {
+  int recieved = 0;
+
+  while (recieved < length) {
+    int res = SSL_read(ssl_, buf, length - recieved);
+
+    if (res < 0)
+      return errors::Internal("Error occured while reading from SSL socket: ",
+                              res);
+
+    if (res == 0) return errors::Internal("Server closed SSL connection");
+
+    recieved += res;
+    buf += res;
+  }
+
+  return Status::OK();
+}
+
+Status SslWrapper::WriteData(uint8_t *buf, int32_t length) {
+  int sent = 0;
+
+  while (sent < length) {
+    int res = SSL_write(ssl_, buf, length - sent);
+
+    if (res < 0)
+      return errors::Internal("Error occured while writing into socket: ", res);
+
+    sent += res;
+    buf += res;
+  }
+
+  return Status::OK();
+}
+
+}  // namespace tensorflow

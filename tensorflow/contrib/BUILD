@@ -128,6 +128,7 @@ py_library(
     }) + select({
         "//tensorflow:with_ignite_support": [
             "//tensorflow/contrib/ignite",
+            "//tensorflow/contrib/igfs",
         ],
         "//conditions:default": [],
     }) + select({
@@ -174,6 +175,7 @@ cc_library(
     }) + select({
         "//tensorflow:with_ignite_support": [
             "//tensorflow/contrib/ignite:dataset_kernels",
+            "//tensorflow/contrib/igfs:igfs_kernels",
         ],
         "//conditions:default": [],
     }) + select({
@@ -215,6 +217,7 @@ cc_library(
     }) + select({
         "//tensorflow:with_ignite_support": [
             "//tensorflow/contrib/ignite:dataset_ops_op_lib",
+            "//tensorflow/contrib/igfs:igfs_ops_op_lib",
         ],
         "//conditions:default": [],
     }) + select({
@@ -223,11 +226,5 @@ cc_library(
             "//tensorflow/contrib/kinesis:dataset_ops_op_lib",
         ],
         "//conditions:default": [],
-    }) + select({
-         "//tensorflow:with_igfs_support_windows_override": [],
-         "//tensorflow:with_igfs_support": [
-             "//tensorflow/contrib/igfs:ignite_file_system",
-         ],
-         "//conditions:default": [],
     })
 )

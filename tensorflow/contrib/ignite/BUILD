@@ -34,46 +34,8 @@ tf_custom_op_library(
     deps = [":dataset_kernels"],
 )
 
-#tf_cc_shared_object(
-#   name = "igfs/ignite_file_system.so",
-#   srcs = ["igfs/ignite_file_system.cc"],
-#   copts = if_not_windows(["-Wno-sign-compare"]),
-#   linkopts = select({
-#       "//conditions:default": [
-#           "-lm",
-#       ],
-#       "//tensorflow:darwin": [],
-#       "//tensorflow:windows": [],
-#   }),
-#   deps = [
-#       "//tensorflow/core:framework_headers_lib",
-#       "//third_party/eigen3",
-#       "@protobuf_archive//:protobuf_headers",
-#   ],
-#)
-
 tf_gen_op_libs(
     op_lib_names = ["dataset_ops"],
-)
-
-tf_cc_shared_object(
-    name = "ignite_file_system.so",
-    srcs = [
-        "igfs/igfs_protocol.h",
-        "igfs/igfs_protocol.cc",
-        "igfs/ignite_file_system.h",
-        "igfs/ignite_file_system.cc",
-        "igfs/messages.h",
-        "igfs/messages.cc",
-        "igfs/utils.h",
-        ],
-    deps = [
-        ":dataset_kernels",
-        "//tensorflow/core:lib",
-        "//tensorflow/core:lib_internal"
-    ],
-    #linkshared = 1,
-    #alwayslink=1,
 )
 
 cc_library(
