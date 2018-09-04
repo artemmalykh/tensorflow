@@ -13,30 +13,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef IGNITE_PLAIN_CLIENT_H
-#define IGNITE_PLAIN_CLIENT_H
-
-#include "ignite_client.h"
-#include <string>
+#include "igfs_client.h"
+#include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/file_system.h"
 
 namespace tensorflow {
 
-class PlainClient : public Client {
+class IGFSWritableFile : public WritableFile {
  public:
-  PlainClient(std::string host, int port, bool bigEndian);
-  PlainClient(std::string host, int port) : PlainClient(host, port, false) {};
-  ~PlainClient();
+  IGFSWritableFile(const string &file_name, long resource_id,
+                   std::shared_ptr<IGFSClient> client);
+  ~IGFSWritableFile() override;
+  Status Append(const StringPiece &data) override;
+  Status Close() override;
+  Status Flush() override;
+  Status Sync() override;
 
-  virtual Status Connect();
-  virtual Status Disconnect();
-  virtual bool IsConnected();
-  virtual int GetSocketDescriptor();
-  virtual Status ReadData(uint8_t* buf, int32_t length);
-  virtual Status WriteData(uint8_t* buf, int32_t length);
  private:
-  const std::string host_;
-  const int port_;
-  int sock_;
+  const string file_name_;
+  long resource_id_;
+  std::shared_ptr<IGFSClient> client_;
 };
+
 }  // namespace tensorflow
-#endif

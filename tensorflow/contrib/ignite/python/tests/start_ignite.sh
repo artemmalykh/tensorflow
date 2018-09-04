@@ -28,6 +28,3 @@ docker run -itd --name ignite-ssl -p 42301:10800 \
 # Start Apache Ignite with SSL client listener with auth.
 docker run -itd --name ignite-ssl-auth -p 42302:10800 \
 -v ${SCRIPT_PATH}:/data apacheignite/ignite:${IGNITE_VERSION} /data/bin/start-ssl-auth.sh
-
-docker run -itd --name ignite-igfs -p 42304:10800 -p 10500:10500 --network host \
--v ${SCRIPT_PATH}:/data apacheignite/ignite:${IGNITE_VERSION} /data/bin/start-igfs.sh

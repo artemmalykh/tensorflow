@@ -19,7 +19,8 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/file_system.h"
 #include "tensorflow/core/platform/test.h"
-#include "ignite_file_system.h"
+
+#include "igfs.h"
 
 namespace tensorflow {
 namespace {
@@ -166,7 +167,6 @@ TEST_F(IgniteFileSystemTest, StatFile) {
   EXPECT_EQ(4, stat.length);
   EXPECT_FALSE(stat.is_directory);
 }
-
 }
 }
 

@@ -13,41 +13,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include <vector>
-#include "tensorflow/core/framework/dataset.h"
+#include "igfs_client.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/file_system.h"
 
 namespace tensorflow {
 
-class BinaryObjectParser {
+class IGFSRandomAccessFile : public RandomAccessFile {
  public:
-  Status Parse(uint8_t** ptr, std::vector<Tensor>* out_tensors,
-               std::vector<int32_t>* types);
-};
+  IGFSRandomAccessFile(string file_name, long resource_id,
+                       std::shared_ptr<IGFSClient> &client);
+  ~IGFSRandomAccessFile() override;
+  Status Read(uint64 offset, size_t n, StringPiece *result,
+              char *scratch) const override;
 
-enum ObjectType {
-  BYTE = 1,
-  SHORT = 2,
-  INT = 3,
-  LONG = 4,
-  FLOAT = 5,
-  DOUBLE = 6,
-  UCHAR = 7,
-  BOOL = 8,
-  STRING = 9,
-  DATE = 11,
-  BYTE_ARR = 12,
-  SHORT_ARR = 13,
-  INT_ARR = 14,
-  LONG_ARR = 15,
-  FLOAT_ARR = 16,
-  DOUBLE_ARR = 17,
-  UCHAR_ARR = 18,
-  BOOL_ARR = 19,
-  STRING_ARR = 20,
-  DATE_ARR = 22,
-  WRAPPED_OBJ = 27,
-  COMPLEX_OBJ = 103
+ private:
+  const string file_name_;
+  const long resource_id_;
+  std::shared_ptr<IGFSClient> client_;
 };
 
 }  // namespace tensorflow

@@ -16,10 +16,11 @@ limitations under the License.
 #include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
-#include "../kernels/ignite_file_system.h"
+
+#include "../kernels/igfs.h"
 
 namespace tensorflow {
 
-REGISTER_FILE_SYSTEM("igfs", IgniteFileSystem);
+REGISTER_FILE_SYSTEM("igfs", IGFS);
 
 }  // namespace tensorflow

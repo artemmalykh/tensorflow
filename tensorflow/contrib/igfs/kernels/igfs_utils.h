@@ -13,39 +13,40 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef TF_IGFS_UTILS_H
-#define TF_IGFS_UTILS_H
+#ifndef TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_UTILS_H_
+#define TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_UTILS_H_
 
-#include <string>
+#include <sys/socket.h>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <streambuf>
-#include <sys/socket.h>
+#include <string>
 
-#include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/contrib/ignite/kernels/ignite_plain_client.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace tensorflow {
 
 using std::map;
 using std::string;
 
-class IGFSClient : public PlainClient {
+class ExtendedTCPClient : public PlainClient {
  public:
-  IGFSClient(const string &host, int port) : PlainClient(host, port, true) {
+  ExtendedTCPClient(const string &host, int port)
+      : PlainClient(host, port, true) {
     LOG(INFO) << "New IGFS Client " << host << ":" << port << ".";
     pos = 0;
   }
 
-  Status ReadData(uint8_t* buf, int32_t length) override {
+  Status ReadData(uint8_t *buf, int32_t length) override {
     TF_RETURN_IF_ERROR(PlainClient::ReadData(buf, length));
     pos += length;
 
     return Status::OK();
   }
 
-  Status WriteData(uint8_t* buf, int32_t length) override {
+  Status WriteData(uint8_t *buf, int32_t length) override {
     TF_RETURN_IF_ERROR(PlainClient::WriteData(buf, length));
     pos += length;
 
@@ -68,7 +69,7 @@ class IGFSClient : public PlainClient {
     return Ignore(toSkip);
   };
 
-  Status ReadBool(bool& res) {
+  Status ReadBool(bool &res) {
     uint8_t d = 0;
     TF_RETURN_IF_ERROR(ReadData(&d, 1));
     res = d != 0;
@@ -77,7 +78,7 @@ class IGFSClient : public PlainClient {
   }
 
   Status ReadNullableString(string &res) {
-    bool isEmpty;
+    bool isEmpty = false;
     ReadBool(isEmpty);
 
     if (isEmpty) {
@@ -116,9 +117,7 @@ class IGFSClient : public PlainClient {
     return Status::OK();
   };
 
-  Status WriteSize(map<string, string>::size_type s) {
-    return WriteInt(s);
-  }
+  Status WriteSize(map<string, string>::size_type s) { return WriteInt(s); }
 
   Status FillWithZerosUntil(int n) {
     int toSkip = std::max(0, n - pos);
@@ -130,9 +129,7 @@ class IGFSClient : public PlainClient {
     return Status::OK();
   }
 
-  Status WriteBool(bool val) {
-    return WriteByte((char) (val ? 1 : 0));
-  }
+  Status WriteBool(bool val) { return WriteByte((char)(val ? 1 : 0)); }
 
   Status WriteString(string str) {
     if (!str.empty()) {
@@ -159,49 +156,37 @@ class IGFSClient : public PlainClient {
     return Status::OK();
   }
 
-  void reset() {
-    pos = 0;
-  }
+  void reset() { pos = 0; }
 
  private:
   // Position to be read next
   int pos;
 };
 
-template<class T>
+template <class T>
 class Optional {
  public:
-  template<class T1>
+  template <class T1>
   static Optional<T1> Of(T1 val) {
     return Optional(val);
   }
 
-  template<class T1>
+  template <class T1>
   static Optional<T1> Empty() {
     return Optional();
   }
 
-  bool IsEmpty() {
-    return hasVal;
-  }
+  bool IsEmpty() { return hasVal; }
 
-  T GetOrElse(T altVal) {
-    return IsEmpty() ? altVal : val;
-  }
+  T GetOrElse(T altVal) { return IsEmpty() ? altVal : val; }
 
-  T Get() {
-    return val;
-  }
+  T Get() { return val; }
 
-  Optional() {
-    hasVal = false;
-  }
+  Optional() { hasVal = false; }
 
-  Optional(T val) {
-    this->val = val;
-  }
+  Optional(T val) { this->val = val; }
 
-  Status Read(IGFSClient* r) {
+  Status Read(ExtendedTCPClient *r) {
     TF_RETURN_IF_ERROR(r->ReadBool(hasVal));
 
     if (hasVal) {
@@ -216,6 +201,7 @@ class Optional {
   bool hasVal = false;
   T val;
 };
-}
 
-#endif //TF_CMAKE_UTILS_H
+}  // namespace tensorflow
+
+#endif

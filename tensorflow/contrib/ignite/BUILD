@@ -1,4 +1,4 @@
-package(default_visibility = ["//visibility:public"])
+package(default_visibility = ["//tensorflow:internal"])
 
 licenses(["notice"])  # Apache 2.0
 
@@ -12,11 +12,8 @@ load(
     "tf_custom_op_py_library",
     "tf_gen_op_libs",
     "tf_py_test",
-    "tf_cc_test",
-    "tf_cc_shared_object",
     "if_not_windows",
     "if_windows",
-    "tf_cc_binary"
 )
 
 py_library(
@@ -39,34 +36,40 @@ tf_gen_op_libs(
 )
 
 cc_library(
-    name = "dataset_kernels",
-    hdrs = [
-        "kernels/ignite_client.h",
-        "kernels/ignite_plain_client.h",
-        "kernels/ignite_ssl_wrapper.h",
-    ],
+    name = "ignite_client",
     srcs = [
-        "kernels/ignite_dataset_ops.cc",
         "kernels/ignite_client.h",
         "kernels/ignite_plain_client.h",
         "kernels/ignite_ssl_wrapper.h",
-        "kernels/ignite_ssl_wrapper.cc",
-        "kernels/ignite_binary_object_parser.h",
-        "kernels/ignite_binary_object_parser.cc",
-        "kernels/ignite_dataset.h",
-        "kernels/ignite_dataset.cc",
-        "kernels/ignite_dataset_iterator.h",
-        "kernels/ignite_dataset_iterator.cc",
+        "kernels/ignite_ssl_wrapper.cc"
     ] + if_not_windows([
         "kernels/ignite_plain_client_unix.cc",
     ]) + if_windows([
         "kernels/ignite_plain_client_windows.cc",
     ]),
     deps = [
-        "//tensorflow/core:framework_headers_lib",
-        "//third_party/eigen3",
         "@boringssl//:ssl",
+        "//tensorflow/core:framework_headers_lib",
         "@protobuf_archive//:protobuf_headers",
+    ],
+)
+
+cc_library(
+    name = "dataset_kernels",
+    srcs = [
+        "kernels/ignite_dataset_ops.cc",
+        "kernels/ignite_binary_object_parser.h",
+        "kernels/ignite_binary_object_parser.cc",
+        "kernels/ignite_dataset.h",
+        "kernels/ignite_dataset.cc",
+        "kernels/ignite_dataset_iterator.h",
+        "kernels/ignite_dataset_iterator.cc",
+    ],
+    deps = [
+        ":ignite_client",
+        "//tensorflow/core:framework_headers_lib",
+        "@protobuf_archive//:protobuf_headers",
+        "//third_party/eigen3",
     ],
     alwayslink = 1,
 )
@@ -139,24 +142,5 @@ tf_py_test(
         "manual",
         "no_windows",
         "notap",
-    ],
-)
-
-tf_cc_test(
-    name = "ignite_file_system_test",
-    size = "small",
-    srcs = [
-        "ignite_file_system_test.cc",
-    ],
-    tags = [
-        "manual",
-        "notap",
-    ],
-    deps = [
-        ":ignite_file_system",
-        "//tensorflow/core:lib",
-        "//tensorflow/core:lib_internal",
-        "//tensorflow/core:test",
-        "//tensorflow/core:test_main",
     ],
 )

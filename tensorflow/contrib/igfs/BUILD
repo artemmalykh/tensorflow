@@ -14,9 +14,6 @@ load(
     "tf_py_test",
     "tf_cc_test",
     "tf_cc_shared_object",
-    "if_not_windows",
-    "if_windows",
-    "tf_cc_binary"
 )
 
 py_library(
@@ -32,7 +29,7 @@ tf_custom_op_library(
     name = "_igfs_ops.so",
     srcs = [
         "ops/igfs_ops.cc",
-        "kernels/ignite_file_system.h",
+        "kernels/igfs.h",
     ],
     deps = [":igfs_kernels"],
 )
@@ -44,19 +41,21 @@ tf_gen_op_libs(
 
 cc_library(
     name = "igfs_kernels",
-    hdrs = [
-        "kernels/igfs_protocol.h",
-        "kernels/ignite_file_system.h",
-        "kernels/messages.h",
-        "kernels/utils.h",
-    ],
     srcs = [
-        "kernels/igfs_protocol.cc",
-        "kernels/ignite_file_system.cc",
-        "kernels/messages.cc",
+        "kernels/igfs.h",
+        "kernels/igfs.cc",
+        "kernels/igfs_random_access_file.h",
+        "kernels/igfs_random_access_file.cc",
+        "kernels/igfs_writable_file.h",
+        "kernels/igfs_writable_file.cc",
+        "kernels/igfs_client.h",
+        "kernels/igfs_client.cc",
+        "kernels/igfs_messages.h",
+        "kernels/igfs_messages.cc",
+        "kernels/igfs_utils.h",
     ],
     deps = [
-        "//tensorflow/contrib/ignite:dataset_kernels",
+        "//tensorflow/contrib/ignite:ignite_client",
         "//tensorflow/core:lib",
         "//tensorflow/core:lib_internal"
     ],
@@ -81,7 +80,7 @@ py_library(
 tf_gen_op_wrapper_py(
     name = "gen_igfs_ops",
     out = "python/ops/gen_igfs_ops.py",
-    deps = ["//tensorflow/contrib/igfs:igfs_ops_op_lib"],
+    deps = [":igfs_ops_op_lib"],
 )
 
 tf_kernel_library(
@@ -96,15 +95,59 @@ tf_kernel_library(
 tf_custom_op_py_library(
     name = "igfs_op_loader",
     srcs = ["python/ops/igfs_op_loader.py"],
-    dso = ["//tensorflow/contrib/igfs:_igfs_ops.so"],
+    dso = [":_igfs_ops.so"],
     kernels = [
         ":igfs_ops_kernels",
-        "//tensorflow/contrib/ignite:igfs_ops_op_lib",
+        ":igfs_ops_op_lib",
     ],
     srcs_version = "PY2AND3",
     deps = [
         ":gen_igfs_ops",
         "//tensorflow/contrib/util:util_py",
         "//tensorflow/python:platform",
+    ],
+)
+
+tf_cc_test(
+    name = "igfs_test_cc",
+    size = "small",
+    srcs = [
+        "kernels/tests/igfs_test.cc",
+    ],
+    tags = [
+        "manual",
+        "notap",
+    ],
+    deps = [
+        ":igfs",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:lib_internal",
+        "//tensorflow/core:test",
+        "//tensorflow/core:test_main",
+    ],
+)
+
+# The Apache Ignite servers have to setup before the test and tear down
+# after the test manually. The docker engine has to be installed.
+#
+# To setup Apache Ignite servers:
+# $ bash ./python/tests/start_ignite.sh
+#
+# To tear down Apache Ignite servers:
+# $ bash ./python/tests/stop_ignite.sh
+tf_py_test(
+    name = "igfs_test_py",
+    srcs = ["python/tests/igfs_test.py"],
+    additional_deps = [
+        ":igfs",
+        "//tensorflow/python:client_testlib",
+        "//tensorflow/python:framework",
+        "//tensorflow/python:framework_test_lib",
+        "//tensorflow/python:platform_test",
+    ],
+    tags = [
+        "manual",
+        "no_windows",
+        "notap",
     ],
 )
