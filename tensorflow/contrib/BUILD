@@ -226,5 +226,5 @@ cc_library(
             "//tensorflow/contrib/kinesis:dataset_ops_op_lib",
         ],
         "//conditions:default": [],
-    })
+    }),
 )
