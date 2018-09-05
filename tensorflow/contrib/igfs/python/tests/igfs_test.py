@@ -20,7 +20,16 @@ import tensorflow.contrib.igfs.python.ops.igfs_ops
 
 
 class FileSystemTest(test.TestCase):
+  """The Apache Ignite servers have to setup before the test and tear down
+     after the test manually. The docker engine has to be installed.
 
+     To setup Apache Ignite servers:
+     $ bash start_ignite.sh
+
+     To tear down Apache Ignite servers:
+     $ bash stop_ignite.sh
+  """
+  
   def setUp(self):
     pass
 

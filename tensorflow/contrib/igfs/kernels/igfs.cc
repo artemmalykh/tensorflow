@@ -72,7 +72,6 @@ Status IGFS::NewRandomAccessFile(const std::string &file_name,
 
     if (open_read_response.IsOk()) {
       long resource_id = open_read_response.GetRes().Get().GetStreamId();
-
       result->reset(new IGFSRandomAccessFile(path, resource_id, client));
     } else {
       return errors::Internal("Error while trying to open for reading");
@@ -89,8 +88,6 @@ Status IGFS::NewRandomAccessFile(const std::string &file_name,
 
 Status IGFS::NewWritableFile(const std::string &fname,
                              std::unique_ptr<WritableFile> *result) {
-  LOG(INFO) << "New writable file " << fname;
-
   shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
 
   ControlResponse<Optional<HandshakeResponse>> handshake_response = {};

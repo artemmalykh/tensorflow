@@ -18,5 +18,5 @@ IGNITE_VERSION=2.6.0
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # Start Apache Ignite with IGFS.
-docker run -itd --name ignite-igfs -p 42304:10800 -p 10500:10500 --network host \
+docker run -itd --name ignite-igfs -p 42304:10800 -p 10500:10500 \
 -v ${SCRIPT_PATH}:/data apacheignite/ignite:${IGNITE_VERSION} /data/bin/start-igfs.sh
