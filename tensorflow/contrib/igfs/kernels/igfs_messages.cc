@@ -39,7 +39,7 @@ int64_t IgfsFile::GetModificationTime() { return modification_time_; }
 
 uint8_t IgfsFile::GetFlags() { return flags_; }
 
-Status Request::Write(ExtendedTCPClient *w) {
+Status Request::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteByte(0));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(8));
   TF_RETURN_IF_ERROR(w->WriteInt(CommandId()));
@@ -91,7 +91,7 @@ PathControlRequest::PathControlRequest(string user_name, string path,
       collocate_(collocate),
       props_(std::move(properties)) {}
 
-Status PathControlRequest::Write(ExtendedTCPClient *w) {
+Status PathControlRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(Request::Write(w));
 
   TF_RETURN_IF_ERROR(w->WriteString(user_name_));
@@ -104,14 +104,14 @@ Status PathControlRequest::Write(ExtendedTCPClient *w) {
   return Status::OK();
 }
 
-Status PathControlRequest::WritePath(ExtendedTCPClient *w, const string &path) {
+Status PathControlRequest::WritePath(ExtendedTCPClient *w, const string &path) const {
   TF_RETURN_IF_ERROR(w->WriteBool(!path.empty()));
   if (!path.empty()) TF_RETURN_IF_ERROR(w->WriteString(path));
 
   return Status::OK();
 }
 
-Status StreamControlRequest::Write(ExtendedTCPClient *w) {
+Status StreamControlRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteByte(0));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(8));
   TF_RETURN_IF_ERROR(w->WriteInt(CommandId()));
@@ -149,7 +149,7 @@ bool ExistsResponse::Exists() { return ex; }
 HandshakeRequest::HandshakeRequest(const string &fs_name, const string &log_dir)
     : fs_name_(fs_name), log_dir_(log_dir){};
 
-Status HandshakeRequest::Write(ExtendedTCPClient *w) {
+Status HandshakeRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(Request::Write(w));
 
   TF_RETURN_IF_ERROR(w->WriteString(fs_name_));
@@ -182,7 +182,7 @@ ListFilesRequest::ListFilesRequest(const string &path) : ListRequest(path) {}
 OpenCreateRequest::OpenCreateRequest(const string &path)
     : PathControlRequest("", path, "", false, true, map<string, string>()) {}
 
-Status OpenCreateRequest::Write(ExtendedTCPClient *w) {
+Status OpenCreateRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(PathControlRequest::Write(w));
 
   TF_RETURN_IF_ERROR(w->WriteInt(replication_));
@@ -204,7 +204,7 @@ OpenAppendRequest::OpenAppendRequest(const string &user_name,
     : PathControlRequest(user_name, path, "", false, true,
                          map<string, string>()) {}
 
-Status OpenAppendRequest::Write(ExtendedTCPClient *w) {
+Status OpenAppendRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(PathControlRequest::Write(w));
 
   return Status::OK();
@@ -226,7 +226,7 @@ OpenReadRequest::OpenReadRequest(const string &user_name, const string &path,
 OpenReadRequest::OpenReadRequest(const string &user_name, const string &path)
     : OpenReadRequest(user_name, path, false, 0) {}
 
-Status OpenReadRequest::Write(ExtendedTCPClient *w) {
+Status OpenReadRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(PathControlRequest::Write(w));
 
   if (flag_) {
@@ -290,7 +290,7 @@ ReadBlockRequest::ReadBlockRequest(int64_t stream_id, int64_t pos,
                                    int32_t length)
     : StreamControlRequest(stream_id, length), pos(pos) {}
 
-Status ReadBlockRequest::Write(ExtendedTCPClient *w) {
+Status ReadBlockRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(StreamControlRequest::Write(w));
 
   TF_RETURN_IF_ERROR(w->WriteLong(pos));
@@ -312,9 +312,9 @@ Status ReadBlockResponse::Read(ExtendedTCPClient *r) {
 
 streamsize ReadBlockResponse::GetSuccessfulyRead() { return successfuly_read; }
 
-ReadBlockControlResponse::ReadBlockControlResponse(uint8_t *dst) : dst(dst) {}
+ReadBlockCtrlResponse::ReadBlockCtrlResponse(uint8_t *dst) : dst(dst) {}
 
-Status ReadBlockControlResponse::Read(ExtendedTCPClient *r) {
+Status ReadBlockCtrlResponse::Read(ExtendedTCPClient *r) {
   TF_RETURN_IF_ERROR(Response::Read(r));
 
   if (IsOk()) {
@@ -325,13 +325,13 @@ Status ReadBlockControlResponse::Read(ExtendedTCPClient *r) {
   return Status::OK();
 }
 
-int32_t ReadBlockControlResponse::GetLength() { return length_; }
+int32_t ReadBlockCtrlResponse::GetLength() { return length_; }
 
 WriteBlockRequest::WriteBlockRequest(int64_t stream_id, const uint8_t *data,
                                      int32_t length)
     : StreamControlRequest(stream_id, length), data(data) {}
 
-Status WriteBlockRequest::Write(ExtendedTCPClient *w) {
+Status WriteBlockRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(StreamControlRequest::Write(w));
   TF_RETURN_IF_ERROR(w->WriteData((uint8_t *)data, length_));
 

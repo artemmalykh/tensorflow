@@ -66,9 +66,9 @@ class IgfsFile {
 
 class Request {
  public:
-  virtual int32_t CommandId() = 0;
+  virtual int32_t CommandId() const = 0;
 
-  virtual Status Write(ExtendedTCPClient *w);
+  virtual Status Write(ExtendedTCPClient *w) const;
 };
 
 class Response {
@@ -101,7 +101,7 @@ class PathControlRequest : public Request {
   PathControlRequest(string user_name, string path, string destination_path,
                      bool flag, bool collocate, map<string, string> properties);
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
  protected:
   /** The user name this control request is made on behalf of. */
@@ -122,14 +122,14 @@ class PathControlRequest : public Request {
   /** Properties. */
   const map<string, string> props_;
 
-  Status WritePath(ExtendedTCPClient *w, const string &path);
+  Status WritePath(ExtendedTCPClient *w, const string &path) const;
 };
 
 class StreamControlRequest : public Request {
  public:
   StreamControlRequest(int64_t stream_id, int32_t length);
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
  protected:
   int64_t stream_id_;
@@ -138,7 +138,7 @@ class StreamControlRequest : public Request {
 };
 
 template <class R>
-class ControlResponse : public Response {
+class CtrlResponse : public Response {
  public:
   Status Read(ExtendedTCPClient *r) override {
     TF_RETURN_IF_ERROR(Response::Read(r));
@@ -161,7 +161,7 @@ class DeleteRequest : public PathControlRequest {
  public:
   DeleteRequest(const string &path, bool flag);
 
-  inline int32_t CommandId() override { return 7; }
+  inline int32_t CommandId() const override { return 7; }
 };
 
 class DeleteResponse {
@@ -178,7 +178,7 @@ class ExistsRequest : public PathControlRequest {
  public:
   explicit ExistsRequest(const string &path);
 
-  inline int32_t CommandId() override { return 2; }
+  inline int32_t CommandId() const override { return 2; }
 };
 
 class ExistsResponse {
@@ -191,13 +191,13 @@ class ExistsResponse {
   bool ex;
 };
 
-class HandshakeRequest : Request {
+class HandshakeRequest : public Request {
  public:
   HandshakeRequest(const string &fs_name, const string &log_dir);
 
-  inline int32_t CommandId() override { return 0; }
+  inline int32_t CommandId() const override { return 0; }
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
  private:
   string fs_name_;
@@ -249,7 +249,7 @@ class ListFilesRequest : public ListRequest {
  public:
   explicit ListFilesRequest(const string &path);
 
-  inline int32_t CommandId() override { return 10; }
+  inline int32_t CommandId() const override { return 10; }
 };
 
 class ListFilesResponse : public ListResponse<IgfsFile> {};
@@ -258,18 +258,18 @@ class ListPathsRequest : public ListRequest {
  public:
   explicit ListPathsRequest(const string &path) : ListRequest(path) {}
 
-  inline int32_t CommandId() override { return 9; }
+  inline int32_t CommandId() const override { return 9; }
 };
 
 class ListPathsResponse : public ListResponse<IgnitePath> {};
 
-class OpenCreateRequest : PathControlRequest {
+class OpenCreateRequest : public PathControlRequest {
  public:
   explicit OpenCreateRequest(const string &path);
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
-  inline int32_t CommandId() override { return 15; }
+  inline int32_t CommandId() const override { return 15; }
 
  protected:
   /** Replication factor. */
@@ -289,13 +289,13 @@ class OpenCreateResponse {
   int64_t stream_id_{};
 };
 
-class OpenAppendRequest : PathControlRequest {
+class OpenAppendRequest : public PathControlRequest {
  public:
   explicit OpenAppendRequest(const string &user_name, const string &path);
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
-  inline int32_t CommandId() override { return 14; }
+  inline int32_t CommandId() const override { return 14; }
 };
 
 class OpenAppendResponse {
@@ -310,16 +310,16 @@ class OpenAppendResponse {
   int64_t stream_id_{};
 };
 
-class OpenReadRequest : PathControlRequest {
+class OpenReadRequest : public PathControlRequest {
  public:
   OpenReadRequest(const string &user_name, const string &path, bool flag,
                   int32_t seqReadsBeforePrefetch);
 
   OpenReadRequest(const string &user_name, const string &path);
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
-  inline int32_t CommandId() override { return 13; }
+  inline int32_t CommandId() const override { return 13; }
 
  protected:
   /** Sequential reads before prefetch. */
@@ -343,7 +343,7 @@ class InfoRequest : public PathControlRequest {
  public:
   InfoRequest(const string &userName, const string &path);
 
-  inline int32_t CommandId() override { return 3; }
+  inline int32_t CommandId() const override { return 3; }
 };
 
 class InfoResponse {
@@ -360,7 +360,7 @@ class MakeDirectoriesRequest : public PathControlRequest {
  public:
   MakeDirectoriesRequest(const string &userName, const string &path);
 
-  inline int32_t CommandId() override { return 8; }
+  inline int32_t CommandId() const override { return 8; }
 };
 
 class MakeDirectoriesResponse {
@@ -381,7 +381,7 @@ class CloseRequest : public StreamControlRequest {
  public:
   explicit CloseRequest(int64_t streamId);
 
-  inline int32_t CommandId() override { return 16; }
+  inline int32_t CommandId() const override { return 16; }
 };
 
 class CloseResponse {
@@ -398,9 +398,9 @@ class ReadBlockRequest : public StreamControlRequest {
  public:
   ReadBlockRequest(int64_t stream_id, int64_t pos, int32_t length);
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
-  inline int32_t CommandId() override { return 17; }
+  inline int32_t CommandId() const override { return 17; }
 
  private:
   int64_t pos;
@@ -419,9 +419,9 @@ class ReadBlockResponse {
   streamsize successfuly_read;
 };
 
-class ReadBlockControlResponse : public ControlResponse<ReadBlockResponse> {
+class ReadBlockCtrlResponse : public CtrlResponse<ReadBlockResponse> {
  public:
-  explicit ReadBlockControlResponse(uint8_t *dst);
+  explicit ReadBlockCtrlResponse(uint8_t *dst);
 
   Status Read(ExtendedTCPClient *r) override;
 
@@ -435,9 +435,9 @@ class WriteBlockRequest : public StreamControlRequest {
  public:
   WriteBlockRequest(int64_t stream_id, const uint8_t *data, int32_t length);
 
-  Status Write(ExtendedTCPClient *w) override;
+  Status Write(ExtendedTCPClient *w) const override;
 
-  inline int32_t CommandId() override { return 18; }
+  inline int32_t CommandId() const override { return 18; }
 
  private:
   const uint8_t *data;
@@ -447,7 +447,7 @@ class RenameRequest : public PathControlRequest {
  public:
   RenameRequest(const std::string &path, const std::string &destination_path);
 
-  inline int32_t CommandId() override { return 6; }
+  inline int32_t CommandId() const override { return 6; }
 };
 
 class RenameResponse {

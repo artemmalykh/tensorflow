@@ -26,7 +26,7 @@ IGFSWritableFile::IGFSWritableFile(const string &file_name, long resource_id,
 
 IGFSWritableFile::~IGFSWritableFile() {
   if (resource_id_ >= 0) {
-    ControlResponse<CloseResponse> cr = {};
+    CtrlResponse<CloseResponse> cr = {};
     client_->Close(&cr, resource_id_);
   }
 }
@@ -43,7 +43,7 @@ Status IGFSWritableFile::Close() {
   LOG(INFO) << "Close " << file_name_;
   Status result;
 
-  ControlResponse<CloseResponse> cr = {};
+  CtrlResponse<CloseResponse> cr = {};
   client_->Close(&cr, resource_id_);
   if (!cr.IsOk()) {
     // result = IOError(fName_, errno);

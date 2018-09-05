@@ -25,7 +25,7 @@ IGFSRandomAccessFile::IGFSRandomAccessFile(string file_name, long resource_id,
       client_(client) {}
 
 IGFSRandomAccessFile::~IGFSRandomAccessFile() {
-  ControlResponse<CloseResponse> cr = {};
+  CtrlResponse<CloseResponse> cr = {};
   client_->Close(&cr, resource_id_);
 }
 
@@ -35,7 +35,7 @@ Status IGFSRandomAccessFile::Read(uint64 offset, size_t n, StringPiece *result,
   Status s;
   uint8_t *dst = reinterpret_cast<uint8_t *>(scratch);
 
-  ReadBlockControlResponse response = ReadBlockControlResponse(dst);
+  ReadBlockCtrlResponse response = ReadBlockCtrlResponse(dst);
   TF_RETURN_IF_ERROR(client_->ReadBlock(&response, resource_id_, offset, n));
 
   if (!response.IsOk()) {

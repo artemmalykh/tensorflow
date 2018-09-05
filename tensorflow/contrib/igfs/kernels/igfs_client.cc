@@ -24,217 +24,144 @@ IGFSClient::IGFSClient(string host, int port, string fs_name)
 
 IGFSClient::~IGFSClient() { client_.Disconnect(); }
 
+Status IGFSClient::SendRequestGetResponse(const std::string request_name, const Request &request, Response *response) {
+  TF_RETURN_IF_ERROR(request.Write(&client_));
+  client_.reset();
+
+  if (response != nullptr) {
+    TF_RETURN_IF_ERROR(response->Read(&client_));
+    client_.reset();
+  }
+
+  LOG(INFO) << "IGFS '" << request_name << "' successfully completed";
+
+  return Status::OK();
+}
+
 Status IGFSClient::Handshake(
-    ControlResponse<Optional<HandshakeResponse>> *res) {
-  HandshakeRequest req(fs_name_, "");
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'handshake' successfully completed [fs_name=" << fs_name_
-            << "]";
-
-  return Status::OK();
+    CtrlResponse<Optional<HandshakeResponse>> *response) {
+  return SendRequestGetResponse(
+    "handshake",
+    HandshakeRequest(fs_name_, ""), 
+    response
+  );
 }
 
-Status IGFSClient::ListFiles(ControlResponse<ListFilesResponse> *res,
+Status IGFSClient::ListFiles(CtrlResponse<ListFilesResponse> *response,
                              const string &path) {
-  ListFilesRequest req(path);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'list files' successfully completed [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "list files",
+    ListFilesRequest(path), 
+    response
+  );
 }
 
-Status IGFSClient::ListPaths(ControlResponse<ListPathsResponse> *res,
+Status IGFSClient::ListPaths(CtrlResponse<ListPathsResponse> *response,
                              const string &path) {
-  ListPathsRequest req(path);
-
-  req.Write(&client_);
-  client_.reset();
-
-  res->Read(&client_);
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'list paths' successfully completed [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "list paths",
+    ListPathsRequest(path), 
+    response
+  );
 }
 
-Status IGFSClient::Info(ControlResponse<InfoResponse> *res,
+Status IGFSClient::Info(CtrlResponse<InfoResponse> *response,
                         const string &path) {
-  InfoRequest req("", path);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'info' successfully completed [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "info",
+    InfoRequest("", path), 
+    response
+  );
 }
 
-Status IGFSClient::OpenCreate(ControlResponse<OpenCreateResponse> *res,
+Status IGFSClient::OpenCreate(CtrlResponse<OpenCreateResponse> *response,
                               const string &path) {
-  OpenCreateRequest req(path);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'open create' successfully complated [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "open create",
+    OpenCreateRequest(path), 
+    response
+  );
 }
 
-Status IGFSClient::OpenAppend(ControlResponse<OpenAppendResponse> *res,
+Status IGFSClient::OpenAppend(CtrlResponse<OpenAppendResponse> *response,
                               const string &user_name, const string &path) {
-  OpenAppendRequest req(user_name, path);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'open append' successfully completed [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "open append",
+    OpenAppendRequest(user_name, path), 
+    response
+  );
 }
 
-Status IGFSClient::OpenRead(ControlResponse<Optional<OpenReadResponse>> *res,
+Status IGFSClient::OpenRead(CtrlResponse<Optional<OpenReadResponse>> *response,
                             const string &user_name, const string &path) {
-  OpenReadRequest req(user_name, path);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'open read' successfully completed [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "open read",
+    OpenReadRequest(user_name, path), 
+    response
+  );
 }
 
-Status IGFSClient::Exists(ControlResponse<ExistsResponse> *res,
+Status IGFSClient::Exists(CtrlResponse<ExistsResponse> *response,
                           const string &path) {
-  ExistsRequest req(path);
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "exists",
+    ExistsRequest(path), 
+    response
+  );
 }
 
-Status IGFSClient::MkDir(ControlResponse<MakeDirectoriesResponse> *res,
+Status IGFSClient::MkDir(CtrlResponse<MakeDirectoriesResponse> *response,
                          const string &path) {
-  MakeDirectoriesRequest req("", path);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'mkdir' successfully completed [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "mkdir",
+    MakeDirectoriesRequest("", path), 
+    response
+  );
 }
 
-Status IGFSClient::Delete(ControlResponse<DeleteResponse> *res,
+Status IGFSClient::Delete(CtrlResponse<DeleteResponse> *response,
                           const string &path, bool recursive) {
-  DeleteRequest req(path, recursive);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'del' successfully completed [fs_name=" << fs_name_
-            << ", path=" << path << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "delete",
+    DeleteRequest(path, recursive), 
+    response
+  );
 }
 
 Status IGFSClient::WriteBlock(int64_t stream_id, const uint8_t *data,
                               int32_t len) {
-  WriteBlockRequest req(stream_id, data, len);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'write block' successfully completed";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "write block",
+    WriteBlockRequest(stream_id, data, len), 
+    nullptr
+  );
 }
 
-Status IGFSClient::ReadBlock(ReadBlockControlResponse *res, int64_t stream_id,
+Status IGFSClient::ReadBlock(ReadBlockCtrlResponse *response, int64_t stream_id,
                              int64_t pos, int32_t length) {
-  ReadBlockRequest req(stream_id, pos, length);
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'read block' successfully completed";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "read block",
+    ReadBlockRequest(stream_id, pos, length), 
+    response
+  );
 }
 
-Status IGFSClient::Close(ControlResponse<CloseResponse> *res,
+Status IGFSClient::Close(CtrlResponse<CloseResponse> *response,
                          int64_t stream_id) {
-  CloseRequest req(stream_id);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'close' successfully completed";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "close",
+    CloseRequest(stream_id), 
+    response
+  );
 }
 
-Status IGFSClient::Rename(ControlResponse<RenameResponse> *res,
+Status IGFSClient::Rename(CtrlResponse<RenameResponse> *response,
                           const string &source, const string &dest) {
-  RenameRequest req(source, dest);
-
-  TF_RETURN_IF_ERROR(req.Write(&client_));
-  client_.reset();
-
-  TF_RETURN_IF_ERROR(res->Read(&client_));
-  client_.reset();
-
-  LOG(INFO) << "IGFS 'rename' successfully completed [src=" << source
-            << ", dst=" << dest << "]";
-
-  return Status::OK();
+  return SendRequestGetResponse(
+    "rename",
+    RenameRequest(source, dest), 
+    response
+  );
 }
 
 }  // namespace tensorflow
