@@ -1,4 +1,4 @@
-# Ignite Dataset
+# IGFS (Ignite File System)
 
 - [Overview](#overview)
 - [Try it out](#try-it-out)
