@@ -7,7 +7,7 @@
 
 [Apache Ignite](https://ignite.apache.org/) is a memory-centric distributed database, caching, and processing platform for
 transactional, analytical, and streaming workloads, delivering in-memory speeds at petabyte scale. In addition to database functionality Apache Ignite provides a distributed file system called [IGFS](https://ignite.apache.org/features/igfs.html). IGFS delivers a similar functionality to Hadoop HDFS, but only in-memory. In fact, in addition to its own APIs, IGFS implements Hadoop FileSystem API and can be transparently plugged into Hadoop or Spark deployments. This contrib package contains an intergration between IGFS and TensorFlow. The integration is based on [custom filesystem plugin](https://www.tensorflow.org/extend/add_filesys) from TensorFlow side and [IGFS Native API](https://ignite.apache.org/features/igfs.html) from Apache Ignite side. It has numerous uses, for example:
-* Checkpoints of state can be saved saved to IGFS for reliability and fault-tolerance.
+* Checkpoints of state can be saved to IGFS for reliability and fault-tolerance.
 * Training processes communicate with TensorBoard by writing event files to a directory, which TensorBoard watches. IGFS allows this communication to work even when TensorBoard runs in a different process or machine.
 
 ## Try it out
