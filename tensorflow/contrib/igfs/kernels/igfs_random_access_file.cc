@@ -31,7 +31,7 @@ IGFSRandomAccessFile::~IGFSRandomAccessFile() {
 
 Status IGFSRandomAccessFile::Read(uint64 offset, size_t n, StringPiece *result,
                                   char *scratch) const {
-  LOG(INFO) << "Read " << file_name_ << " file";
+  LOG(INFO) << "Read " << file_name_ << " file, offset" << offset << ", size " << n;
   Status s;
   uint8_t *dst = reinterpret_cast<uint8_t *>(scratch);
 
@@ -42,6 +42,9 @@ Status IGFSRandomAccessFile::Read(uint64 offset, size_t n, StringPiece *result,
     s = Status(error::INTERNAL, "Error while trying to read block.");
   } else {
     streamsize sz = response.GetRes().GetSuccessfulyRead();
+    if (sz == 0)
+      return errors::OutOfRange("File reading has been completed already");
+
     *result = StringPiece(scratch, sz);
   }
 

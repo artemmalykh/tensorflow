@@ -227,6 +227,8 @@ class ListResponse {
   Status Read(ExtendedTCPClient *r) {
     int32_t len;
     TF_RETURN_IF_ERROR(r->ReadInt(&len));
+   
+    LOG(INFO) << "List response length " << len;
 
     entries = vector<T>();
 

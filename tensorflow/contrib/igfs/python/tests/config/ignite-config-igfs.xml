@@ -30,6 +30,7 @@
         <property name="defaultMode" value="PRIMARY"/>
         <property name="ipcEndpointConfiguration">
           <bean class="org.apache.ignite.igfs.IgfsIpcEndpointConfiguration">
+            <property name="host" value="" />
             <property name="port" value="10500"/>
             <property name="type" value="TCP"/>
           </bean>

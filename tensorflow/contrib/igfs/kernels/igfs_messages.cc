@@ -92,6 +92,7 @@ PathControlRequest::PathControlRequest(string user_name, string path,
       props_(std::move(properties)) {}
 
 Status PathControlRequest::Write(ExtendedTCPClient *w) const {
+  LOG(INFO) << "Writing path control request...";
   TF_RETURN_IF_ERROR(Request::Write(w));
 
   TF_RETURN_IF_ERROR(w->WriteString(user_name_));
@@ -101,6 +102,8 @@ Status PathControlRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteBool(collocate_));
   TF_RETURN_IF_ERROR(w->WriteStringMap(props_));
 
+
+  LOG(INFO) << "Path control request is written";
   return Status::OK();
 }
 

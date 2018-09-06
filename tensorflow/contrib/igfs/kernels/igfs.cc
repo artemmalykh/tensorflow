@@ -205,7 +205,7 @@ Status IGFS::FileExists(const std::string &fname) {
   }
 }
 
-std::string makeRelative(const std::string &a, const std::string &b) {
+std::string MakeRelative(const std::string &a, const std::string &b) {
   std::string max = a;
   std::string min = b;
   bool firstIsShortest = false;
@@ -219,7 +219,7 @@ std::string makeRelative(const std::string &a, const std::string &b) {
   auto r = mismatch(min.begin(), min.end(), max.begin());
 
   // Trim common prefix and '/' (hence '+1')
-  return string((firstIsShortest ? r.first : r.second) + 1,
+  return string((firstIsShortest ? r.first : r.second),// + 1,
                 firstIsShortest ? min.end() : max.end());
 }
 
@@ -245,7 +245,7 @@ Status IGFS::GetChildren(const std::string &fname,
     vector<IgnitePath> entries = list_paths_response.GetRes().getEntries();
 
     for (auto &value : entries) {
-      result->push_back(makeRelative(value.getPath(), dir));
+      result->push_back(MakeRelative(value.getPath(), dir));
     }
   } else {
     return errors::Internal("Handshake failed");
@@ -317,18 +317,20 @@ Status IGFS::DeleteDir(const std::string &dir) {
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
   if (handshake_response.IsOk()) {
+    const std::string dir_name = TranslateName(dir);
+
     CtrlResponse<ListFilesResponse> list_files_response = {};
-    client->ListFiles(&list_files_response, dir);
+    client->ListFiles(&list_files_response, dir_name);
 
     if (!list_files_response.IsOk()) {
-      return errors::Internal("Error");
+      return errors::Internal("Error: ", list_files_response.GetError());
     } else {
       if (!list_files_response.GetRes().getEntries().empty()) {
         return errors::FailedPrecondition(
             "Cannot delete a non-empty directory");
       } else {
         CtrlResponse<DeleteResponse> del_response = {};
-        TF_RETURN_IF_ERROR(client->Delete(&del_response, dir, true));
+        TF_RETURN_IF_ERROR(client->Delete(&del_response, dir_name, true));
 
         if (!del_response.IsOk()) {
           return errors::Internal("Error while trying to delete directory");
@@ -416,6 +418,7 @@ Status IGFS::Stat(const std::string &fname, FileStatistics *stats) {
     } else {
       IgfsFile info = info_response.GetRes().getFileInfo();
 
+      LOG(INFO) << "File Size : " << info.GetFileSize();
       *stats = FileStatistics(info.GetFileSize(), info.GetModificationTime(),
                               (info.GetFlags() & 0x1) != 0);
     }

@@ -19,5 +19,3 @@ from __future__ import print_function
 
 import tensorflow.contrib.igfs.python.ops.igfs_ops
 from tensorflow.python.util.all_util import remove_undocumented
-
-remove_undocumented(__name__)
