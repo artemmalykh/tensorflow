@@ -17,14 +17,14 @@ limitations under the License.
 
 namespace tensorflow {
 
-IGFSClient::IGFSClient(string host, int port, string fs_name, string user_name)
+IGFSClient::IGFSClient(std::string host, int port, std::string fs_name, std::string user_name)
     : fs_name_(fs_name), client_(ExtendedTCPClient(host, port)), user_name_(user_name) {
   client_.Connect();
 }
 
 IGFSClient::~IGFSClient() { client_.Disconnect(); }
 
-Status IGFSClient::SendRequestGetResponse(const std::string request_name, const Request &request, Response *response) {
+Status IGFSClient::SendRequestGetResponse(const Request &request, Response *response) {
   TF_RETURN_IF_ERROR(request.Write(&client_));
   client_.reset();
 
@@ -33,135 +33,7 @@ Status IGFSClient::SendRequestGetResponse(const std::string request_name, const 
     client_.reset();
   }
 
-  LOG(INFO) << "IGFS '" << request_name << "' successfully completed";
-
   return Status::OK();
-}
-
-Status IGFSClient::Handshake(
-    CtrlResponse<Optional<HandshakeResponse>> *response) {
-  return SendRequestGetResponse(
-    "handshake",
-    HandshakeRequest(fs_name_, ""), 
-    response
-  );
-}
-
-Status IGFSClient::ListFiles(CtrlResponse<ListFilesResponse> *response,
-                             const string &path) {
-  return SendRequestGetResponse(
-    "list files",
-    ListFilesRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::ListPaths(CtrlResponse<ListPathsResponse> *response,
-                             const string &path) {
-  return SendRequestGetResponse(
-    "list paths",
-    ListPathsRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::Info(CtrlResponse<InfoResponse> *response,
-                        const string &path) {
-  return SendRequestGetResponse(
-    "info",
-    InfoRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::OpenCreate(CtrlResponse<OpenCreateResponse> *response,
-                              const string &path) {
-  return SendRequestGetResponse(
-    "open create",
-    OpenCreateRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::OpenAppend(CtrlResponse<OpenAppendResponse> *response,
-                              const string &path) {
-  return SendRequestGetResponse(
-    "open append",
-    OpenAppendRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::OpenRead(CtrlResponse<Optional<OpenReadResponse>> *response,
-                            const string &path) {
-  return SendRequestGetResponse(
-    "open read",
-    OpenReadRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::Exists(CtrlResponse<ExistsResponse> *response,
-                          const string &path) {
-  return SendRequestGetResponse(
-    "exists",
-    ExistsRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::MkDir(CtrlResponse<MakeDirectoriesResponse> *response,
-                         const string &path) {
-  return SendRequestGetResponse(
-    "mkdir",
-    MakeDirectoriesRequest(user_name_, path), 
-    response
-  );
-}
-
-Status IGFSClient::Delete(CtrlResponse<DeleteResponse> *response,
-                          const string &path, bool recursive) {
-  return SendRequestGetResponse(
-    "delete",
-    DeleteRequest(user_name_, path, recursive), 
-    response
-  );
-}
-
-Status IGFSClient::WriteBlock(int64_t stream_id, const uint8_t *data,
-                              int32_t len) {
-  return SendRequestGetResponse(
-    "write block",
-    WriteBlockRequest(stream_id, data, len), 
-    nullptr
-  );
-}
-
-Status IGFSClient::ReadBlock(ReadBlockCtrlResponse *response, int64_t stream_id,
-                             int64_t pos, int32_t length) {
-  return SendRequestGetResponse(
-    "read block",
-    ReadBlockRequest(stream_id, pos, length), 
-    response
-  );
-}
-
-Status IGFSClient::Close(CtrlResponse<CloseResponse> *response,
-                         int64_t stream_id) {
-  return SendRequestGetResponse(
-    "close",
-    CloseRequest(stream_id), 
-    response
-  );
-}
-
-Status IGFSClient::Rename(CtrlResponse<RenameResponse> *response,
-                          const string &source, const string &dest) {
-  return SendRequestGetResponse(
-    "rename",
-    RenameRequest(user_name_, source, dest), 
-    response
-  );
 }
 
 }  // namespace tensorflow

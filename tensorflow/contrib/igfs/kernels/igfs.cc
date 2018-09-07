@@ -34,11 +34,30 @@ limitations under the License.
 
 namespace tensorflow {
 
-const string USER_NAME = "";
-
 std::string GetEnvOrElse(const std::string &env, std::string default_value) {
   const char *env_c_str = env.c_str();
   return getenv(env_c_str) != nullptr ? getenv(env_c_str) : default_value;
+}
+
+std::string IGFS::TranslateName(const std::string &name) const {
+  StringPiece scheme, namenode, path;
+  io::ParseURI(name, &scheme, &namenode, &path);
+  return path.ToString();
+}
+
+std::string MakeRelative(const std::string &a, const std::string &b) {
+  std::string max = a;
+  std::string min = b;
+  bool first = false;
+
+  if (b.size() > a.size()) {
+    max = b;
+    min = a;
+    first = true;
+  }
+
+  auto r = mismatch(min.begin(), min.end(), max.begin());
+  return std::string((first ? r.first : r.second), first ? min.end() : max.end());
 }
 
 IGFS::IGFS()
@@ -54,23 +73,18 @@ IGFS::~IGFS() {
             << ", fs_name=" << fs_name_ << "]";
 };
 
-std::string IGFS::TranslateName(const std::string &name) const {
-  StringPiece scheme, namenode, path;
-  io::ParseURI(name, &scheme, &namenode, &path);
-  return path.ToString();
-}
-
 Status IGFS::NewRandomAccessFile(const std::string &file_name,
                                  std::unique_ptr<RandomAccessFile> *result) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  std::string path = TranslateName(file_name);
 
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  std::string path = TranslateName(file_name);
-  CtrlResponse<Optional<OpenReadResponse>> open_read_response = {};
+  CtrlResponse<OpenReadResponse> open_read_response(true);
   TF_RETURN_IF_ERROR(client->OpenRead(&open_read_response, path));
-  long resource_id = open_read_response.GetRes().Get().stream_id;
+
+  long resource_id = open_read_response.res.stream_id;
   result->reset(new IGFSRandomAccessFile(path, resource_id, client));
 
   LOG(INFO) << "New random access file completed successfully [file_name="
@@ -79,230 +93,244 @@ Status IGFS::NewRandomAccessFile(const std::string &file_name,
   return Status::OK();
 }
 
-Status IGFS::NewWritableFile(const std::string &fname,
+Status IGFS::NewWritableFile(const std::string &file_name,
                              std::unique_ptr<WritableFile> *result) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  std::string path = TranslateName(file_name);
 
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  std::string path = TranslateName(fname);
-
-  // Check if file exists, and if yes delete it.
-  CtrlResponse<ExistsResponse> exists_response = {};
+  CtrlResponse<ExistsResponse> exists_response(false);
   TF_RETURN_IF_ERROR(client->Exists(&exists_response, path));
 
-  if (exists_response.GetRes().exists) {
-    CtrlResponse<DeleteResponse> delResponse = {};
-    TF_RETURN_IF_ERROR(client->Delete(&delResponse, path, false));
+  if (exists_response.res.exists) {
+    CtrlResponse<DeleteResponse> del_response(false);
+    TF_RETURN_IF_ERROR(client->Delete(&del_response, path, false));
   }
 
-  CtrlResponse<OpenCreateResponse> open_create_resp = {};
+  CtrlResponse<OpenCreateResponse> open_create_resp(false);
   TF_RETURN_IF_ERROR(client->OpenCreate(&open_create_resp, path));
-  long resource_id = open_create_resp.GetRes().stream_id;
+
+  long resource_id = open_create_resp.res.stream_id;
   result->reset(new IGFSWritableFile(path, resource_id, client));
   
+  LOG(INFO) << "New writable file completed successfully [file_name="
+            << file_name << "]";
+
   return Status::OK();
 }
 
-Status IGFS::NewAppendableFile(const std::string &fname,
+Status IGFS::NewAppendableFile(const std::string &file_name,
                                std::unique_ptr<WritableFile> *result) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+  std::shared_ptr<IGFSClient> client = CreateClient();
 
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  // Check if file exists, and if yes delete it.
-  CtrlResponse<ExistsResponse> exists_response = {};
-  TF_RETURN_IF_ERROR(client->Exists(&exists_response, fname));
+  CtrlResponse<ExistsResponse> exists_response(false);
+  TF_RETURN_IF_ERROR(client->Exists(&exists_response, file_name));
 
-  if (exists_response.GetRes().exists) {
-    CtrlResponse<DeleteResponse> del_response = {};
-    TF_RETURN_IF_ERROR(client->Delete(&del_response, fname, false));
+  if (exists_response.res.exists) {
+    CtrlResponse<DeleteResponse> del_response(false);
+    TF_RETURN_IF_ERROR(client->Delete(&del_response, file_name, false));
   }
 
-  CtrlResponse<OpenAppendResponse> openAppendResp = {};
-  TF_RETURN_IF_ERROR(client->OpenAppend(&openAppendResp, fname));
-  long resource_id = openAppendResp.GetRes().stream_id;
-  result->reset(new IGFSWritableFile(TranslateName(fname), resource_id, client));
+  CtrlResponse<OpenAppendResponse> open_append_resp(false);
+  TF_RETURN_IF_ERROR(client->OpenAppend(&open_append_resp, file_name));
+
+  result->reset(new IGFSWritableFile(
+    TranslateName(file_name), 
+    open_append_resp.res.stream_id, client
+  ));
+
+  LOG(INFO) << "New appendable file completed successfully [file_name="
+            << file_name << "]";
 
   return Status::OK();
 }
 
 Status IGFS::NewReadOnlyMemoryRegionFromFile(
-    const std::string &fname, std::unique_ptr<ReadOnlyMemoryRegion> *result) {
+    const std::string &file_name, std::unique_ptr<ReadOnlyMemoryRegion> *result) {
   return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
 }
 
-Status IGFS::FileExists(const std::string &fname) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+Status IGFS::FileExists(const std::string &file_name) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  const std::string path = TranslateName(file_name);
 
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  const std::string path = TranslateName(fname);
-  CtrlResponse<ExistsResponse> exists_response = {};
+  CtrlResponse<ExistsResponse> exists_response(false);
   TF_RETURN_IF_ERROR(client->Exists(&exists_response, path));
 
-  if (exists_response.GetRes().exists) {
-    return Status::OK();
-  }
+  if (!exists_response.res.exists)
+    return errors::NotFound("File ", path, " not found");
 
-  return errors::NotFound(path, " not found");
+  LOG(INFO) << "File exists completed successfully [file_name="
+            << file_name << "]";
+
+  return Status::OK();
 }
 
-std::string MakeRelative(const std::string &a, const std::string &b) {
-  std::string max = a;
-  std::string min = b;
-  bool firstIsShortest = false;
+Status IGFS::GetChildren(const std::string &file_name,
+                         std::vector<std::string> *result) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  std::string path = TranslateName(file_name);
 
-  if (b.size() > a.size()) {
-    max = b;
-    min = a;
-    firstIsShortest = true;
-  }
-
-  auto r = mismatch(min.begin(), min.end(), max.begin());
-
-  // Trim common prefix and '/' (hence '+1')
-  return string((firstIsShortest ? r.first : r.second),// + 1,
-                firstIsShortest ? min.end() : max.end());
-}
-
-Status IGFS::GetChildren(const std::string &fname,
-                         std::vector<string> *result) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
-
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  const std::string dir = TranslateName(fname);
-  CtrlResponse<ListPathsResponse> list_paths_response = {};
-  TF_RETURN_IF_ERROR(client->ListPaths(&list_paths_response, dir));
+  CtrlResponse<ListPathsResponse> list_paths_response(false);
+  TF_RETURN_IF_ERROR(client->ListPaths(&list_paths_response, path));
 
-  *result = vector<string>();
-  vector<IGFSPath> entries = list_paths_response.GetRes().entries;
+  *result = std::vector<std::string>();
+  vector<IGFSPath> entries = list_paths_response.res.entries;
 
-  for (auto &value : entries) {
-    result->push_back(MakeRelative(value.path, dir));
-  }
+  for (IGFSPath &value : entries)
+    result->push_back(MakeRelative(value.path, path));
+
+  LOG(INFO) << "Get children completed successfully [file_name="
+            << file_name << "]";
 
   return Status::OK();
 }
 
 Status IGFS::GetMatchingPaths(const std::string &pattern,
-                              std::vector<string> *results) {
+                              std::vector<std::string> *results) {
   return internal::GetMatchingPaths(this, Env::Default(), pattern, results);
 }
 
-Status IGFS::DeleteFile(const std::string &fname) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+Status IGFS::DeleteFile(const std::string &file_name) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  std::string path = TranslateName(file_name);
 
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  const std::string path = TranslateName(fname);
-  CtrlResponse<DeleteResponse> del_response = {};
+  CtrlResponse<DeleteResponse> del_response(false);
   TF_RETURN_IF_ERROR(client->Delete(&del_response, path, false));
   
-  if (!del_response.GetRes().exists) {
-    return errors::NotFound(path, " not found");
-  }
+  if (!del_response.res.exists)
+    return errors::NotFound("File ", path, " not found");
+
+  LOG(INFO) << "Delete file completed successfully [file_name="
+            << file_name << "]";
 
   return Status::OK();
 }
 
-Status IGFS::CreateDir(const std::string &fname) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+Status IGFS::CreateDir(const std::string &file_name) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  const std::string path = TranslateName(file_name);
 
-  CtrlResponse<Optional<HandshakeResponse>> hResponse = {};
-  TF_RETURN_IF_ERROR(client->Handshake(&hResponse));
-
-  const std::string dir = TranslateName(fname);
-  CtrlResponse<MakeDirectoriesResponse> mkdir_response = {};
-  TF_RETURN_IF_ERROR(client->MkDir(&mkdir_response, dir));
-
-  if (!mkdir_response.GetRes().successful) {
-    return errors::Internal("Error during creating directory");
-  }
-
-  return Status::OK();
-}
-
-Status IGFS::DeleteDir(const std::string &dir) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
-
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  const std::string dir_name = TranslateName(dir);
-  CtrlResponse<ListFilesResponse> list_files_response = {};
-  client->ListFiles(&list_files_response, dir_name);
+  CtrlResponse<MakeDirectoriesResponse> mkdir_response(false);
+  TF_RETURN_IF_ERROR(client->MkDir(&mkdir_response, path));
 
-  if (!list_files_response.GetRes().entries.empty()) {
-    return errors::FailedPrecondition("Cannot delete a non-empty directory");
+  if (!mkdir_response.res.successful)
+    return errors::Internal("Can't create directory ", path);
+
+  LOG(INFO) << "Create dir completed successful [file_name="
+            << file_name << "]";
+
+  return Status::OK();
+}
+
+Status IGFS::DeleteDir(const std::string &file_name) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  std::string path = TranslateName(file_name);
+
+  CtrlResponse<HandshakeResponse> handshake_response(true);
+  TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
+
+  CtrlResponse<ListFilesResponse> list_files_response(false);
+  TF_RETURN_IF_ERROR(client->ListFiles(&list_files_response, path));
+
+  if (!list_files_response.res.entries.empty()) {
+    return errors::FailedPrecondition("Can't delete a non-empty directory");
   } else {
-    CtrlResponse<DeleteResponse> del_response = {};
-    TF_RETURN_IF_ERROR(client->Delete(&del_response, dir_name, true));
+    CtrlResponse<DeleteResponse> del_response(false);
+    TF_RETURN_IF_ERROR(client->Delete(&del_response, path, true));
   }
+
+  LOG(INFO) << "Delete dir completed successful [file_name="
+            << file_name << "]";
 
   return Status::OK();
 }
 
-Status IGFS::GetFileSize(const std::string &fname, uint64 *size) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+Status IGFS::GetFileSize(const std::string &file_name, uint64 *size) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  std::string path = TranslateName(file_name);
 
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  const std::string path = TranslateName(fname);
-  CtrlResponse<InfoResponse> info_response = {};
+  CtrlResponse<InfoResponse> info_response(false);
   TF_RETURN_IF_ERROR(client->Info(&info_response, path));
-  *size = info_response.GetRes().file_info.length;
+
+  *size = info_response.res.file_info.length;
+
+  LOG(INFO) << "Get file size completed successful [file_name="
+            << file_name << "]";
 
   return Status::OK();
 }
 
-Status IGFS::RenameFile(const std::string &src, const std::string &target) {
-  if (FileExists(target).ok()) {
-    DeleteFile(target);
-  }
-
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
-
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
-  TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
-
+Status IGFS::RenameFile(const std::string &src, const std::string &dst) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
   const std::string src_path = TranslateName(src);
-  const std::string target_path = TranslateName(target);
+  const std::string dst_path = TranslateName(dst);
 
-  CtrlResponse<RenameResponse> renameResp = {};
-  TF_RETURN_IF_ERROR(client->Rename(&renameResp, src_path, target_path));
+  if (FileExists(dst).ok())
+    DeleteFile(dst);
 
-  if (!renameResp.GetRes().IsSuccessful()) {
-    return errors::NotFound(src_path, " not found");
-  }
+  CtrlResponse<HandshakeResponse> handshake_response(true);
+  TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
+
+  CtrlResponse<RenameResponse> rename_response(false);
+  TF_RETURN_IF_ERROR(client->Rename(&rename_response, src_path, dst_path));
+
+  if (!rename_response.res.successful)
+    return errors::NotFound("File ", src_path, " not found");
+
+  LOG(INFO) << "Rename file completed successful [src=" << src << ", dst="
+            << dst << "]";
 
   return Status::OK();
 }
 
-Status IGFS::Stat(const std::string &fname, FileStatistics *stats) {
-  LOG(INFO) << "Stat " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
+Status IGFS::Stat(const std::string &file_name, FileStatistics *stats) {
+  std::shared_ptr<IGFSClient> client = CreateClient();
+  std::string path = TranslateName(file_name);
 
-  CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
+  CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
-  const std::string path = TranslateName(fname);
-  CtrlResponse<InfoResponse> info_response = {};
+  CtrlResponse<InfoResponse> info_response(false);
   TF_RETURN_IF_ERROR(client->Info(&info_response, path));
 
-  IGFSFile info = info_response.GetRes().file_info;
-  LOG(INFO) << "File Size : " << info.length;
-  *stats = FileStatistics(info.length, info.modification_time,
-                              (info.flags & 0x1) != 0);
+  IGFSFile info = info_response.res.file_info;
+
+  *stats = FileStatistics(
+    info.length, 
+    info.modification_time, 
+    (info.flags & 0x1) != 0
+  );
+
+  LOG(INFO) << "Stat completed successful [file_name=" << file_name << "]";
 
   return Status::OK();
+}
+
+std::shared_ptr<IGFSClient> IGFS::CreateClient() const {
+  return std::shared_ptr<IGFSClient>(
+    new IGFSClient(host_, port_, fs_name_, "")
+  );
 }
 
 }  // namespace tensorflow

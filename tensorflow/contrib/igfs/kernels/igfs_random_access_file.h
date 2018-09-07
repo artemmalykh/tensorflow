@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#ifndef TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_RANDOM_ACCESS_FILE_H_
+#define TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_RANDOM_ACCESS_FILE_H_
+
 #include "igfs_client.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/file_system.h"
@@ -21,16 +24,18 @@ namespace tensorflow {
 
 class IGFSRandomAccessFile : public RandomAccessFile {
  public:
-  IGFSRandomAccessFile(string file_name, long resource_id,
-                       std::shared_ptr<IGFSClient> &client);
+  IGFSRandomAccessFile(const std::string &file_name, int64_t resource_id,
+                       std::shared_ptr<IGFSClient> client);
   ~IGFSRandomAccessFile() override;
   Status Read(uint64 offset, size_t n, StringPiece *result,
               char *scratch) const override;
 
  private:
-  const string file_name_;
-  const long resource_id_;
+  const std::string file_name_;
+  const int64_t resource_id_;
   std::shared_ptr<IGFSClient> client_;
 };
 
 }  // namespace tensorflow
+
+#endif

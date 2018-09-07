@@ -18,33 +18,29 @@ limitations under the License.
 
 namespace tensorflow {
 
-IGFSRandomAccessFile::IGFSRandomAccessFile(string file_name, long resource_id,
-                                           std::shared_ptr<IGFSClient> &client)
-    : file_name_(file_name),
-      resource_id_(resource_id),
-      client_(client) {}
+IGFSRandomAccessFile::IGFSRandomAccessFile(const std::string &file_name, int64_t resource_id,
+                                           std::shared_ptr<IGFSClient> client)
+    : file_name_(file_name), resource_id_(resource_id), client_(client) {}
 
 IGFSRandomAccessFile::~IGFSRandomAccessFile() {
-  CtrlResponse<CloseResponse> cr = {};
-  client_->Close(&cr, resource_id_);
+  CtrlResponse<CloseResponse> close_response = {false};
+  Status status = client_->Close(&close_response, resource_id_);
+  
+  if (!status.ok()) LOG(ERROR) << status.ToString();
 }
 
 Status IGFSRandomAccessFile::Read(uint64 offset, size_t n, StringPiece *result,
                                   char *scratch) const {
-  LOG(INFO) << "Read " << file_name_ << " file, offset" << offset << ", size " << n;
-  Status s;
-  uint8_t *dst = reinterpret_cast<uint8_t *>(scratch);
-
-  ReadBlockCtrlResponse response = ReadBlockCtrlResponse(dst);
+  ReadBlockCtrlResponse response = ReadBlockCtrlResponse((uint8_t*)scratch);
   TF_RETURN_IF_ERROR(client_->ReadBlock(&response, resource_id_, offset, n));
 
-  streamsize sz = response.GetRes().GetSuccessfulyRead();
+  streamsize sz = response.res.GetSuccessfulyRead();
   if (sz == 0)
-    return errors::OutOfRange("File reading has been completed already");
+    return errors::OutOfRange("End of file");
 
   *result = StringPiece(scratch, sz);
 
-  return s;
+  return Status::OK();
 }
 
 }  // namespace tensorflow

@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#ifndef TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_WRITABLE_FILE_H_
+#define TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_WRITABLE_FILE_H_
+
 #include "igfs_client.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/file_system.h"
@@ -21,7 +24,7 @@ namespace tensorflow {
 
 class IGFSWritableFile : public WritableFile {
  public:
-  IGFSWritableFile(const string &file_name, long resource_id,
+  IGFSWritableFile(const string &file_name, int64_t resource_id,
                    std::shared_ptr<IGFSClient> client);
   ~IGFSWritableFile() override;
   Status Append(const StringPiece &data) override;
@@ -31,8 +34,10 @@ class IGFSWritableFile : public WritableFile {
 
  private:
   const string file_name_;
-  long resource_id_;
+  int64_t resource_id_;
   std::shared_ptr<IGFSClient> client_;
 };
 
 }  // namespace tensorflow
+
+#endif

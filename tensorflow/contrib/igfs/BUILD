@@ -52,7 +52,8 @@ cc_library(
         "kernels/igfs_client.cc",
         "kernels/igfs_messages.h",
         "kernels/igfs_messages.cc",
-        "kernels/igfs_utils.h",
+        "kernels/igfs_extended_tcp_client.h",
+        "kernels/igfs_extended_tcp_client.cc"
     ],
     deps = [
         "//tensorflow/contrib/ignite:ignite_client",

@@ -19,7 +19,6 @@ limitations under the License.
 #include <string>
 
 #include "igfs_messages.h"
-#include "igfs_utils.h"
 
 namespace tensorflow {
 
@@ -27,37 +26,71 @@ class IGFSClient {
  public:
   IGFSClient(std::string host, int port, std::string fs_name, std::string user_name);
   ~IGFSClient();
-  Status Handshake(CtrlResponse<Optional<HandshakeResponse>> *res);
-  Status ListFiles(CtrlResponse<ListFilesResponse> *res,
-                   const std::string &path);
-  Status ListPaths(CtrlResponse<ListPathsResponse> *res,
-                   const std::string &path);
-  Status Info(CtrlResponse<InfoResponse> *res, const std::string &path);
-  Status OpenCreate(CtrlResponse<OpenCreateResponse> *res,
-                    const std::string &path);
-  Status OpenAppend(CtrlResponse<OpenAppendResponse> *res,
-                    const std::string &path);
-  Status OpenRead(CtrlResponse<Optional<OpenReadResponse>> *res,
-                  const std::string &path);
-  Status Exists(CtrlResponse<ExistsResponse> *res, const std::string &path);
-  Status MkDir(CtrlResponse<MakeDirectoriesResponse> *res,
-               const std::string &path);
-  Status Delete(CtrlResponse<DeleteResponse> *res, const std::string &path,
-                bool recursive);
-  Status WriteBlock(int64_t stream_id, const uint8_t *data, int32_t len);
-  Status ReadBlock(ReadBlockCtrlResponse *res, int64_t stream_id,
-                   int64_t pos, int32_t length);
-  Status Close(CtrlResponse<CloseResponse> *res, int64_t stream_id);
-  Status Rename(CtrlResponse<RenameResponse> *res, const std::string &source,
-                const std::string &dest);
+
+  inline Status Handshake(CtrlResponse<HandshakeResponse> *res) {
+    return SendRequestGetResponse(HandshakeRequest(fs_name_, {}), res);
+  }
+
+  inline Status ListFiles(CtrlResponse<ListFilesResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(ListFilesRequest(user_name_, path), res);
+  }
+
+  inline Status ListPaths(CtrlResponse<ListPathsResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(ListPathsRequest(user_name_, path), res);
+  }
+
+  inline Status Info(CtrlResponse<InfoResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(InfoRequest(user_name_, path), res);
+  }
+
+  inline Status OpenCreate(CtrlResponse<OpenCreateResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(OpenCreateRequest(user_name_, path), res);
+  }
+
+  inline Status OpenAppend(CtrlResponse<OpenAppendResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(OpenAppendRequest(user_name_, path), res);
+  }
+
+  inline Status OpenRead(CtrlResponse<OpenReadResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(OpenReadRequest(user_name_, path), res);
+  }
+
+  inline Status Exists(CtrlResponse<ExistsResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(ExistsRequest(user_name_, path), res);
+  }
+
+  inline Status MkDir(CtrlResponse<MakeDirectoriesResponse> *res, const std::string &path) {
+    return SendRequestGetResponse(MakeDirectoriesRequest(user_name_, path), res);
+  }
+
+  inline Status Delete(CtrlResponse<DeleteResponse> *res, const std::string &path, bool recursive) {
+    return SendRequestGetResponse(DeleteRequest(user_name_, path, recursive), res);
+  }
+
+  inline Status WriteBlock(int64_t stream_id, const uint8_t *data, int32_t len) {
+    return SendRequestGetResponse(WriteBlockRequest(stream_id, data, len), nullptr);
+  }
+
+  inline Status ReadBlock(ReadBlockCtrlResponse *res, int64_t stream_id, int64_t pos, int32_t length) {
+    return SendRequestGetResponse(ReadBlockRequest(stream_id, pos, length), res);
+  }
+
+  inline Status Close(CtrlResponse<CloseResponse> *res, int64_t stream_id) {
+    return SendRequestGetResponse(CloseRequest(stream_id), res);
+  }
+
+  inline Status Rename(CtrlResponse<RenameResponse> *res, const std::string &source, const std::string &dest) {
+    return SendRequestGetResponse(RenameRequest(user_name_, source, dest), res);
+  }
 
  private:
   const std::string fs_name_;
   const std::string user_name_;
   ExtendedTCPClient client_;
 
-  Status SendRequestGetResponse(const std::string request_name, const Request &request, Response *response);
+  Status SendRequestGetResponse(const Request &request, Response *response);
 };
+
 }  // namespace tensorflow
 
 #endif

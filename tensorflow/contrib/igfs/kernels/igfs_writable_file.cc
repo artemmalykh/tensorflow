@@ -18,37 +18,29 @@ limitations under the License.
 
 namespace tensorflow {
 
-IGFSWritableFile::IGFSWritableFile(const string &file_name, long resource_id,
+IGFSWritableFile::IGFSWritableFile(const std::string &file_name, int64_t resource_id,
                                    std::shared_ptr<IGFSClient> client)
-    : file_name_(file_name), resource_id_(resource_id), client_(client) {
-  LOG(INFO) << "Construct new writable file " << file_name;
-}
+    : file_name_(file_name), resource_id_(resource_id), client_(client) {}
 
 IGFSWritableFile::~IGFSWritableFile() {
   if (resource_id_ >= 0) {
-    CtrlResponse<CloseResponse> cr = {};
-    client_->Close(&cr, resource_id_);
+    CtrlResponse<CloseResponse> close_response = {false};
+
+    Status status = client_->Close(&close_response, resource_id_);
+    if (!status.ok()) LOG(ERROR) << status.ToString();
   }
 }
 
 Status IGFSWritableFile::Append(const StringPiece &data) {
-  LOG(INFO) << "Append to " << file_name_;
-  TF_RETURN_IF_ERROR(
-      client_->WriteBlock(resource_id_, (uint8_t *)data.data(), data.size()));
-
-  return Status::OK();
+  return client_->WriteBlock(resource_id_, (uint8_t*)data.data(), data.size());
 }
 
 Status IGFSWritableFile::Close() {
-  LOG(INFO) << "Close " << file_name_;
-  Status result;
-
-  CtrlResponse<CloseResponse> cr = {};
-  client_->Close(&cr, resource_id_);
-
+  int64_t resource_to_be_closed = resource_id_;
   resource_id_ = -1;
 
-  return result;
+  CtrlResponse<CloseResponse> close_response = {false};
+  return client_->Close(&close_response, resource_to_be_closed);
 }
 
 Status IGFSWritableFile::Flush() { return Status::OK(); }
