@@ -15,7 +15,7 @@ transactional, analytical, and streaming workloads, delivering in-memory speeds 
 The simplest way to try IGFS with TensorFlow is to run [Docker](https://www.docker.com/) container with Apache Ignite and enabled IGFS and then interruct with it using TensorFlow [tf.gfile](https://www.tensorflow.org/api_docs/python/tf/gfile). Such container is available on Docker Hub: [dmitrievanthony/ignite-with-igfs](https://hub.docker.com/r/dmitrievanthony/ignite-with-igfs/). You need to start this container on your machine:
 
 ```
-sudo docker run -it -p 10500:10500 dmitrievanthony/ignite-with-igfs
+docker run -it -p 10500:10500 dmitrievanthony/ignite-with-igfs
 ```
 
 After that you will be able to work with it following way:

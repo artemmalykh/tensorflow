@@ -242,10 +242,10 @@ Status IGFS::GetChildren(const std::string &fname,
     }
 
     *result = vector<string>();
-    vector<IgnitePath> entries = list_paths_response.GetRes().getEntries();
+    vector<IGFSPath> entries = list_paths_response.GetRes().getEntries();
 
     for (auto &value : entries) {
-      result->push_back(MakeRelative(value.getPath(), dir));
+      result->push_back(MakeRelative(value.path, dir));
     }
   } else {
     return errors::Internal("Handshake failed");
@@ -359,7 +359,7 @@ Status IGFS::GetFileSize(const std::string &fname, uint64 *size) {
     if (!info_response.IsOk()) {
       return errors::Internal("Error while getting info");
     } else {
-      *size = info_response.GetRes().getFileInfo().GetFileSize();
+      *size = info_response.GetRes().getFileInfo().length;
     }
 
   } else {
@@ -416,11 +416,11 @@ Status IGFS::Stat(const std::string &fname, FileStatistics *stats) {
     if (!info_response.IsOk()) {
       return errors::Internal("Error while getting info");
     } else {
-      IgfsFile info = info_response.GetRes().getFileInfo();
+      IGFSFile info = info_response.GetRes().getFileInfo();
 
-      LOG(INFO) << "File Size : " << info.GetFileSize();
-      *stats = FileStatistics(info.GetFileSize(), info.GetModificationTime(),
-                              (info.GetFlags() & 0x1) != 0);
+      LOG(INFO) << "File Size : " << info.length;
+      *stats = FileStatistics(info.length, info.modification_time,
+                              (info.flags & 0x1) != 0);
     }
 
   } else {

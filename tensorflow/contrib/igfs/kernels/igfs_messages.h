@@ -29,39 +29,20 @@ using std::string;
 using std::vector;
 using std::streamsize;
 
-class IgnitePath {
+class IGFSPath {
  public:
-  inline Status Read(ExtendedTCPClient *r) {
-    return r->ReadNullableString(path_);
-  }
-
-  string getPath() { return path_; }
-
- private:
-  string path_;
-};
-
-class IgfsFile {
- public:
-  IgfsFile() = default;
+  std::string path;
 
   Status Read(ExtendedTCPClient *r);
+};
 
-  int64_t GetFileSize();
+class IGFSFile {
+ public:
+  int64_t length;
+  int64_t modification_time;
+  uint8_t flags;
 
-  int64_t GetModificationTime();
-
-  uint8_t GetFlags();
-
- private:
-  Optional<IgnitePath> path_;
-  int32_t block_size_{};
-  int64_t group_block_size_{};
-  int64_t length_{};
-  map<string, string> properties_;
-  int64_t access_time_{};
-  int64_t modification_time_{};
-  uint8_t flags_{};
+  Status Read(ExtendedTCPClient *r);
 };
 
 class Request {
@@ -254,7 +235,7 @@ class ListFilesRequest : public ListRequest {
   inline int32_t CommandId() const override { return 10; }
 };
 
-class ListFilesResponse : public ListResponse<IgfsFile> {};
+class ListFilesResponse : public ListResponse<IGFSFile> {};
 
 class ListPathsRequest : public ListRequest {
  public:
@@ -263,7 +244,7 @@ class ListPathsRequest : public ListRequest {
   inline int32_t CommandId() const override { return 9; }
 };
 
-class ListPathsResponse : public ListResponse<IgnitePath> {};
+class ListPathsResponse : public ListResponse<IGFSPath> {};
 
 class OpenCreateRequest : public PathControlRequest {
  public:
@@ -352,10 +333,10 @@ class InfoResponse {
  public:
   Status Read(ExtendedTCPClient *r);
 
-  IgfsFile getFileInfo();
+  IGFSFile getFileInfo();
 
  private:
-  IgfsFile fileInfo;
+  IGFSFile fileInfo;
 };
 
 class MakeDirectoriesRequest : public PathControlRequest {

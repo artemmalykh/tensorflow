@@ -17,27 +17,29 @@ limitations under the License.
 
 namespace tensorflow {
 
-Status IgfsFile::Read(ExtendedTCPClient *r) {
-  path_ = Optional<IgnitePath>();
-  TF_RETURN_IF_ERROR(path_.Read(r));
-  properties_ = map<string, string>();
+Status IGFSPath::Read(ExtendedTCPClient *r) {
+  return r->ReadNullableString(path);
+}
 
-  TF_RETURN_IF_ERROR(r->ReadInt(&block_size_));
-  TF_RETURN_IF_ERROR(r->ReadLong(&group_block_size_));
-  TF_RETURN_IF_ERROR(r->ReadLong(&length_));
-  TF_RETURN_IF_ERROR(r->ReadStringMap(properties_));
-  TF_RETURN_IF_ERROR(r->ReadLong(&access_time_));
-  TF_RETURN_IF_ERROR(r->ReadLong(&modification_time_));
-  TF_RETURN_IF_ERROR(r->ReadByte(&flags_));
+Status IGFSFile::Read(ExtendedTCPClient *r) {
+  Optional<IGFSPath> path = {};
+  int32_t block_size;
+  int64_t group_block_size;
+  map<string, string> properties = {};
+  int64_t access_time;
+
+  TF_RETURN_IF_ERROR(path.Read(r));
+
+  TF_RETURN_IF_ERROR(r->ReadInt(&block_size));
+  TF_RETURN_IF_ERROR(r->ReadLong(&group_block_size));
+  TF_RETURN_IF_ERROR(r->ReadLong(&length));
+  TF_RETURN_IF_ERROR(r->ReadStringMap(properties));
+  TF_RETURN_IF_ERROR(r->ReadLong(&access_time));
+  TF_RETURN_IF_ERROR(r->ReadLong(&modification_time));
+  TF_RETURN_IF_ERROR(r->ReadByte(&flags));
 
   return Status::OK();
 }
-
-int64_t IgfsFile::GetFileSize() { return length_; }
-
-int64_t IgfsFile::GetModificationTime() { return modification_time_; }
-
-uint8_t IgfsFile::GetFlags() { return flags_; }
 
 Status Request::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteByte(0));
@@ -255,13 +257,13 @@ InfoRequest::InfoRequest(const string &userName, const string &path)
                          map<string, string>()) {}
 
 Status InfoResponse::Read(ExtendedTCPClient *r) {
-  fileInfo = IgfsFile();
+  fileInfo = IGFSFile();
   TF_RETURN_IF_ERROR(fileInfo.Read(r));
 
   return Status::OK();
 }
 
-IgfsFile InfoResponse::getFileInfo() { return fileInfo; }
+IGFSFile InfoResponse::getFileInfo() { return fileInfo; }
 
 MakeDirectoriesRequest::MakeDirectoriesRequest(const string &userName,
                                                const string &path)
