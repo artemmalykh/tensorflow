@@ -25,7 +25,7 @@ namespace tensorflow {
 
 class IGFSClient {
  public:
-  IGFSClient(std::string host, int port, std::string fs_name);
+  IGFSClient(std::string host, int port, std::string fs_name, std::string user_name);
   ~IGFSClient();
   Status Handshake(CtrlResponse<Optional<HandshakeResponse>> *res);
   Status ListFiles(CtrlResponse<ListFilesResponse> *res,
@@ -36,9 +36,9 @@ class IGFSClient {
   Status OpenCreate(CtrlResponse<OpenCreateResponse> *res,
                     const std::string &path);
   Status OpenAppend(CtrlResponse<OpenAppendResponse> *res,
-                    const std::string &user_name, const std::string &path);
+                    const std::string &path);
   Status OpenRead(CtrlResponse<Optional<OpenReadResponse>> *res,
-                  const std::string &user_name, const std::string &path);
+                  const std::string &path);
   Status Exists(CtrlResponse<ExistsResponse> *res, const std::string &path);
   Status MkDir(CtrlResponse<MakeDirectoriesResponse> *res,
                const std::string &path);
@@ -53,6 +53,7 @@ class IGFSClient {
 
  private:
   const std::string fs_name_;
+  const std::string user_name_;
   ExtendedTCPClient client_;
 
   Status SendRequestGetResponse(const std::string request_name, const Request &request, Response *response);

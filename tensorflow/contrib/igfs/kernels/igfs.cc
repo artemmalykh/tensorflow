@@ -34,6 +34,8 @@ limitations under the License.
 
 namespace tensorflow {
 
+const string USER_NAME = "";
+
 std::string GetEnvOrElse(const std::string &env, std::string default_value) {
   const char *env_c_str = env.c_str();
   return getenv(env_c_str) != nullptr ? getenv(env_c_str) : default_value;
@@ -60,7 +62,7 @@ std::string IGFS::TranslateName(const std::string &name) const {
 
 Status IGFS::NewRandomAccessFile(const std::string &file_name,
                                  std::unique_ptr<RandomAccessFile> *result) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
 
@@ -68,7 +70,7 @@ Status IGFS::NewRandomAccessFile(const std::string &file_name,
     const std::string path = TranslateName(file_name);
 
     CtrlResponse<Optional<OpenReadResponse>> open_read_response = {};
-    TF_RETURN_IF_ERROR(client->OpenRead(&open_read_response, "", path));
+    TF_RETURN_IF_ERROR(client->OpenRead(&open_read_response, path));
 
     if (open_read_response.IsOk()) {
       long resource_id = open_read_response.GetRes().Get().GetStreamId();
@@ -88,7 +90,7 @@ Status IGFS::NewRandomAccessFile(const std::string &file_name,
 
 Status IGFS::NewWritableFile(const std::string &fname,
                              std::unique_ptr<WritableFile> *result) {
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -133,7 +135,7 @@ Status IGFS::NewWritableFile(const std::string &fname,
 Status IGFS::NewAppendableFile(const std::string &fname,
                                std::unique_ptr<WritableFile> *result) {
   LOG(INFO) << "New appendable file " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -157,7 +159,7 @@ Status IGFS::NewAppendableFile(const std::string &fname,
     }
 
     CtrlResponse<OpenAppendResponse> openAppendResp = {};
-    TF_RETURN_IF_ERROR(client->OpenAppend(&openAppendResp, "", fname));
+    TF_RETURN_IF_ERROR(client->OpenAppend(&openAppendResp, fname));
 
     if (openAppendResp.IsOk()) {
       long resource_id = openAppendResp.GetRes().GetStreamId();
@@ -181,7 +183,7 @@ Status IGFS::NewReadOnlyMemoryRegionFromFile(
 
 Status IGFS::FileExists(const std::string &fname) {
   LOG(INFO) << "File exists " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -226,7 +228,7 @@ std::string MakeRelative(const std::string &a, const std::string &b) {
 Status IGFS::GetChildren(const std::string &fname,
                          std::vector<string> *result) {
   LOG(INFO) << "Get children " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -261,7 +263,7 @@ Status IGFS::GetMatchingPaths(const std::string &pattern,
 
 Status IGFS::DeleteFile(const std::string &fname) {
   LOG(INFO) << "Delete file " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -288,7 +290,7 @@ Status IGFS::DeleteFile(const std::string &fname) {
 
 Status IGFS::CreateDir(const std::string &fname) {
   LOG(INFO) << "Get dir " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> hResponse = {};
   TF_RETURN_IF_ERROR(client->Handshake(&hResponse));
@@ -311,7 +313,7 @@ Status IGFS::CreateDir(const std::string &fname) {
 
 Status IGFS::DeleteDir(const std::string &dir) {
   LOG(INFO) << "Delete dir " << dir;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -346,7 +348,7 @@ Status IGFS::DeleteDir(const std::string &dir) {
 
 Status IGFS::GetFileSize(const std::string &fname, uint64 *size) {
   LOG(INFO) << "Get File size " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -375,7 +377,7 @@ Status IGFS::RenameFile(const std::string &src, const std::string &target) {
     DeleteFile(target);
   }
 
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -403,7 +405,7 @@ Status IGFS::RenameFile(const std::string &src, const std::string &target) {
 
 Status IGFS::Stat(const std::string &fname, FileStatistics *stats) {
   LOG(INFO) << "Stat " << fname;
-  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_));
+  shared_ptr<IGFSClient> client(new IGFSClient(host_, port_, fs_name_, USER_NAME));
 
   CtrlResponse<Optional<HandshakeResponse>> handshake_response = {};
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));

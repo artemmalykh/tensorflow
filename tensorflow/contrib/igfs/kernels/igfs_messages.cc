@@ -41,10 +41,12 @@ Status IGFSFile::Read(ExtendedTCPClient *r) {
   return Status::OK();
 }
 
+Request::Request(int32_t command_id): command_id(command_id) {}
+
 Status Request::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteByte(0));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(8));
-  TF_RETURN_IF_ERROR(w->WriteInt(CommandId()));
+  TF_RETURN_IF_ERROR(w->WriteInt(command_id));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(24));
 
   return Status::OK();
@@ -82,11 +84,12 @@ string Response::GetError() { return error; }
 
 int32_t Response::GetErrorCode() { return error_code; }
 
-PathControlRequest::PathControlRequest(string user_name, string path,
+PathControlRequest::PathControlRequest(int32_t command_id, string user_name, string path,
                                        string destination_path, bool flag,
                                        bool collocate,
                                        map<string, string> properties)
-    : user_name_(std::move(user_name)),
+    : Request(command_id),
+      user_name_(std::move(user_name)),
       path_(std::move(path)),
       destination_path_(std::move(destination_path)),
       flag_(flag),
@@ -119,18 +122,18 @@ Status PathControlRequest::WritePath(ExtendedTCPClient *w, const string &path) c
 Status StreamControlRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteByte(0));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(8));
-  TF_RETURN_IF_ERROR(w->WriteInt(CommandId()));
+  TF_RETURN_IF_ERROR(w->WriteInt(command_id));
   TF_RETURN_IF_ERROR(w->WriteLong(stream_id_));
   TF_RETURN_IF_ERROR(w->WriteInt(length_));
 
   return Status::OK();
 }
 
-StreamControlRequest::StreamControlRequest(int64_t stream_id, int32_t length)
-    : stream_id_(stream_id), length_(length) {}
+StreamControlRequest::StreamControlRequest(int32_t command_id, int64_t stream_id, int32_t length)
+    : Request(command_id), stream_id_(stream_id), length_(length) {}
 
-DeleteRequest::DeleteRequest(const string &path, bool flag)
-    : PathControlRequest("", path, "", flag, true, map<string, string>()) {}
+DeleteRequest::DeleteRequest(const string &user_name, const string &path, bool flag)
+    : PathControlRequest(DELETE_ID, user_name, path, {}, flag, true, {}) {}
 
 Status DeleteResponse::Read(ExtendedTCPClient *r) {
   TF_RETURN_IF_ERROR(r->ReadBool(done));
@@ -140,8 +143,8 @@ Status DeleteResponse::Read(ExtendedTCPClient *r) {
 
 bool DeleteResponse::exists() { return done; }
 
-ExistsRequest::ExistsRequest(const string &path)
-    : PathControlRequest("", path, "", false, true, map<string, string>()) {}
+ExistsRequest::ExistsRequest(const string &user_name, const string &path)
+    : PathControlRequest(EXISTS_ID, user_name, path, {}, false, true, {}) {}
 
 Status ExistsResponse::Read(ExtendedTCPClient *r) {
   TF_RETURN_IF_ERROR(r->ReadBool(ex));
@@ -152,7 +155,7 @@ Status ExistsResponse::Read(ExtendedTCPClient *r) {
 bool ExistsResponse::Exists() { return ex; }
 
 HandshakeRequest::HandshakeRequest(const string &fs_name, const string &log_dir)
-    : fs_name_(fs_name), log_dir_(log_dir){};
+    : Request(HANDSHAKE_ID), fs_name_(fs_name), log_dir_(log_dir){};
 
 Status HandshakeRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(Request::Write(w));
@@ -179,13 +182,15 @@ Status HandshakeResponse::Read(ExtendedTCPClient *r) {
 
 string HandshakeResponse::GetFSName() { return fs_name_; }
 
-ListRequest::ListRequest(const string &path)
-    : PathControlRequest("", path, "", false, true, map<string, string>()){};
+ListRequest::ListRequest(int32_t command_id, const string &user_name, const string &path)
+    : PathControlRequest(command_id, user_name, path, {}, false, true, {}){};
 
-ListFilesRequest::ListFilesRequest(const string &path) : ListRequest(path) {}
+ListFilesRequest::ListFilesRequest(const string &user_name, const string &path) : ListRequest(LIST_FILES_ID, user_name, path) {}
 
-OpenCreateRequest::OpenCreateRequest(const string &path)
-    : PathControlRequest("", path, "", false, true, map<string, string>()) {}
+ListPathsRequest::ListPathsRequest(const string &user_name, const string &path) : ListRequest(LIST_PATHS_ID, user_name, path) {}
+
+OpenCreateRequest::OpenCreateRequest(const string &user_name, const string &path)
+    : PathControlRequest(OPEN_CREATE_ID, user_name, path, {}, false, true, {}) {}
 
 Status OpenCreateRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(PathControlRequest::Write(w));
@@ -206,8 +211,8 @@ int64_t OpenCreateResponse::GetStreamId() { return stream_id_; }
 
 OpenAppendRequest::OpenAppendRequest(const string &user_name,
                                      const string &path)
-    : PathControlRequest(user_name, path, "", false, true,
-                         map<string, string>()) {}
+    : PathControlRequest(OPEN_APPEND_ID, user_name, path, "", false, true,
+                         {}) {}
 
 Status OpenAppendRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(PathControlRequest::Write(w));
@@ -225,7 +230,7 @@ int64_t OpenAppendResponse::GetStreamId() { return stream_id_; }
 
 OpenReadRequest::OpenReadRequest(const string &user_name, const string &path,
                                  bool flag, int32_t sequential_reads_before_prefetch)
-    : PathControlRequest(user_name, path, "", flag, true, map<string, string>()),
+    : PathControlRequest(OPEN_READ_ID, user_name, path, {}, flag, true, {}),
       sequential_reads_before_prefetch_(sequential_reads_before_prefetch) {}
 
 OpenReadRequest::OpenReadRequest(const string &user_name, const string &path)
@@ -252,9 +257,8 @@ int64_t OpenReadResponse::GetStreamId() { return stream_id_; }
 
 int64_t OpenReadResponse::GetLength() { return length_; }
 
-InfoRequest::InfoRequest(const string &userName, const string &path)
-    : PathControlRequest(userName, path, "", false, true,
-                         map<string, string>()) {}
+InfoRequest::InfoRequest(const string &user_name, const string &path)
+    : PathControlRequest(INFO_ID, user_name, path, {}, false, true, {}) {}
 
 Status InfoResponse::Read(ExtendedTCPClient *r) {
   fileInfo = IGFSFile();
@@ -265,10 +269,9 @@ Status InfoResponse::Read(ExtendedTCPClient *r) {
 
 IGFSFile InfoResponse::getFileInfo() { return fileInfo; }
 
-MakeDirectoriesRequest::MakeDirectoriesRequest(const string &userName,
+MakeDirectoriesRequest::MakeDirectoriesRequest(const string &user_name,
                                                const string &path)
-    : PathControlRequest(userName, path, "", false, true,
-                         map<string, string>()) {}
+    : PathControlRequest(MKDIR_ID, user_name, path, {}, false, true,{}) {}
 
 Status MakeDirectoriesResponse::Read(ExtendedTCPClient *r) {
   TF_RETURN_IF_ERROR(r->ReadBool(successful_));
@@ -281,7 +284,7 @@ MakeDirectoriesResponse::MakeDirectoriesResponse() = default;
 bool MakeDirectoriesResponse::IsSuccessful() { return successful_; }
 
 CloseRequest::CloseRequest(int64_t streamId)
-    : StreamControlRequest(streamId, 0) {}
+    : StreamControlRequest(CLOSE_ID, streamId, 0) {}
 
 Status CloseResponse::Read(ExtendedTCPClient *r) { 
   TF_RETURN_IF_ERROR(r->ReadBool(successful_));
@@ -293,7 +296,7 @@ bool CloseResponse::IsSuccessful() { return successful_; }
 
 ReadBlockRequest::ReadBlockRequest(int64_t stream_id, int64_t pos,
                                    int32_t length)
-    : StreamControlRequest(stream_id, length), pos(pos) {}
+    : StreamControlRequest(READ_BLOCK_ID, stream_id, length), pos(pos) {}
 
 Status ReadBlockRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(StreamControlRequest::Write(w));
@@ -334,7 +337,7 @@ int32_t ReadBlockCtrlResponse::GetLength() { return length_; }
 
 WriteBlockRequest::WriteBlockRequest(int64_t stream_id, const uint8_t *data,
                                      int32_t length)
-    : StreamControlRequest(stream_id, length), data(data) {}
+    : StreamControlRequest(WRITE_BLOCK_ID, stream_id, length), data(data) {}
 
 Status WriteBlockRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(StreamControlRequest::Write(w));
@@ -343,9 +346,8 @@ Status WriteBlockRequest::Write(ExtendedTCPClient *w) const {
   return Status::OK();
 }
 
-RenameRequest::RenameRequest(const string &path, const string &destination_path)
-    : PathControlRequest("", path, destination_path, false, true,
-                         map<string, string>()) {}
+RenameRequest::RenameRequest(const string &user_name, const string &path, const string &destination_path)
+    : PathControlRequest(RENAME_ID, user_name, path, destination_path, false, true, {}) {}
 
 Status RenameResponse::Read(ExtendedTCPClient *r) {
   TF_RETURN_IF_ERROR(r->ReadBool(ex));

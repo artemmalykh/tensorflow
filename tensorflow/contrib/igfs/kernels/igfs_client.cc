@@ -17,8 +17,8 @@ limitations under the License.
 
 namespace tensorflow {
 
-IGFSClient::IGFSClient(string host, int port, string fs_name)
-    : fs_name_(fs_name), client_(ExtendedTCPClient(host, port)) {
+IGFSClient::IGFSClient(string host, int port, string fs_name, string user_name)
+    : fs_name_(fs_name), client_(ExtendedTCPClient(host, port)), user_name_(user_name) {
   client_.Connect();
 }
 
@@ -51,7 +51,7 @@ Status IGFSClient::ListFiles(CtrlResponse<ListFilesResponse> *response,
                              const string &path) {
   return SendRequestGetResponse(
     "list files",
-    ListFilesRequest(path), 
+    ListFilesRequest(user_name_, path), 
     response
   );
 }
@@ -60,7 +60,7 @@ Status IGFSClient::ListPaths(CtrlResponse<ListPathsResponse> *response,
                              const string &path) {
   return SendRequestGetResponse(
     "list paths",
-    ListPathsRequest(path), 
+    ListPathsRequest(user_name_, path), 
     response
   );
 }
@@ -69,7 +69,7 @@ Status IGFSClient::Info(CtrlResponse<InfoResponse> *response,
                         const string &path) {
   return SendRequestGetResponse(
     "info",
-    InfoRequest("", path), 
+    InfoRequest(user_name_, path), 
     response
   );
 }
@@ -78,25 +78,25 @@ Status IGFSClient::OpenCreate(CtrlResponse<OpenCreateResponse> *response,
                               const string &path) {
   return SendRequestGetResponse(
     "open create",
-    OpenCreateRequest(path), 
+    OpenCreateRequest(user_name_, path), 
     response
   );
 }
 
 Status IGFSClient::OpenAppend(CtrlResponse<OpenAppendResponse> *response,
-                              const string &user_name, const string &path) {
+                              const string &path) {
   return SendRequestGetResponse(
     "open append",
-    OpenAppendRequest(user_name, path), 
+    OpenAppendRequest(user_name_, path), 
     response
   );
 }
 
 Status IGFSClient::OpenRead(CtrlResponse<Optional<OpenReadResponse>> *response,
-                            const string &user_name, const string &path) {
+                            const string &path) {
   return SendRequestGetResponse(
     "open read",
-    OpenReadRequest(user_name, path), 
+    OpenReadRequest(user_name_, path), 
     response
   );
 }
@@ -105,7 +105,7 @@ Status IGFSClient::Exists(CtrlResponse<ExistsResponse> *response,
                           const string &path) {
   return SendRequestGetResponse(
     "exists",
-    ExistsRequest(path), 
+    ExistsRequest(user_name_, path), 
     response
   );
 }
@@ -114,7 +114,7 @@ Status IGFSClient::MkDir(CtrlResponse<MakeDirectoriesResponse> *response,
                          const string &path) {
   return SendRequestGetResponse(
     "mkdir",
-    MakeDirectoriesRequest("", path), 
+    MakeDirectoriesRequest(user_name_, path), 
     response
   );
 }
@@ -123,7 +123,7 @@ Status IGFSClient::Delete(CtrlResponse<DeleteResponse> *response,
                           const string &path, bool recursive) {
   return SendRequestGetResponse(
     "delete",
-    DeleteRequest(path, recursive), 
+    DeleteRequest(user_name_, path, recursive), 
     response
   );
 }
@@ -159,7 +159,7 @@ Status IGFSClient::Rename(CtrlResponse<RenameResponse> *response,
                           const string &source, const string &dest) {
   return SendRequestGetResponse(
     "rename",
-    RenameRequest(source, dest), 
+    RenameRequest(user_name_, source, dest), 
     response
   );
 }
