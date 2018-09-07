@@ -50,7 +50,7 @@ class IGFSPath {
  public:
   std::string path;
 
-  Status Read(ExtendedTCPClient *r);
+  Status Read(ExtendedTCPClient *client);
 };
 
 class IGFSFile {
@@ -59,13 +59,13 @@ class IGFSFile {
   int64_t modification_time;
   uint8_t flags;
 
-  Status Read(ExtendedTCPClient *r);
+  Status Read(ExtendedTCPClient *client);
 };
 
 class Request {
  public:
   Request(int32_t command_id);
-  virtual Status Write(ExtendedTCPClient *w) const;
+  virtual Status Write(ExtendedTCPClient *client) const;
 
  protected:
   const int32_t command_id_;
@@ -76,7 +76,7 @@ class Response {
   int32_t res_type;
   int32_t req_id;
 
-  virtual Status Read(ExtendedTCPClient *r);
+  virtual Status Read(ExtendedTCPClient *client);
 
  protected:
   int32_t length_;
@@ -90,7 +90,7 @@ class PathControlRequest : public Request {
   PathControlRequest(int32_t command_id, string user_name, string path, string destination_path,
                      bool flag, bool collocate, map<string, string> properties);
 
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 
  protected:
   /** The user name this control request is made on behalf of. */
@@ -111,29 +111,28 @@ class PathControlRequest : public Request {
   /** Properties. */
   const map<string, string> props_;
 
-  Status WritePath(ExtendedTCPClient *w, const string &path) const;
+  Status WritePath(ExtendedTCPClient *client, const string &path) const;
 };
 
 class StreamControlRequest : public Request {
  public:
   StreamControlRequest(int32_t command_id, int64_t stream_id, int32_t length);
 
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 
  protected:
   int64_t stream_id_;
-
   int32_t length_;
 };
 
 template <class R>
 class CtrlResponse : public Response {
  public:
-  Status Read(ExtendedTCPClient *r) override {
-    TF_RETURN_IF_ERROR(Response::Read(r));
+  Status Read(ExtendedTCPClient *client) override {
+    TF_RETURN_IF_ERROR(Response::Read(client));
 
     res = R();
-    TF_RETURN_IF_ERROR(res.Read(r));
+    TF_RETURN_IF_ERROR(res.Read(client));
 
     return Status::OK();
   }
@@ -151,12 +150,9 @@ class DeleteRequest : public PathControlRequest {
 
 class DeleteResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
+  bool exists;
 
-  bool exists();
-
- private:
-  bool done;
+  Status Read(ExtendedTCPClient *client);
 };
 
 class ExistsRequest : public PathControlRequest {
@@ -166,18 +162,15 @@ class ExistsRequest : public PathControlRequest {
 
 class ExistsResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
+  bool exists;
 
-  bool Exists();
-
- private:
-  bool ex;
+  Status Read(ExtendedTCPClient *client);
 };
 
 class HandshakeRequest : public Request {
  public:
   HandshakeRequest(const string &fs_name, const string &log_dir);
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 
  private:
   string fs_name_;
@@ -186,14 +179,8 @@ class HandshakeRequest : public Request {
 
 class HandshakeResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
-
-  string GetFSName();
-
- private:
-  string fs_name_;
-  int64_t block_size_{};
-  bool sampling_{};
+  string fs_name;
+  Status Read(ExtendedTCPClient *client);
 };
 
 class ListRequest : public PathControlRequest {
@@ -204,9 +191,10 @@ class ListRequest : public PathControlRequest {
 template <class T>
 class ListResponse {
  public:
-  Status Read(ExtendedTCPClient *r) {
+  vector<T> entries;
+  Status Read(ExtendedTCPClient *client) {
     int32_t len;
-    TF_RETURN_IF_ERROR(r->ReadInt(&len));
+    TF_RETURN_IF_ERROR(client->ReadInt(&len));
    
     LOG(INFO) << "List response length " << len;
 
@@ -214,17 +202,12 @@ class ListResponse {
 
     for (int32_t i = 0; i < len; i++) {
       T f = {};
-      TF_RETURN_IF_ERROR(f.Read(r));
+      TF_RETURN_IF_ERROR(f.Read(client));
       entries.push_back(f);
     }
 
     return Status::OK();
   }
-
-  vector<T> getEntries() { return entries; }
-
- protected:
-  vector<T> entries;
 };
 
 class ListFilesRequest : public ListRequest {
@@ -245,7 +228,7 @@ class OpenCreateRequest : public PathControlRequest {
  public:
   explicit OpenCreateRequest(const string &user_name, const string &path);
 
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 
  protected:
   /** Replication factor. */
@@ -257,31 +240,22 @@ class OpenCreateRequest : public PathControlRequest {
 
 class OpenCreateResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
+  int64_t stream_id;
 
-  int64_t GetStreamId();
-
- private:
-  int64_t stream_id_{};
+  Status Read(ExtendedTCPClient *client);
 };
 
 class OpenAppendRequest : public PathControlRequest {
  public:
   explicit OpenAppendRequest(const string &user_name, const string &path);
-
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 };
 
 class OpenAppendResponse {
  public:
-  OpenAppendResponse() = default;
+  int64_t stream_id;
 
-  Status Read(ExtendedTCPClient *r);
-
-  int64_t GetStreamId();
-
- private:
-  int64_t stream_id_{};
+  Status Read(ExtendedTCPClient *client);
 };
 
 class OpenReadRequest : public PathControlRequest {
@@ -291,7 +265,7 @@ class OpenReadRequest : public PathControlRequest {
 
   OpenReadRequest(const string &user_name, const string &path);
 
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 
  protected:
   /** Sequential reads before prefetch. */
@@ -300,15 +274,10 @@ class OpenReadRequest : public PathControlRequest {
 
 class OpenReadResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
+  int64_t stream_id;
+  int64_t length;
 
-  int64_t GetStreamId();
-
-  int64_t GetLength();
-
- private:
-  int64_t stream_id_{};
-  int64_t length_{};
+  Status Read(ExtendedTCPClient *client);
 };
 
 class InfoRequest : public PathControlRequest {
@@ -318,12 +287,9 @@ class InfoRequest : public PathControlRequest {
 
 class InfoResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
+  IGFSFile file_info;
 
-  IGFSFile getFileInfo();
-
- private:
-  IGFSFile fileInfo;
+  Status Read(ExtendedTCPClient *client);
 };
 
 class MakeDirectoriesRequest : public PathControlRequest {
@@ -333,14 +299,9 @@ class MakeDirectoriesRequest : public PathControlRequest {
 
 class MakeDirectoriesResponse {
  public:
-  MakeDirectoriesResponse();
+  bool successful;
 
-  Status Read(ExtendedTCPClient *r);
-
-  bool IsSuccessful();
-
- private:
-  bool successful_{};
+  Status Read(ExtendedTCPClient *client);
 };
 
 /** Stream control requests. **/
@@ -352,7 +313,7 @@ class CloseRequest : public StreamControlRequest {
 
 class CloseResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
+  Status Read(ExtendedTCPClient *client);
 
   bool IsSuccessful();
 
@@ -364,7 +325,7 @@ class ReadBlockRequest : public StreamControlRequest {
  public:
   ReadBlockRequest(int64_t stream_id, int64_t pos, int32_t length);
 
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 
  private:
   int64_t pos;
@@ -372,9 +333,9 @@ class ReadBlockRequest : public StreamControlRequest {
 
 class ReadBlockResponse {
  public:
-  Status Read(ExtendedTCPClient *r, int32_t length, uint8_t *dst);
+  Status Read(ExtendedTCPClient *client, int32_t length, uint8_t *dst);
 
-  Status Read(ExtendedTCPClient *r);
+  Status Read(ExtendedTCPClient *client);
 
   streamsize GetSuccessfulyRead();
 
@@ -387,7 +348,7 @@ class ReadBlockCtrlResponse : public CtrlResponse<ReadBlockResponse> {
  public:
   explicit ReadBlockCtrlResponse(uint8_t *dst);
 
-  Status Read(ExtendedTCPClient *r) override;
+  Status Read(ExtendedTCPClient *client) override;
 
   int32_t GetLength();
 
@@ -399,7 +360,7 @@ class WriteBlockRequest : public StreamControlRequest {
  public:
   WriteBlockRequest(int64_t stream_id, const uint8_t *data, int32_t length);
 
-  Status Write(ExtendedTCPClient *w) const override;
+  Status Write(ExtendedTCPClient *client) const override;
 
  private:
   const uint8_t *data;
@@ -412,7 +373,7 @@ class RenameRequest : public PathControlRequest {
 
 class RenameResponse {
  public:
-  Status Read(ExtendedTCPClient *r);
+  Status Read(ExtendedTCPClient *client);
 
   bool IsSuccessful();
 

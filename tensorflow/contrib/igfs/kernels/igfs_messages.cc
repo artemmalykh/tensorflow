@@ -130,23 +130,19 @@ DeleteRequest::DeleteRequest(const string &user_name, const string &path, bool f
     : PathControlRequest(DELETE_ID, user_name, path, {}, flag, true, {}) {}
 
 Status DeleteResponse::Read(ExtendedTCPClient *r) {
-  TF_RETURN_IF_ERROR(r->ReadBool(done));
+  TF_RETURN_IF_ERROR(r->ReadBool(exists));
 
   return Status::OK();
 }
-
-bool DeleteResponse::exists() { return done; }
 
 ExistsRequest::ExistsRequest(const string &user_name, const string &path)
     : PathControlRequest(EXISTS_ID, user_name, path, {}, false, true, {}) {}
 
 Status ExistsResponse::Read(ExtendedTCPClient *r) {
-  TF_RETURN_IF_ERROR(r->ReadBool(ex));
+  TF_RETURN_IF_ERROR(r->ReadBool(exists));
 
   return Status::OK();
 }
-
-bool ExistsResponse::Exists() { return ex; }
 
 HandshakeRequest::HandshakeRequest(const string &fs_name, const string &log_dir)
     : Request(HANDSHAKE_ID), fs_name_(fs_name), log_dir_(log_dir){};
@@ -161,20 +157,21 @@ Status HandshakeRequest::Write(ExtendedTCPClient *w) const {
 }
 
 Status HandshakeResponse::Read(ExtendedTCPClient *r) {
-  TF_RETURN_IF_ERROR(r->ReadNullableString(fs_name_));
-  TF_RETURN_IF_ERROR(r->ReadLong(&block_size_));
+  int64_t block_size;
+  bool sampling;
+
+  TF_RETURN_IF_ERROR(r->ReadNullableString(fs_name));
+  TF_RETURN_IF_ERROR(r->ReadLong(&block_size));
 
   bool has_sampling_;
   TF_RETURN_IF_ERROR(r->ReadBool(has_sampling_));
 
   if (has_sampling_) {
-    TF_RETURN_IF_ERROR(r->ReadBool(sampling_));
+    TF_RETURN_IF_ERROR(r->ReadBool(sampling));
   }
 
   return Status::OK();
 }
-
-string HandshakeResponse::GetFSName() { return fs_name_; }
 
 ListRequest::ListRequest(int32_t command_id_, const string &user_name, const string &path)
     : PathControlRequest(command_id_, user_name, path, {}, false, true, {}){};
@@ -196,12 +193,10 @@ Status OpenCreateRequest::Write(ExtendedTCPClient *w) const {
 }
 
 Status OpenCreateResponse::Read(ExtendedTCPClient *r) {
-  TF_RETURN_IF_ERROR(r->ReadLong(&stream_id_));
+  TF_RETURN_IF_ERROR(r->ReadLong(&stream_id));
 
   return Status::OK();
 }
-
-int64_t OpenCreateResponse::GetStreamId() { return stream_id_; }
 
 OpenAppendRequest::OpenAppendRequest(const string &user_name,
                                      const string &path)
@@ -215,12 +210,10 @@ Status OpenAppendRequest::Write(ExtendedTCPClient *w) const {
 }
 
 Status OpenAppendResponse::Read(ExtendedTCPClient *r) {
-  TF_RETURN_IF_ERROR(r->ReadLong(&stream_id_));
+  TF_RETURN_IF_ERROR(r->ReadLong(&stream_id));
 
   return Status::OK();
 }
-
-int64_t OpenAppendResponse::GetStreamId() { return stream_id_; }
 
 OpenReadRequest::OpenReadRequest(const string &user_name, const string &path,
                                  bool flag, int32_t sequential_reads_before_prefetch)
@@ -241,41 +234,31 @@ Status OpenReadRequest::Write(ExtendedTCPClient *w) const {
 }
 
 Status OpenReadResponse::Read(ExtendedTCPClient *r) {
-  TF_RETURN_IF_ERROR(r->ReadLong(&stream_id_));
-  TF_RETURN_IF_ERROR(r->ReadLong(&length_));
+  TF_RETURN_IF_ERROR(r->ReadLong(&stream_id));
+  TF_RETURN_IF_ERROR(r->ReadLong(&length));
 
   return Status::OK();
 }
-
-int64_t OpenReadResponse::GetStreamId() { return stream_id_; }
-
-int64_t OpenReadResponse::GetLength() { return length_; }
 
 InfoRequest::InfoRequest(const string &user_name, const string &path)
     : PathControlRequest(INFO_ID, user_name, path, {}, false, true, {}) {}
 
 Status InfoResponse::Read(ExtendedTCPClient *r) {
-  fileInfo = IGFSFile();
-  TF_RETURN_IF_ERROR(fileInfo.Read(r));
+  file_info = IGFSFile();
+  TF_RETURN_IF_ERROR(file_info.Read(r));
 
   return Status::OK();
 }
-
-IGFSFile InfoResponse::getFileInfo() { return fileInfo; }
 
 MakeDirectoriesRequest::MakeDirectoriesRequest(const string &user_name,
                                                const string &path)
     : PathControlRequest(MKDIR_ID, user_name, path, {}, false, true,{}) {}
 
 Status MakeDirectoriesResponse::Read(ExtendedTCPClient *r) {
-  TF_RETURN_IF_ERROR(r->ReadBool(successful_));
+  TF_RETURN_IF_ERROR(r->ReadBool(successful));
 
   return Status::OK();
 }
-
-MakeDirectoriesResponse::MakeDirectoriesResponse() = default;
-
-bool MakeDirectoriesResponse::IsSuccessful() { return successful_; }
 
 CloseRequest::CloseRequest(int64_t streamId)
     : StreamControlRequest(CLOSE_ID, streamId, 0) {}

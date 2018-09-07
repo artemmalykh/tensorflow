@@ -70,7 +70,7 @@ Status IGFS::NewRandomAccessFile(const std::string &file_name,
   std::string path = TranslateName(file_name);
   CtrlResponse<Optional<OpenReadResponse>> open_read_response = {};
   TF_RETURN_IF_ERROR(client->OpenRead(&open_read_response, path));
-  long resource_id = open_read_response.GetRes().Get().GetStreamId();
+  long resource_id = open_read_response.GetRes().Get().stream_id;
   result->reset(new IGFSRandomAccessFile(path, resource_id, client));
 
   LOG(INFO) << "New random access file completed successfully [file_name="
@@ -92,14 +92,14 @@ Status IGFS::NewWritableFile(const std::string &fname,
   CtrlResponse<ExistsResponse> exists_response = {};
   TF_RETURN_IF_ERROR(client->Exists(&exists_response, path));
 
-  if (exists_response.GetRes().Exists()) {
+  if (exists_response.GetRes().exists) {
     CtrlResponse<DeleteResponse> delResponse = {};
     TF_RETURN_IF_ERROR(client->Delete(&delResponse, path, false));
   }
 
   CtrlResponse<OpenCreateResponse> open_create_resp = {};
   TF_RETURN_IF_ERROR(client->OpenCreate(&open_create_resp, path));
-  long resource_id = open_create_resp.GetRes().GetStreamId();
+  long resource_id = open_create_resp.GetRes().stream_id;
   result->reset(new IGFSWritableFile(path, resource_id, client));
   
   return Status::OK();
@@ -116,14 +116,14 @@ Status IGFS::NewAppendableFile(const std::string &fname,
   CtrlResponse<ExistsResponse> exists_response = {};
   TF_RETURN_IF_ERROR(client->Exists(&exists_response, fname));
 
-  if (exists_response.GetRes().Exists()) {
+  if (exists_response.GetRes().exists) {
     CtrlResponse<DeleteResponse> del_response = {};
     TF_RETURN_IF_ERROR(client->Delete(&del_response, fname, false));
   }
 
   CtrlResponse<OpenAppendResponse> openAppendResp = {};
   TF_RETURN_IF_ERROR(client->OpenAppend(&openAppendResp, fname));
-  long resource_id = openAppendResp.GetRes().GetStreamId();
+  long resource_id = openAppendResp.GetRes().stream_id;
   result->reset(new IGFSWritableFile(TranslateName(fname), resource_id, client));
 
   return Status::OK();
@@ -144,7 +144,7 @@ Status IGFS::FileExists(const std::string &fname) {
   CtrlResponse<ExistsResponse> exists_response = {};
   TF_RETURN_IF_ERROR(client->Exists(&exists_response, path));
 
-  if (exists_response.GetRes().Exists()) {
+  if (exists_response.GetRes().exists) {
     return Status::OK();
   }
 
@@ -181,7 +181,7 @@ Status IGFS::GetChildren(const std::string &fname,
   TF_RETURN_IF_ERROR(client->ListPaths(&list_paths_response, dir));
 
   *result = vector<string>();
-  vector<IGFSPath> entries = list_paths_response.GetRes().getEntries();
+  vector<IGFSPath> entries = list_paths_response.GetRes().entries;
 
   for (auto &value : entries) {
     result->push_back(MakeRelative(value.path, dir));
@@ -205,7 +205,7 @@ Status IGFS::DeleteFile(const std::string &fname) {
   CtrlResponse<DeleteResponse> del_response = {};
   TF_RETURN_IF_ERROR(client->Delete(&del_response, path, false));
   
-  if (!del_response.GetRes().exists()) {
+  if (!del_response.GetRes().exists) {
     return errors::NotFound(path, " not found");
   }
 
@@ -222,7 +222,7 @@ Status IGFS::CreateDir(const std::string &fname) {
   CtrlResponse<MakeDirectoriesResponse> mkdir_response = {};
   TF_RETURN_IF_ERROR(client->MkDir(&mkdir_response, dir));
 
-  if (!mkdir_response.GetRes().IsSuccessful()) {
+  if (!mkdir_response.GetRes().successful) {
     return errors::Internal("Error during creating directory");
   }
 
@@ -239,7 +239,7 @@ Status IGFS::DeleteDir(const std::string &dir) {
   CtrlResponse<ListFilesResponse> list_files_response = {};
   client->ListFiles(&list_files_response, dir_name);
 
-  if (!list_files_response.GetRes().getEntries().empty()) {
+  if (!list_files_response.GetRes().entries.empty()) {
     return errors::FailedPrecondition("Cannot delete a non-empty directory");
   } else {
     CtrlResponse<DeleteResponse> del_response = {};
@@ -258,7 +258,7 @@ Status IGFS::GetFileSize(const std::string &fname, uint64 *size) {
   const std::string path = TranslateName(fname);
   CtrlResponse<InfoResponse> info_response = {};
   TF_RETURN_IF_ERROR(client->Info(&info_response, path));
-  *size = info_response.GetRes().getFileInfo().length;
+  *size = info_response.GetRes().file_info.length;
 
   return Status::OK();
 }
@@ -297,7 +297,7 @@ Status IGFS::Stat(const std::string &fname, FileStatistics *stats) {
   CtrlResponse<InfoResponse> info_response = {};
   TF_RETURN_IF_ERROR(client->Info(&info_response, path));
 
-  IGFSFile info = info_response.GetRes().getFileInfo();
+  IGFSFile info = info_response.GetRes().file_info;
   LOG(INFO) << "File Size : " << info.length;
   *stats = FileStatistics(info.length, info.modification_time,
                               (info.flags & 0x1) != 0);
