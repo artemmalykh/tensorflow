@@ -38,15 +38,11 @@ Status IGFSRandomAccessFile::Read(uint64 offset, size_t n, StringPiece *result,
   ReadBlockCtrlResponse response = ReadBlockCtrlResponse(dst);
   TF_RETURN_IF_ERROR(client_->ReadBlock(&response, resource_id_, offset, n));
 
-  if (!response.IsOk()) {
-    s = Status(error::INTERNAL, "Error while trying to read block.");
-  } else {
-    streamsize sz = response.GetRes().GetSuccessfulyRead();
-    if (sz == 0)
-      return errors::OutOfRange("File reading has been completed already");
+  streamsize sz = response.GetRes().GetSuccessfulyRead();
+  if (sz == 0)
+    return errors::OutOfRange("File reading has been completed already");
 
-    *result = StringPiece(scratch, sz);
-  }
+  *result = StringPiece(scratch, sz);
 
   return s;
 }

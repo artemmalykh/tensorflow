@@ -64,32 +64,22 @@ class IGFSFile {
 
 class Request {
  public:
-  const int32_t command_id;
-
   Request(int32_t command_id);
   virtual Status Write(ExtendedTCPClient *w) const;
+
+ protected:
+  const int32_t command_id_;
 };
 
 class Response {
  public:
+  int32_t res_type;
+  int32_t req_id;
+
   virtual Status Read(ExtendedTCPClient *r);
 
-  int32_t GetResType();
-
-  int32_t GetRequestId();
-
-  bool IsOk();
-
-  string GetError();
-
-  int32_t GetErrorCode();
-
  protected:
-  string error;
-  int32_t request_id;
   int32_t length_;
-  int32_t result_type;
-  int32_t error_code = -1;
   static const int32_t HEADER_SIZE = 24;
   static const int32_t RESPONSE_HEADER_SIZE = 9;
   static const int32_t RES_TYPE_ERR_STREAM_ID = 9;
@@ -142,10 +132,8 @@ class CtrlResponse : public Response {
   Status Read(ExtendedTCPClient *r) override {
     TF_RETURN_IF_ERROR(Response::Read(r));
 
-    if (IsOk()) {
-      res = R();
-      TF_RETURN_IF_ERROR(res.Read(r));
-    }
+    res = R();
+    TF_RETURN_IF_ERROR(res.Read(r));
 
     return Status::OK();
   }

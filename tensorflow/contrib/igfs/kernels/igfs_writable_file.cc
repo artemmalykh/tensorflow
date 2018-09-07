@@ -45,9 +45,6 @@ Status IGFSWritableFile::Close() {
 
   CtrlResponse<CloseResponse> cr = {};
   client_->Close(&cr, resource_id_);
-  if (!cr.IsOk()) {
-    // result = IOError(fName_, errno);
-  }
 
   resource_id_ = -1;
 

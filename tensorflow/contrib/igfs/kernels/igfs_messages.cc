@@ -41,54 +41,48 @@ Status IGFSFile::Read(ExtendedTCPClient *r) {
   return Status::OK();
 }
 
-Request::Request(int32_t command_id): command_id(command_id) {}
+Request::Request(int32_t command_id): command_id_(command_id) {}
 
 Status Request::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteByte(0));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(8));
-  TF_RETURN_IF_ERROR(w->WriteInt(command_id));
+  TF_RETURN_IF_ERROR(w->WriteInt(command_id_));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(24));
 
   return Status::OK();
 }
 
 Status Response::Read(ExtendedTCPClient *r) {
-  // read Header
   TF_RETURN_IF_ERROR(r->Ignore(1));
   TF_RETURN_IF_ERROR(r->SkipToPos(8));
-  TF_RETURN_IF_ERROR(r->ReadInt(&request_id));
+  TF_RETURN_IF_ERROR(r->ReadInt(&req_id));
   TF_RETURN_IF_ERROR(r->SkipToPos(24));
-  TF_RETURN_IF_ERROR(r->ReadInt(&result_type));
+  TF_RETURN_IF_ERROR(r->ReadInt(&res_type));
+
   bool has_error;
   TF_RETURN_IF_ERROR(r->ReadBool(has_error));
 
   if (has_error) {
-    TF_RETURN_IF_ERROR(r->ReadString(error));
+    int32_t error_code;
+    std::string error_msg;
+    TF_RETURN_IF_ERROR(r->ReadString(error_msg));
     TF_RETURN_IF_ERROR(r->ReadInt(&error_code));
-  } else {
-    TF_RETURN_IF_ERROR(r->SkipToPos(HEADER_SIZE + 6 - 1));
-    TF_RETURN_IF_ERROR(r->ReadInt(&length_));
-    TF_RETURN_IF_ERROR(r->SkipToPos(HEADER_SIZE + RESPONSE_HEADER_SIZE));
+
+    return errors::Internal("Error [code=", error_code, ", message=\"", error_msg, "\"]");
   }
+
+  TF_RETURN_IF_ERROR(r->SkipToPos(HEADER_SIZE + 5));
+  TF_RETURN_IF_ERROR(r->ReadInt(&length_));
+  TF_RETURN_IF_ERROR(r->SkipToPos(HEADER_SIZE + RESPONSE_HEADER_SIZE));
 
   return Status::OK();
 }
 
-int32_t Response::GetResType() { return result_type; }
-
-int32_t Response::GetRequestId() { return request_id; }
-
-bool Response::IsOk() { return error_code == -1; }
-
-string Response::GetError() { return error; }
-
-int32_t Response::GetErrorCode() { return error_code; }
-
-PathControlRequest::PathControlRequest(int32_t command_id, string user_name, string path,
+PathControlRequest::PathControlRequest(int32_t command_id_, string user_name, string path,
                                        string destination_path, bool flag,
                                        bool collocate,
                                        map<string, string> properties)
-    : Request(command_id),
+    : Request(command_id_),
       user_name_(std::move(user_name)),
       path_(std::move(path)),
       destination_path_(std::move(destination_path)),
@@ -122,15 +116,15 @@ Status PathControlRequest::WritePath(ExtendedTCPClient *w, const string &path) c
 Status StreamControlRequest::Write(ExtendedTCPClient *w) const {
   TF_RETURN_IF_ERROR(w->WriteByte(0));
   TF_RETURN_IF_ERROR(w->FillWithZerosUntil(8));
-  TF_RETURN_IF_ERROR(w->WriteInt(command_id));
+  TF_RETURN_IF_ERROR(w->WriteInt(command_id_));
   TF_RETURN_IF_ERROR(w->WriteLong(stream_id_));
   TF_RETURN_IF_ERROR(w->WriteInt(length_));
 
   return Status::OK();
 }
 
-StreamControlRequest::StreamControlRequest(int32_t command_id, int64_t stream_id, int32_t length)
-    : Request(command_id), stream_id_(stream_id), length_(length) {}
+StreamControlRequest::StreamControlRequest(int32_t command_id_, int64_t stream_id, int32_t length)
+    : Request(command_id_), stream_id_(stream_id), length_(length) {}
 
 DeleteRequest::DeleteRequest(const string &user_name, const string &path, bool flag)
     : PathControlRequest(DELETE_ID, user_name, path, {}, flag, true, {}) {}
@@ -182,8 +176,8 @@ Status HandshakeResponse::Read(ExtendedTCPClient *r) {
 
 string HandshakeResponse::GetFSName() { return fs_name_; }
 
-ListRequest::ListRequest(int32_t command_id, const string &user_name, const string &path)
-    : PathControlRequest(command_id, user_name, path, {}, false, true, {}){};
+ListRequest::ListRequest(int32_t command_id_, const string &user_name, const string &path)
+    : PathControlRequest(command_id_, user_name, path, {}, false, true, {}){};
 
 ListFilesRequest::ListFilesRequest(const string &user_name, const string &path) : ListRequest(LIST_FILES_ID, user_name, path) {}
 
@@ -325,10 +319,8 @@ ReadBlockCtrlResponse::ReadBlockCtrlResponse(uint8_t *dst) : dst(dst) {}
 Status ReadBlockCtrlResponse::Read(ExtendedTCPClient *r) {
   TF_RETURN_IF_ERROR(Response::Read(r));
 
-  if (IsOk()) {
-    res = ReadBlockResponse();
-    TF_RETURN_IF_ERROR(res.Read(r, length_, dst));
-  }
+  res = ReadBlockResponse();
+  TF_RETURN_IF_ERROR(res.Read(r, length_, dst));
 
   return Status::OK();
 }
