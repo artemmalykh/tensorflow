@@ -12,6 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+"""Apache Ignite is a memory-centric distributed database, caching, and
+   processing platform for transactional, analytical, and streaming workloads,
+   delivering in-memory speeds at petabyte scale. In addition to database
+   functionality Apache Ignite provides a distributed file system called
+   IGFS (https://ignite.apache.org/features/igfs.html). IGFS delivers a similar
+   functionality to Hadoop HDFS, but only in-memory. In fact, in addition to
+   its own APIs, IGFS implements Hadoop FileSystem API and can be transparently
+   plugged into Hadoop or Spark deployments. This contrib package contains an
+   intergration between IGFS and TensorFlow.
+
+@@IGFS
+"""
+
 
 from __future__ import absolute_import
 from __future__ import division

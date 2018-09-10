@@ -12,7 +12,6 @@ load(
     "tf_custom_op_py_library",
     "tf_gen_op_libs",
     "tf_py_test",
-    "tf_cc_test",
     "tf_cc_shared_object",
 )
 
@@ -71,9 +70,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":igfs_op_loader",
-        "//tensorflow/python:dataset_ops_gen",
         "//tensorflow/python:util",
-        "//tensorflow/python/data/ops:dataset_ops",
         "//tensorflow/python/data/util:nest",
     ],
 )
@@ -106,25 +103,6 @@ tf_custom_op_py_library(
         ":gen_igfs_ops",
         "//tensorflow/contrib/util:util_py",
         "//tensorflow/python:platform",
-    ],
-)
-
-tf_cc_test(
-    name = "igfs_test_cc",
-    size = "small",
-    srcs = [
-        "kernels/tests/igfs_test.cc",
-    ],
-    tags = [
-        "manual",
-        "notap",
-    ],
-    deps = [
-        ":igfs",
-        "//tensorflow/core:lib",
-        "//tensorflow/core:lib_internal",
-        "//tensorflow/core:test",
-        "//tensorflow/core:test_main",
     ],
 )
 
