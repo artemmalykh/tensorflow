@@ -42,7 +42,6 @@ load("//tensorflow/core:platform/default/build_config_root.bzl", "tf_additional_
 load("//tensorflow/python:build_defs.bzl", "tf_gen_op_wrapper_private_py")
 load("//tensorflow/core:platform/default/build_config_root.bzl", "tf_additional_verbs_deps")
 load("//tensorflow/core:platform/default/build_config_root.bzl", "tf_additional_mpi_deps")
-load("//tensorflow/core:platform/default/build_config_root.bzl", "tf_additional_igfs_deps")
 load("//tensorflow/core:platform/default/build_config_root.bzl", "tf_additional_gdr_deps")
 load("//tensorflow/core:platform/default/build_config_root.bzl", "if_static")
 load(
