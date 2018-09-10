@@ -18,17 +18,8 @@ limitations under the License.
 
 #include "tensorflow/contrib/ignite/kernels/ignite_plain_client.h"
 
-using std::map;
-using std::string;
-#include <sys/socket.h>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <streambuf>
-#include <string>
-
 namespace tensorflow {
-	
+
 class ExtendedTCPClient : public PlainClient {
  public:
   ExtendedTCPClient(const std::string &host, int port);

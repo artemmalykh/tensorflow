@@ -18,7 +18,8 @@ limitations under the License.
 
 namespace tensorflow {
 
-IGFSWritableFile::IGFSWritableFile(const std::string &file_name, int64_t resource_id,
+IGFSWritableFile::IGFSWritableFile(const std::string &file_name,
+                                   int64_t resource_id,
                                    std::shared_ptr<IGFSClient> client)
     : file_name_(file_name), resource_id_(resource_id), client_(client) {}
 
@@ -32,7 +33,7 @@ IGFSWritableFile::~IGFSWritableFile() {
 }
 
 Status IGFSWritableFile::Append(const StringPiece &data) {
-  return client_->WriteBlock(resource_id_, (uint8_t*)data.data(), data.size());
+  return client_->WriteBlock(resource_id_, (uint8_t *)data.data(), data.size());
 }
 
 Status IGFSWritableFile::Close() {

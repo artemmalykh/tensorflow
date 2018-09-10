@@ -18,25 +18,25 @@ limitations under the License.
 
 namespace tensorflow {
 
-IGFSRandomAccessFile::IGFSRandomAccessFile(const std::string &file_name, int64_t resource_id,
+IGFSRandomAccessFile::IGFSRandomAccessFile(const std::string &file_name,
+                                           int64_t resource_id,
                                            std::shared_ptr<IGFSClient> client)
     : file_name_(file_name), resource_id_(resource_id), client_(client) {}
 
 IGFSRandomAccessFile::~IGFSRandomAccessFile() {
   CtrlResponse<CloseResponse> close_response = {false};
   Status status = client_->Close(&close_response, resource_id_);
-  
+
   if (!status.ok()) LOG(ERROR) << status.ToString();
 }
 
 Status IGFSRandomAccessFile::Read(uint64 offset, size_t n, StringPiece *result,
                                   char *scratch) const {
-  ReadBlockCtrlResponse response = ReadBlockCtrlResponse((uint8_t*)scratch);
+  ReadBlockCtrlResponse response = ReadBlockCtrlResponse((uint8_t *)scratch);
   TF_RETURN_IF_ERROR(client_->ReadBlock(&response, resource_id_, offset, n));
 
   streamsize sz = response.res.GetSuccessfulyRead();
-  if (sz == 0)
-    return errors::OutOfRange("End of file");
+  if (sz == 0) return errors::OutOfRange("End of file");
 
   *result = StringPiece(scratch, sz);
 

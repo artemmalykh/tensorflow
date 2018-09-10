@@ -16,9 +16,9 @@ limitations under the License.
 #ifndef TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_H_
 #define TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_H_
 
+#include "igfs_client.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/file_system.h"
-#include "igfs_client.h"
 
 namespace tensorflow {
 
@@ -26,7 +26,8 @@ class IGFS : public FileSystem {
  public:
   IGFS();
   ~IGFS();
-  Status NewRandomAccessFile(const std::string& file_name,
+  Status NewRandomAccessFile(
+      const std::string& file_name,
       std::unique_ptr<RandomAccessFile>* result) override;
   Status NewWritableFile(const std::string& fname,
                          std::unique_ptr<WritableFile>* result) override;
@@ -36,7 +37,8 @@ class IGFS : public FileSystem {
       const std::string& fname,
       std::unique_ptr<ReadOnlyMemoryRegion>* result) override;
   Status FileExists(const std::string& fname) override;
-  Status GetChildren(const std::string& dir, std::vector<string>* result) override;
+  Status GetChildren(const std::string& dir,
+                     std::vector<string>* result) override;
   Status GetMatchingPaths(const std::string& pattern,
                           std::vector<string>* results) override;
   Status DeleteFile(const std::string& fname) override;

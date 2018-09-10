@@ -16,10 +16,6 @@ limitations under the License.
 #ifndef TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_MESSAGES_H_
 #define TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_MESSAGES_H_
 
-#include <map>
-#include <string>
-#include <vector>
-
 #include "igfs_extended_tcp_client.h"
 
 namespace tensorflow {
@@ -87,8 +83,9 @@ class Response {
 
 class PathCtrlRequest : public Request {
  public:
-  PathCtrlRequest(int32_t command_id, string user_name, string path, string destination_path,
-                     bool flag, bool collocate, map<string, string> properties);
+  PathCtrlRequest(int32_t command_id, string user_name, string path,
+                  string destination_path, bool flag, bool collocate,
+                  map<string, string> properties);
 
   Status Write(ExtendedTCPClient *client) const override;
 
@@ -119,15 +116,14 @@ class CtrlResponse : public Response {
   R res;
   bool has_content;
 
-  CtrlResponse(bool optional) : optional_(optional) {};
+  CtrlResponse(bool optional) : optional_(optional){};
   Status Read(ExtendedTCPClient *client) override {
     TF_RETURN_IF_ERROR(Response::Read(client));
 
     if (optional_) {
       TF_RETURN_IF_ERROR(client->ReadBool(has_content));
 
-      if (!has_content)
-        return Status::OK();
+      if (!has_content) return Status::OK();
     }
 
     res = R();
@@ -205,7 +201,8 @@ class HandshakeResponse {
 
 class ListRequest : public PathCtrlRequest {
  public:
-  explicit ListRequest(int32_t command_id, const string &user_name, const string &path);
+  explicit ListRequest(int32_t command_id, const string &user_name,
+                       const string &path);
 };
 
 class ListFilesRequest : public ListRequest {
@@ -358,7 +355,8 @@ class WriteBlockRequest : public StreamCtrlRequest {
 
 class RenameRequest : public PathCtrlRequest {
  public:
-  RenameRequest(const std::string &user_name, const std::string &path, const std::string &destination_path);
+  RenameRequest(const std::string &user_name, const std::string &path,
+                const std::string &destination_path);
 };
 
 class RenameResponse {

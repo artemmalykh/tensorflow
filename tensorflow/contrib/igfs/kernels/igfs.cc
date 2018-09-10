@@ -13,19 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include <memory>
-#include <string>
-#include <utility>
-#include "tensorflow/core/platform/file_system.h"
-
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/io/path.h"
-#include "tensorflow/core/lib/strings/strcat.h"
-#include "tensorflow/core/platform/env.h"
-#include "tensorflow/core/platform/error.h"
 #include "tensorflow/core/platform/file_system.h"
 #include "tensorflow/core/platform/file_system_helper.h"
-#include "tensorflow/core/platform/logging.h"
 
 #include "igfs.h"
 #include "igfs_client.h"
@@ -57,7 +47,8 @@ std::string MakeRelative(const std::string &a, const std::string &b) {
   }
 
   auto r = mismatch(min.begin(), min.end(), max.begin());
-  return std::string((first ? r.first : r.second), first ? min.end() : max.end());
+  return std::string((first ? r.first : r.second),
+                     first ? min.end() : max.end());
 }
 
 IGFS::IGFS()
@@ -114,7 +105,7 @@ Status IGFS::NewWritableFile(const std::string &file_name,
 
   long resource_id = open_create_resp.res.stream_id;
   result->reset(new IGFSWritableFile(path, resource_id, client));
-  
+
   LOG(INFO) << "New writable file completed successfully [file_name="
             << file_name << "]";
 
@@ -139,10 +130,8 @@ Status IGFS::NewAppendableFile(const std::string &file_name,
   CtrlResponse<OpenAppendResponse> open_append_resp(false);
   TF_RETURN_IF_ERROR(client->OpenAppend(&open_append_resp, file_name));
 
-  result->reset(new IGFSWritableFile(
-    TranslateName(file_name), 
-    open_append_resp.res.stream_id, client
-  ));
+  result->reset(new IGFSWritableFile(TranslateName(file_name),
+                                     open_append_resp.res.stream_id, client));
 
   LOG(INFO) << "New appendable file completed successfully [file_name="
             << file_name << "]";
@@ -151,7 +140,8 @@ Status IGFS::NewAppendableFile(const std::string &file_name,
 }
 
 Status IGFS::NewReadOnlyMemoryRegionFromFile(
-    const std::string &file_name, std::unique_ptr<ReadOnlyMemoryRegion> *result) {
+    const std::string &file_name,
+    std::unique_ptr<ReadOnlyMemoryRegion> *result) {
   return errors::Unimplemented("IGFS does not support ReadOnlyMemoryRegion");
 }
 
@@ -168,8 +158,8 @@ Status IGFS::FileExists(const std::string &file_name) {
   if (!exists_response.res.exists)
     return errors::NotFound("File ", path, " not found");
 
-  LOG(INFO) << "File exists completed successfully [file_name="
-            << file_name << "]";
+  LOG(INFO) << "File exists completed successfully [file_name=" << file_name
+            << "]";
 
   return Status::OK();
 }
@@ -191,8 +181,8 @@ Status IGFS::GetChildren(const std::string &file_name,
   for (IGFSPath &value : entries)
     result->push_back(MakeRelative(value.path, path));
 
-  LOG(INFO) << "Get children completed successfully [file_name="
-            << file_name << "]";
+  LOG(INFO) << "Get children completed successfully [file_name=" << file_name
+            << "]";
 
   return Status::OK();
 }
@@ -211,12 +201,12 @@ Status IGFS::DeleteFile(const std::string &file_name) {
 
   CtrlResponse<DeleteResponse> del_response(false);
   TF_RETURN_IF_ERROR(client->Delete(&del_response, path, false));
-  
+
   if (!del_response.res.exists)
     return errors::NotFound("File ", path, " not found");
 
-  LOG(INFO) << "Delete file completed successfully [file_name="
-            << file_name << "]";
+  LOG(INFO) << "Delete file completed successfully [file_name=" << file_name
+            << "]";
 
   return Status::OK();
 }
@@ -234,8 +224,8 @@ Status IGFS::CreateDir(const std::string &file_name) {
   if (!mkdir_response.res.successful)
     return errors::Internal("Can't create directory ", path);
 
-  LOG(INFO) << "Create dir completed successful [file_name="
-            << file_name << "]";
+  LOG(INFO) << "Create dir completed successful [file_name=" << file_name
+            << "]";
 
   return Status::OK();
 }
@@ -257,8 +247,8 @@ Status IGFS::DeleteDir(const std::string &file_name) {
     TF_RETURN_IF_ERROR(client->Delete(&del_response, path, true));
   }
 
-  LOG(INFO) << "Delete dir completed successful [file_name="
-            << file_name << "]";
+  LOG(INFO) << "Delete dir completed successful [file_name=" << file_name
+            << "]";
 
   return Status::OK();
 }
@@ -275,8 +265,8 @@ Status IGFS::GetFileSize(const std::string &file_name, uint64 *size) {
 
   *size = info_response.res.file_info.length;
 
-  LOG(INFO) << "Get file size completed successful [file_name="
-            << file_name << "]";
+  LOG(INFO) << "Get file size completed successful [file_name=" << file_name
+            << "]";
 
   return Status::OK();
 }
@@ -286,8 +276,7 @@ Status IGFS::RenameFile(const std::string &src, const std::string &dst) {
   const std::string src_path = TranslateName(src);
   const std::string dst_path = TranslateName(dst);
 
-  if (FileExists(dst).ok())
-    DeleteFile(dst);
+  if (FileExists(dst).ok()) DeleteFile(dst);
 
   CtrlResponse<HandshakeResponse> handshake_response(true);
   TF_RETURN_IF_ERROR(client->Handshake(&handshake_response));
@@ -298,8 +287,8 @@ Status IGFS::RenameFile(const std::string &src, const std::string &dst) {
   if (!rename_response.res.successful)
     return errors::NotFound("File ", src_path, " not found");
 
-  LOG(INFO) << "Rename file completed successful [src=" << src << ", dst="
-            << dst << "]";
+  LOG(INFO) << "Rename file completed successful [src=" << src
+            << ", dst=" << dst << "]";
 
   return Status::OK();
 }
@@ -316,11 +305,8 @@ Status IGFS::Stat(const std::string &file_name, FileStatistics *stats) {
 
   IGFSFile info = info_response.res.file_info;
 
-  *stats = FileStatistics(
-    info.length, 
-    info.modification_time, 
-    (info.flags & 0x1) != 0
-  );
+  *stats = FileStatistics(info.length, info.modification_time,
+                          (info.flags & 0x1) != 0);
 
   LOG(INFO) << "Stat completed successful [file_name=" << file_name << "]";
 
@@ -329,8 +315,7 @@ Status IGFS::Stat(const std::string &file_name, FileStatistics *stats) {
 
 std::shared_ptr<IGFSClient> IGFS::CreateClient() const {
   return std::shared_ptr<IGFSClient>(
-    new IGFSClient(host_, port_, fs_name_, "")
-  );
+      new IGFSClient(host_, port_, fs_name_, ""));
 }
 
 }  // namespace tensorflow

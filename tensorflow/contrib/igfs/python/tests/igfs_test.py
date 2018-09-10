@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import tensorflow.contrib.igfs.python.ops.igfs_ops
+import tensorflow.contrib.igfs.python.ops.igfs_ops  # pylint: disable=unused-import
 from tensorflow.python.platform import test
 
 class IGFSTest(test.TestCase):
@@ -31,8 +31,10 @@ class IGFSTest(test.TestCase):
      To tear down Apache Ignite servers:
      $ bash stop_ignite.sh
   """
-  
+
   def test_create_file(self):
+    """Test create file.
+    """
     # Setup and check preconditions.
     file_name = "igfs:///test_create_file/1"
     self.assertFalse(tf.gfile.Exists(file_name))
@@ -43,6 +45,8 @@ class IGFSTest(test.TestCase):
     self.assertTrue(tf.gfile.Exists(file_name))
 
   def test_write_read_file(self):
+    """Test write/read file.
+    """
     # Setup and check preconditions.
     file_name = "igfs:///test_write_read_file/1"
     rows = 10000
@@ -60,6 +64,8 @@ class IGFSTest(test.TestCase):
       self.assertEqual("This is row\n", lines[i])
 
   def test_delete_recursively(self):
+    """Test delete recursively.
+    """
     # Setup and check preconditions.
     dir_name = "igfs:///test_delete_recursively/"
     file_name = "igfs:///test_delete_recursively/1"
@@ -77,6 +83,8 @@ class IGFSTest(test.TestCase):
     self.assertFalse(tf.gfile.Exists(file_name))
 
   def test_copy(self):
+    """Test copy.
+    """
     # Setup and check preconditions.
     src_file_name = "igfs:///test_copy/1"
     dst_file_name = "igfs:///test_copy/2"
@@ -96,6 +104,8 @@ class IGFSTest(test.TestCase):
     self.assertEqual("42", data)
 
   def test_is_directory(self):
+    """Test is directory.
+    """
     # Setup and check preconditions.
     dir_name = "igfs:///test_is_directory/1"
     file_name = "igfs:///test_is_directory/2"
@@ -108,14 +118,16 @@ class IGFSTest(test.TestCase):
     self.assertFalse(tf.gfile.IsDirectory(file_name))
 
   def test_list_directory(self):
+    """Test list directory.
+    """
     # Setup and check preconditions.
     dir_name = "igfs:///test_list_directory/"
     file_names = [
-      "igfs:///test_list_directory/1",
-      "igfs:///test_list_directory/2/3"
+        "igfs:///test_list_directory/1",
+        "igfs:///test_list_directory/2/3"
     ]
     ch_dir_names = [
-      "igfs:///test_list_directory/4",
+        "igfs:///test_list_directory/4",
     ]
     for file_name in file_names:
       with tf.gfile.Open(file_name, mode='w') as w:
@@ -131,6 +143,8 @@ class IGFSTest(test.TestCase):
       self.assertTrue(e in ls_result)
 
   def test_make_dirs(self):
+    """Test make dirs.
+    """
     # Setup and check preconditions.
     dir_name = "igfs:///test_make_dirs/"
     self.assertFalse(tf.gfile.Exists(dir_name))
@@ -140,11 +154,13 @@ class IGFSTest(test.TestCase):
     self.assertTrue(tf.gfile.Exists(dir_name))
 
   def test_remove(self):
+    """Test remove.
+    """
     # Setup and check preconditions.
     file_name = "igfs:///test_remove/1"
     self.assertFalse(tf.gfile.Exists(file_name))
     with tf.gfile.Open(file_name, mode='w') as w:
-      w.write("");
+      w.write("")
     self.assertTrue(tf.gfile.Exists(file_name))
     # Remove file.
     tf.gfile.Remove(file_name)
@@ -152,6 +168,8 @@ class IGFSTest(test.TestCase):
     self.assertFalse(tf.gfile.Exists(file_name))
 
   def test_rename_file(self):
+    """Test rename file.
+    """
     # Setup and check preconditions.
     src_file_name = "igfs:///test_rename_file/1"
     dst_file_name = "igfs:///test_rename_file/2"
@@ -168,6 +186,8 @@ class IGFSTest(test.TestCase):
     self.assertEqual("42", data)
 
   def test_rename_dir(self):
+    """Test rename dir.
+    """
     # Setup and check preconditions.
     src_dir_name = "igfs:///test_rename_dir/1"
     dst_dir_name = "igfs:///test_rename_dir/2"

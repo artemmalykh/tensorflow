@@ -24,18 +24,21 @@ namespace tensorflow {
 
 class IGFSClient {
  public:
-  IGFSClient(std::string host, int port, std::string fs_name, std::string user_name);
+  IGFSClient(std::string host, int port, std::string fs_name,
+             std::string user_name);
   ~IGFSClient();
 
   inline Status Handshake(CtrlResponse<HandshakeResponse> *res) {
     return SendRequestGetResponse(HandshakeRequest(fs_name_, {}), res);
   }
 
-  inline Status ListFiles(CtrlResponse<ListFilesResponse> *res, const std::string &path) {
+  inline Status ListFiles(CtrlResponse<ListFilesResponse> *res,
+                          const std::string &path) {
     return SendRequestGetResponse(ListFilesRequest(user_name_, path), res);
   }
 
-  inline Status ListPaths(CtrlResponse<ListPathsResponse> *res, const std::string &path) {
+  inline Status ListPaths(CtrlResponse<ListPathsResponse> *res,
+                          const std::string &path) {
     return SendRequestGetResponse(ListPathsRequest(user_name_, path), res);
   }
 
@@ -43,43 +46,56 @@ class IGFSClient {
     return SendRequestGetResponse(InfoRequest(user_name_, path), res);
   }
 
-  inline Status OpenCreate(CtrlResponse<OpenCreateResponse> *res, const std::string &path) {
+  inline Status OpenCreate(CtrlResponse<OpenCreateResponse> *res,
+                           const std::string &path) {
     return SendRequestGetResponse(OpenCreateRequest(user_name_, path), res);
   }
 
-  inline Status OpenAppend(CtrlResponse<OpenAppendResponse> *res, const std::string &path) {
+  inline Status OpenAppend(CtrlResponse<OpenAppendResponse> *res,
+                           const std::string &path) {
     return SendRequestGetResponse(OpenAppendRequest(user_name_, path), res);
   }
 
-  inline Status OpenRead(CtrlResponse<OpenReadResponse> *res, const std::string &path) {
+  inline Status OpenRead(CtrlResponse<OpenReadResponse> *res,
+                         const std::string &path) {
     return SendRequestGetResponse(OpenReadRequest(user_name_, path), res);
   }
 
-  inline Status Exists(CtrlResponse<ExistsResponse> *res, const std::string &path) {
+  inline Status Exists(CtrlResponse<ExistsResponse> *res,
+                       const std::string &path) {
     return SendRequestGetResponse(ExistsRequest(user_name_, path), res);
   }
 
-  inline Status MkDir(CtrlResponse<MakeDirectoriesResponse> *res, const std::string &path) {
-    return SendRequestGetResponse(MakeDirectoriesRequest(user_name_, path), res);
+  inline Status MkDir(CtrlResponse<MakeDirectoriesResponse> *res,
+                      const std::string &path) {
+    return SendRequestGetResponse(MakeDirectoriesRequest(user_name_, path),
+                                  res);
   }
 
-  inline Status Delete(CtrlResponse<DeleteResponse> *res, const std::string &path, bool recursive) {
-    return SendRequestGetResponse(DeleteRequest(user_name_, path, recursive), res);
+  inline Status Delete(CtrlResponse<DeleteResponse> *res,
+                       const std::string &path, bool recursive) {
+    return SendRequestGetResponse(DeleteRequest(user_name_, path, recursive),
+                                  res);
   }
 
-  inline Status WriteBlock(int64_t stream_id, const uint8_t *data, int32_t len) {
-    return SendRequestGetResponse(WriteBlockRequest(stream_id, data, len), nullptr);
+  inline Status WriteBlock(int64_t stream_id, const uint8_t *data,
+                           int32_t len) {
+    return SendRequestGetResponse(WriteBlockRequest(stream_id, data, len),
+                                  nullptr);
   }
 
-  inline Status ReadBlock(ReadBlockCtrlResponse *res, int64_t stream_id, int64_t pos, int32_t length) {
-    return SendRequestGetResponse(ReadBlockRequest(stream_id, pos, length), res);
+  inline Status ReadBlock(ReadBlockCtrlResponse *res, int64_t stream_id,
+                          int64_t pos, int32_t length) {
+    return SendRequestGetResponse(ReadBlockRequest(stream_id, pos, length),
+                                  res);
   }
 
   inline Status Close(CtrlResponse<CloseResponse> *res, int64_t stream_id) {
     return SendRequestGetResponse(CloseRequest(stream_id), res);
   }
 
-  inline Status Rename(CtrlResponse<RenameResponse> *res, const std::string &source, const std::string &dest) {
+  inline Status Rename(CtrlResponse<RenameResponse> *res,
+                       const std::string &source, const std::string &dest) {
     return SendRequestGetResponse(RenameRequest(user_name_, source, dest), res);
   }
 

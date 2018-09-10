@@ -45,7 +45,7 @@ Status IGFSFile::Read(ExtendedTCPClient *client) {
   return Status::OK();
 }
 
-Request::Request(int32_t command_id): command_id_(command_id) {}
+Request::Request(int32_t command_id) : command_id_(command_id) {}
 
 Status Request::Write(ExtendedTCPClient *client) const {
   TF_RETURN_IF_ERROR(client->WriteByte(0));
@@ -72,7 +72,8 @@ Status Response::Read(ExtendedTCPClient *client) {
     TF_RETURN_IF_ERROR(client->ReadString(error_msg));
     TF_RETURN_IF_ERROR(client->ReadInt(&error_code));
 
-    return errors::Internal("Error [code=", error_code, ", message=\"", error_msg, "\"]");
+    return errors::Internal("Error [code=", error_code, ", message=\"",
+                            error_msg, "\"]");
   }
 
   TF_RETURN_IF_ERROR(client->SkipToPos(HEADER_SIZE + 5));
@@ -82,10 +83,10 @@ Status Response::Read(ExtendedTCPClient *client) {
   return Status::OK();
 }
 
-PathCtrlRequest::PathCtrlRequest(int32_t command_id_, string user_name, string path,
-                                       string destination_path, bool flag,
-                                       bool collocate,
-                                       map<string, string> properties)
+PathCtrlRequest::PathCtrlRequest(int32_t command_id_, string user_name,
+                                 string path, string destination_path,
+                                 bool flag, bool collocate,
+                                 map<string, string> properties)
     : Request(command_id_),
       user_name_(std::move(user_name)),
       path_(std::move(path)),
@@ -107,7 +108,8 @@ Status PathCtrlRequest::Write(ExtendedTCPClient *client) const {
   return Status::OK();
 }
 
-Status PathCtrlRequest::WritePath(ExtendedTCPClient *client, const string &path) const {
+Status PathCtrlRequest::WritePath(ExtendedTCPClient *client,
+                                  const string &path) const {
   TF_RETURN_IF_ERROR(client->WriteBool(!path.empty()));
   if (!path.empty()) TF_RETURN_IF_ERROR(client->WriteString(path));
 
@@ -124,10 +126,12 @@ Status StreamCtrlRequest::Write(ExtendedTCPClient *client) const {
   return Status::OK();
 }
 
-StreamCtrlRequest::StreamCtrlRequest(int32_t command_id_, int64_t stream_id, int32_t length)
+StreamCtrlRequest::StreamCtrlRequest(int32_t command_id_, int64_t stream_id,
+                                     int32_t length)
     : Request(command_id_), stream_id_(stream_id), length_(length) {}
 
-DeleteRequest::DeleteRequest(const string &user_name, const string &path, bool flag)
+DeleteRequest::DeleteRequest(const string &user_name, const string &path,
+                             bool flag)
     : PathCtrlRequest(DELETE_ID, user_name, path, {}, flag, true, {}) {}
 
 Status DeleteResponse::Read(ExtendedTCPClient *client) {
@@ -174,14 +178,18 @@ Status HandshakeResponse::Read(ExtendedTCPClient *client) {
   return Status::OK();
 }
 
-ListRequest::ListRequest(int32_t command_id_, const string &user_name, const string &path)
+ListRequest::ListRequest(int32_t command_id_, const string &user_name,
+                         const string &path)
     : PathCtrlRequest(command_id_, user_name, path, {}, false, true, {}){};
 
-ListFilesRequest::ListFilesRequest(const string &user_name, const string &path) : ListRequest(LIST_FILES_ID, user_name, path) {}
+ListFilesRequest::ListFilesRequest(const string &user_name, const string &path)
+    : ListRequest(LIST_FILES_ID, user_name, path) {}
 
-ListPathsRequest::ListPathsRequest(const string &user_name, const string &path) : ListRequest(LIST_PATHS_ID, user_name, path) {}
+ListPathsRequest::ListPathsRequest(const string &user_name, const string &path)
+    : ListRequest(LIST_PATHS_ID, user_name, path) {}
 
-OpenCreateRequest::OpenCreateRequest(const string &user_name, const string &path)
+OpenCreateRequest::OpenCreateRequest(const string &user_name,
+                                     const string &path)
     : PathCtrlRequest(OPEN_CREATE_ID, user_name, path, {}, false, true, {}) {}
 
 Status OpenCreateRequest::Write(ExtendedTCPClient *client) const {
@@ -201,7 +209,7 @@ Status OpenCreateResponse::Read(ExtendedTCPClient *client) {
 
 OpenAppendRequest::OpenAppendRequest(const string &user_name,
                                      const string &path)
-    : PathCtrlRequest(OPEN_APPEND_ID, user_name, path, {}, false, true,{}) {}
+    : PathCtrlRequest(OPEN_APPEND_ID, user_name, path, {}, false, true, {}) {}
 
 Status OpenAppendRequest::Write(ExtendedTCPClient *client) const {
   TF_RETURN_IF_ERROR(PathCtrlRequest::Write(client));
@@ -216,7 +224,8 @@ Status OpenAppendResponse::Read(ExtendedTCPClient *client) {
 }
 
 OpenReadRequest::OpenReadRequest(const string &user_name, const string &path,
-                                 bool flag, int32_t sequential_reads_before_prefetch)
+                                 bool flag,
+                                 int32_t sequential_reads_before_prefetch)
     : PathCtrlRequest(OPEN_READ_ID, user_name, path, {}, flag, true, {}),
       sequential_reads_before_prefetch_(sequential_reads_before_prefetch) {}
 
@@ -252,7 +261,7 @@ Status InfoResponse::Read(ExtendedTCPClient *client) {
 
 MakeDirectoriesRequest::MakeDirectoriesRequest(const string &user_name,
                                                const string &path)
-    : PathCtrlRequest(MKDIR_ID, user_name, path, {}, false, true,{}) {}
+    : PathCtrlRequest(MKDIR_ID, user_name, path, {}, false, true, {}) {}
 
 Status MakeDirectoriesResponse::Read(ExtendedTCPClient *client) {
   TF_RETURN_IF_ERROR(client->ReadBool(successful));
@@ -263,10 +272,10 @@ Status MakeDirectoriesResponse::Read(ExtendedTCPClient *client) {
 CloseRequest::CloseRequest(int64_t streamId)
     : StreamCtrlRequest(CLOSE_ID, streamId, 0) {}
 
-Status CloseResponse::Read(ExtendedTCPClient *client) { 
+Status CloseResponse::Read(ExtendedTCPClient *client) {
   TF_RETURN_IF_ERROR(client->ReadBool(successful));
 
-  return Status::OK(); 
+  return Status::OK();
 }
 
 ReadBlockRequest::ReadBlockRequest(int64_t stream_id, int64_t pos,
@@ -295,7 +304,8 @@ Status ReadBlockResponse::Read(ExtendedTCPClient *client) {
 
 streamsize ReadBlockResponse::GetSuccessfulyRead() { return successfuly_read; }
 
-ReadBlockCtrlResponse::ReadBlockCtrlResponse(uint8_t *dst) : CtrlResponse(false), dst(dst) {}
+ReadBlockCtrlResponse::ReadBlockCtrlResponse(uint8_t *dst)
+    : CtrlResponse(false), dst(dst) {}
 
 Status ReadBlockCtrlResponse::Read(ExtendedTCPClient *client) {
   TF_RETURN_IF_ERROR(Response::Read(client));
@@ -317,8 +327,10 @@ Status WriteBlockRequest::Write(ExtendedTCPClient *client) const {
   return Status::OK();
 }
 
-RenameRequest::RenameRequest(const string &user_name, const string &path, const string &destination_path)
-    : PathCtrlRequest(RENAME_ID, user_name, path, destination_path, false, true, {}) {}
+RenameRequest::RenameRequest(const string &user_name, const string &path,
+                             const string &destination_path)
+    : PathCtrlRequest(RENAME_ID, user_name, path, destination_path, false, true,
+                      {}) {}
 
 Status RenameResponse::Read(ExtendedTCPClient *client) {
   TF_RETURN_IF_ERROR(client->ReadBool(successful));

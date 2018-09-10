@@ -17,7 +17,8 @@ limitations under the License.
 
 namespace tensorflow {
 
-ExtendedTCPClient::ExtendedTCPClient(const std::string &host, int port) : PlainClient(host, port, true), pos_(0) {}
+ExtendedTCPClient::ExtendedTCPClient(const std::string &host, int port)
+    : PlainClient(host, port, true), pos_(0) {}
 
 Status ExtendedTCPClient::ReadData(uint8_t *buf, int32_t length) {
   TF_RETURN_IF_ERROR(PlainClient::ReadData(buf, length));
@@ -81,7 +82,8 @@ Status ExtendedTCPClient::ReadString(std::string &res) {
   return Status::OK();
 }
 
-Status ExtendedTCPClient::ReadStringMap(std::map<std::string, std::string> &res) {
+Status ExtendedTCPClient::ReadStringMap(
+    std::map<std::string, std::string> &res) {
   int size;
   TF_RETURN_IF_ERROR(ReadInt(&size));
 
@@ -97,7 +99,10 @@ Status ExtendedTCPClient::ReadStringMap(std::map<std::string, std::string> &res)
   return Status::OK();
 };
 
-Status ExtendedTCPClient::WriteSize(std::map<std::string, std::string>::size_type s) { return WriteInt(s); }
+Status ExtendedTCPClient::WriteSize(
+    std::map<std::string, std::string>::size_type s) {
+  return WriteInt(s);
+}
 
 Status ExtendedTCPClient::FillWithZerosUntil(int n) {
   int toSkip = std::max(0, n - pos_);
@@ -109,7 +114,9 @@ Status ExtendedTCPClient::FillWithZerosUntil(int n) {
   return Status::OK();
 }
 
-Status ExtendedTCPClient::WriteBool(bool val) { return WriteByte((char)(val ? 1 : 0)); }
+Status ExtendedTCPClient::WriteBool(bool val) {
+  return WriteByte((char)(val ? 1 : 0));
+}
 
 Status ExtendedTCPClient::WriteString(std::string str) {
   if (!str.empty()) {
@@ -124,7 +131,8 @@ Status ExtendedTCPClient::WriteString(std::string str) {
   return Status::OK();
 }
 
-Status ExtendedTCPClient::WriteStringMap(std::map<std::string, std::string> map) {
+Status ExtendedTCPClient::WriteStringMap(
+    std::map<std::string, std::string> map) {
   std::map<string, string>::size_type size = map.size();
   TF_RETURN_IF_ERROR(WriteSize(size));
 

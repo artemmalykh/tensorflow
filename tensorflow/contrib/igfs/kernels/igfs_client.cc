@@ -17,14 +17,18 @@ limitations under the License.
 
 namespace tensorflow {
 
-IGFSClient::IGFSClient(std::string host, int port, std::string fs_name, std::string user_name)
-    : fs_name_(fs_name), client_(ExtendedTCPClient(host, port)), user_name_(user_name) {
+IGFSClient::IGFSClient(std::string host, int port, std::string fs_name,
+                       std::string user_name)
+    : fs_name_(fs_name),
+      user_name_(user_name),
+      client_(ExtendedTCPClient(host, port)) {
   client_.Connect();
 }
 
 IGFSClient::~IGFSClient() { client_.Disconnect(); }
 
-Status IGFSClient::SendRequestGetResponse(const Request &request, Response *response) {
+Status IGFSClient::SendRequestGetResponse(const Request &request,
+                                          Response *response) {
   TF_RETURN_IF_ERROR(request.Write(&client_));
   client_.reset();
 

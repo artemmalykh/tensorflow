@@ -18,21 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import socket
-import struct
-import ssl
-import abc
 import os
 
 from tensorflow.contrib.ignite.python.ops import ignite_op_loader  # pylint: disable=unused-import
-from tensorflow.contrib.ignite.python.ops import gen_dataset_ops
-from tensorflow.python.data.ops.dataset_ops import Dataset
-from tensorflow.python.framework import dtypes
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import tensor_shape
-from tensorflow.contrib.util import loader
 from tensorflow.python.platform import resource_loader
 from tensorflow.python.framework import load_library
 
-file_system_library = os.path.join(resource_loader.get_data_files_path(), "../../_igfs_ops.so")
+file_system_library = os.path.join(resource_loader.get_data_files_path(),
+                                   "../../_igfs_ops.so")
 load_library.load_file_system_library(file_system_library)
