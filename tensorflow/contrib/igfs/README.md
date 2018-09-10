@@ -27,7 +27,7 @@ After that you will be able to work with it following way:
 >>> with tf.gfile.Open("igfs:///hello.txt", mode='w') as w:
 >>>   w.write("Hello, world!")
 >>>
->>> with tf.gfile.Open("igfs://hello.txt", mode='r') as r:
+>>> with tf.gfile.Open("igfs:///hello.txt", mode='r') as r:
 >>>   print(w.read())
 
 Hello, world!
