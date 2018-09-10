@@ -30,8 +30,10 @@ static int PasswordCb(char *buf, int size, int rwflag, void *password) {
 }
 
 SslWrapper::SslWrapper(std::shared_ptr<Client> client, std::string certfile,
-                       std::string keyfile, std::string cert_password)
-    : client_(client),
+                       std::string keyfile, std::string cert_password,
+                       bool big_endian)
+    : Client(big_endian),
+      client_(client),
       certfile_(certfile),
       keyfile_(keyfile),
       cert_password_(cert_password),

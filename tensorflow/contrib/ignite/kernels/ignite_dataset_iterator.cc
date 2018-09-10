@@ -42,13 +42,14 @@ IgniteDatasetIterator::IgniteDatasetIterator(
       remainder_(-1),
       cursor_id_(-1),
       last_page_(false) {
-  Client* p_client = new PlainClient(host, port);
+  Client* p_client = new PlainClient(host, port, false);
 
   if (certfile.empty())
     client_ = std::unique_ptr<Client>(p_client);
   else
-    client_ = std::unique_ptr<Client>(new SslWrapper(
-        std::unique_ptr<Client>(p_client), certfile, keyfile, cert_password));
+    client_ = std::unique_ptr<Client>(
+        new SslWrapper(std::unique_ptr<Client>(p_client), certfile, keyfile,
+                       cert_password, false));
 
   LOG(INFO) << "Ignite Dataset Iterator created";
 }

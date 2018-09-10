@@ -19,31 +19,11 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
 
-#ifdef _MSC_VER
-
-#include <stdlib.h>
-
-#define bswap_16(x) _byteswap_ushort(x)
-#define bswap_32(x) _byteswap_ulong(x)
-#define bswap_64(x) _byteswap_uint64(x)
-
-#else
-
-#include <byteswap.h>
-
-#endif
-
 namespace tensorflow {
 
 class Client {
  public:
-  Client() : Client(false) {};
-
-  explicit Client(bool big_endian)  {
-    int x = 1;
-    bool is_little_endian = (*(char *)&x == 1);
-    should_swap_ = (big_endian == is_little_endian);
-  };
+  Client(bool big_endian);
 
   virtual Status Connect() = 0;
 
@@ -57,47 +37,73 @@ class Client {
 
   virtual Status WriteData(uint8_t *buf, int32_t length) = 0;
 
-  inline Status ReadByte(uint8_t *data) {
-    return ReadData(data, 1);
-  }
+  inline Status ReadByte(uint8_t *data) { return ReadData(data, 1); }
 
   inline Status ReadShort(int16_t *data) {
-    TF_RETURN_IF_ERROR(ReadData((uint8_t *) data, 2));
-    *data = should_swap_ ? bswap_16(*data) : *data;
+    TF_RETURN_IF_ERROR(ReadData((uint8_t *)data, 2));
+    swap_if_required16(data);
+
     return Status::OK();
   }
 
   inline Status ReadInt(int32_t *data) {
-    TF_RETURN_IF_ERROR(ReadData((uint8_t *) data, 4));
-    *data = should_swap_ ? bswap_32(*data) : *data;
+    TF_RETURN_IF_ERROR(ReadData((uint8_t *)data, 4));
+    swap_if_required32(data);
+
     return Status::OK();
   }
 
   inline Status ReadLong(int64_t *data) {
-    TF_RETURN_IF_ERROR(ReadData((uint8_t *) data, 8));
-    *data = should_swap_ ? bswap_64(*data) : *data;
+    TF_RETURN_IF_ERROR(ReadData((uint8_t *)data, 8));
+    swap_if_required64(data);
+
     return Status::OK();
   }
 
   inline Status WriteByte(uint8_t data) { return WriteData(&data, 1); }
 
   inline Status WriteShort(int16_t data) {
-    int16_t d = should_swap_ ? bswap_16(data) : data;
-    return WriteData((uint8_t *) &d, 2);
+    int16_t tmp = data;
+    swap_if_required16(&tmp);
+    return WriteData((uint8_t *)&tmp, 2);
   }
 
   inline Status WriteInt(int32_t data) {
-    int32_t d = should_swap_ ? bswap_32(data) : data;
-    return WriteData((uint8_t *) &d, 4);
+    int32_t tmp = data;
+    swap_if_required32(&tmp);
+    return WriteData((uint8_t *)&tmp, 4);
   }
 
   inline Status WriteLong(int64_t data) {
-    int64_t d = should_swap_ ? bswap_64(data) : data;
-    return WriteData((uint8_t *) &d, 8);
+    int64_t tmp = data;
+    swap_if_required64(&tmp);
+    return WriteData((uint8_t *)&tmp, 8);
   }
 
- protected:
-  bool should_swap_;
+ private:
+  bool swap_;
+
+  inline void swap_if_required16(int16_t *x) {
+    if (swap_) {
+      *x = ((*x & 0xFF) << 8) | ((*x >> 8) & 0xFF);
+    }
+  }
+
+  inline void swap_if_required32(int32_t *x) {
+    if (swap_) {
+      *x = ((*x & 0xFF) << 24) | (((*x >> 8) & 0xFF) << 16) |
+           (((*x >> 16) & 0xFF) << 8) | ((*x >> 24) & 0xFF);
+    }
+  }
+
+  inline void swap_if_required64(int64_t *x) {
+    if (swap_) {
+      *x = ((*x & 0xFF) << 56) | (((*x >> 8) & 0xFF) << 48) |
+           (((*x >> 16) & 0xFF) << 40) | (((*x >> 24) & 0xFF) << 32) |
+           (((*x >> 32) & 0xFF) << 24) | (((*x >> 40) & 0xFF) << 16) |
+           (((*x >> 48) & 0xFF) << 8) | ((*x >> 56) & 0xFF);
+    }
+  }
 };
 
 }  // namespace tensorflow

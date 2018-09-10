@@ -121,7 +121,7 @@ class CtrlResponse : public Response {
     TF_RETURN_IF_ERROR(Response::Read(client));
 
     if (optional_) {
-      TF_RETURN_IF_ERROR(client->ReadBool(has_content));
+      TF_RETURN_IF_ERROR(client->ReadBool(&has_content));
 
       if (!has_content) return Status::OK();
     }

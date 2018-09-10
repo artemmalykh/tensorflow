@@ -38,12 +38,11 @@ std::string IGFS::TranslateName(const std::string &name) const {
 std::string MakeRelative(const std::string &a, const std::string &b) {
   std::string max = a;
   std::string min = b;
-  bool first = false;
+  bool first = b.size() > a.size();
 
-  if (b.size() > a.size()) {
+  if (first) {
     max = b;
     min = a;
-    first = true;
   }
 
   auto r = mismatch(min.begin(), min.end(), max.begin());
@@ -176,7 +175,7 @@ Status IGFS::GetChildren(const std::string &file_name,
   TF_RETURN_IF_ERROR(client->ListPaths(&list_paths_response, path));
 
   *result = std::vector<std::string>();
-  vector<IGFSPath> entries = list_paths_response.res.entries;
+  std::vector<IGFSPath> entries = list_paths_response.res.entries;
 
   for (IGFSPath &value : entries)
     result->push_back(MakeRelative(value.path, path));
@@ -273,8 +272,8 @@ Status IGFS::GetFileSize(const std::string &file_name, uint64 *size) {
 
 Status IGFS::RenameFile(const std::string &src, const std::string &dst) {
   std::shared_ptr<IGFSClient> client = CreateClient();
-  const std::string src_path = TranslateName(src);
-  const std::string dst_path = TranslateName(dst);
+  std::string src_path = TranslateName(src);
+  std::string dst_path = TranslateName(dst);
 
   if (FileExists(dst).ok()) DeleteFile(dst);
 

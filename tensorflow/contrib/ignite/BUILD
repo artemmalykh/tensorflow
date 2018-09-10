@@ -39,6 +39,7 @@ cc_library(
     name = "ignite_client",
     srcs = [
         "kernels/ignite_client.h",
+        "kernels/ignite_client.cc",
         "kernels/ignite_plain_client.h",
         "kernels/ignite_ssl_wrapper.h",
         "kernels/ignite_ssl_wrapper.cc"

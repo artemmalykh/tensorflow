@@ -17,8 +17,9 @@ limitations under the License.
 
 namespace tensorflow {
 
-ExtendedTCPClient::ExtendedTCPClient(const std::string &host, int port)
-    : PlainClient(host, port, true), pos_(0) {}
+ExtendedTCPClient::ExtendedTCPClient(std::string host, int port,
+                                     bool big_endian)
+    : PlainClient(host, port, big_endian), pos_(0) {}
 
 Status ExtendedTCPClient::ReadData(uint8_t *buf, int32_t length) {
   TF_RETURN_IF_ERROR(PlainClient::ReadData(buf, length));
@@ -34,66 +35,61 @@ Status ExtendedTCPClient::WriteData(uint8_t *buf, int32_t length) {
   return Status::OK();
 }
 
-Status ExtendedTCPClient::Skip(int n) {
-  TF_RETURN_IF_ERROR(Ignore(n));
-
-  return Status::OK();
-};
+Status ExtendedTCPClient::Skip(int n) { return Ignore(n); };
 
 Status ExtendedTCPClient::Ignore(int n) {
   uint8_t buf[n];
   return ReadData(buf, n);
 }
 
-Status ExtendedTCPClient::SkipToPos(int targetPos) {
-  int toSkip = std::max(0, targetPos - pos_);
-  return Ignore(toSkip);
+Status ExtendedTCPClient::SkipToPos(int target_pos) {
+  return Ignore(std::max(0, target_pos - pos_));
 };
 
-Status ExtendedTCPClient::ReadBool(bool &res) {
-  uint8_t d = 0;
-  TF_RETURN_IF_ERROR(ReadData(&d, 1));
-  res = d != 0;
+Status ExtendedTCPClient::ReadBool(bool *res) {
+  uint8_t buf = 0;
+  TF_RETURN_IF_ERROR(ReadData(&buf, 1));
+  *res = buf != 0;
 
   return Status::OK();
 }
 
-Status ExtendedTCPClient::ReadNullableString(std::string &res) {
-  bool isEmpty = false;
-  ReadBool(isEmpty);
+Status ExtendedTCPClient::ReadNullableString(std::string *res) {
+  bool is_empty = false;
+  TF_RETURN_IF_ERROR(ReadBool(&is_empty));
 
-  if (isEmpty) {
-    res = string();
-  } else {
+  if (!is_empty) {
     TF_RETURN_IF_ERROR(ReadString(res));
   }
 
   return Status::OK();
 }
 
-Status ExtendedTCPClient::ReadString(std::string &res) {
-  short len;
-  TF_RETURN_IF_ERROR(ReadShort(&len));
-  auto *cStr = new uint8_t[len + 1];
-  cStr[len] = 0;
-  TF_RETURN_IF_ERROR(ReadData(cStr, len));
-  res = string((char *)cStr);
+Status ExtendedTCPClient::ReadString(std::string *res) {
+  int16_t length;
+  TF_RETURN_IF_ERROR(ReadShort(&length));
 
-  return Status::OK();
+  uint8_t *buf = new uint8_t[length];
+  Status status = ReadData(buf, length);
+
+  if (status.ok()) res->assign((char *)buf, length);
+
+  delete[] buf;
+  return status;
 }
 
 Status ExtendedTCPClient::ReadStringMap(
-    std::map<std::string, std::string> &res) {
+    std::map<std::string, std::string> *res) {
   int size;
   TF_RETURN_IF_ERROR(ReadInt(&size));
 
   for (int i = 0; i < size; i++) {
-    string key;
-    string val;
-    TF_RETURN_IF_ERROR(ReadString(key));
-    TF_RETURN_IF_ERROR(ReadString(val));
+    std::string key;
+    std::string val;
+    TF_RETURN_IF_ERROR(ReadString(&key));
+    TF_RETURN_IF_ERROR(ReadString(&val));
 
-    res.insert(std::pair<string, string>(key, val));
+    res->insert(std::pair<string, string>(key, val));
   }
 
   return Status::OK();

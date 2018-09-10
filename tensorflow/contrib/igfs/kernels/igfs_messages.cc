@@ -18,7 +18,7 @@ limitations under the License.
 namespace tensorflow {
 
 Status IGFSPath::Read(ExtendedTCPClient *client) {
-  return client->ReadNullableString(path);
+  return client->ReadNullableString(&path);
 }
 
 Status IGFSFile::Read(ExtendedTCPClient *client) {
@@ -28,7 +28,7 @@ Status IGFSFile::Read(ExtendedTCPClient *client) {
   int64_t access_time;
 
   bool has_path;
-  TF_RETURN_IF_ERROR(client->ReadBool(has_path));
+  TF_RETURN_IF_ERROR(client->ReadBool(&has_path));
   if (has_path) {
     IGFSPath path = {};
     TF_RETURN_IF_ERROR(path.Read(client));
@@ -37,7 +37,7 @@ Status IGFSFile::Read(ExtendedTCPClient *client) {
   TF_RETURN_IF_ERROR(client->ReadInt(&block_size));
   TF_RETURN_IF_ERROR(client->ReadLong(&group_block_size));
   TF_RETURN_IF_ERROR(client->ReadLong(&length));
-  TF_RETURN_IF_ERROR(client->ReadStringMap(properties));
+  TF_RETURN_IF_ERROR(client->ReadStringMap(&properties));
   TF_RETURN_IF_ERROR(client->ReadLong(&access_time));
   TF_RETURN_IF_ERROR(client->ReadLong(&modification_time));
   TF_RETURN_IF_ERROR(client->ReadByte(&flags));
@@ -64,12 +64,12 @@ Status Response::Read(ExtendedTCPClient *client) {
   TF_RETURN_IF_ERROR(client->ReadInt(&res_type));
 
   bool has_error;
-  TF_RETURN_IF_ERROR(client->ReadBool(has_error));
+  TF_RETURN_IF_ERROR(client->ReadBool(&has_error));
 
   if (has_error) {
     int32_t error_code;
     std::string error_msg;
-    TF_RETURN_IF_ERROR(client->ReadString(error_msg));
+    TF_RETURN_IF_ERROR(client->ReadString(&error_msg));
     TF_RETURN_IF_ERROR(client->ReadInt(&error_code));
 
     return errors::Internal("Error [code=", error_code, ", message=\"",
@@ -135,7 +135,7 @@ DeleteRequest::DeleteRequest(const string &user_name, const string &path,
     : PathCtrlRequest(DELETE_ID, user_name, path, {}, flag, true, {}) {}
 
 Status DeleteResponse::Read(ExtendedTCPClient *client) {
-  TF_RETURN_IF_ERROR(client->ReadBool(exists));
+  TF_RETURN_IF_ERROR(client->ReadBool(&exists));
 
   return Status::OK();
 }
@@ -144,7 +144,7 @@ ExistsRequest::ExistsRequest(const string &user_name, const string &path)
     : PathCtrlRequest(EXISTS_ID, user_name, path, {}, false, true, {}) {}
 
 Status ExistsResponse::Read(ExtendedTCPClient *client) {
-  TF_RETURN_IF_ERROR(client->ReadBool(exists));
+  TF_RETURN_IF_ERROR(client->ReadBool(&exists));
 
   return Status::OK();
 }
@@ -165,14 +165,14 @@ Status HandshakeResponse::Read(ExtendedTCPClient *client) {
   int64_t block_size;
   bool sampling;
 
-  TF_RETURN_IF_ERROR(client->ReadNullableString(fs_name));
+  TF_RETURN_IF_ERROR(client->ReadNullableString(&fs_name));
   TF_RETURN_IF_ERROR(client->ReadLong(&block_size));
 
   bool has_sampling_;
-  TF_RETURN_IF_ERROR(client->ReadBool(has_sampling_));
+  TF_RETURN_IF_ERROR(client->ReadBool(&has_sampling_));
 
   if (has_sampling_) {
-    TF_RETURN_IF_ERROR(client->ReadBool(sampling));
+    TF_RETURN_IF_ERROR(client->ReadBool(&sampling));
   }
 
   return Status::OK();
@@ -264,7 +264,7 @@ MakeDirectoriesRequest::MakeDirectoriesRequest(const string &user_name,
     : PathCtrlRequest(MKDIR_ID, user_name, path, {}, false, true, {}) {}
 
 Status MakeDirectoriesResponse::Read(ExtendedTCPClient *client) {
-  TF_RETURN_IF_ERROR(client->ReadBool(successful));
+  TF_RETURN_IF_ERROR(client->ReadBool(&successful));
 
   return Status::OK();
 }
@@ -273,7 +273,7 @@ CloseRequest::CloseRequest(int64_t streamId)
     : StreamCtrlRequest(CLOSE_ID, streamId, 0) {}
 
 Status CloseResponse::Read(ExtendedTCPClient *client) {
-  TF_RETURN_IF_ERROR(client->ReadBool(successful));
+  TF_RETURN_IF_ERROR(client->ReadBool(&successful));
 
   return Status::OK();
 }
@@ -333,7 +333,7 @@ RenameRequest::RenameRequest(const string &user_name, const string &path,
                       {}) {}
 
 Status RenameResponse::Read(ExtendedTCPClient *client) {
-  TF_RETURN_IF_ERROR(client->ReadBool(successful));
+  TF_RETURN_IF_ERROR(client->ReadBool(&successful));
 
   return Status::OK();
 }

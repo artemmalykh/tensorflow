@@ -22,16 +22,16 @@ namespace tensorflow {
 
 class ExtendedTCPClient : public PlainClient {
  public:
-  ExtendedTCPClient(const std::string &host, int port);
+  ExtendedTCPClient(std::string host, int port, bool big_endian);
   Status ReadData(uint8_t *buf, int32_t length) override;
   Status WriteData(uint8_t *buf, int32_t length) override;
   Status Skip(int n);
   Status Ignore(int n);
-  Status SkipToPos(int targetPos);
-  Status ReadBool(bool &res);
-  Status ReadNullableString(std::string &res);
-  Status ReadString(std::string &res);
-  Status ReadStringMap(std::map<std::string, std::string> &res);
+  Status SkipToPos(int target_pos);
+  Status ReadBool(bool *res);
+  Status ReadNullableString(std::string *res);
+  Status ReadString(std::string *res);
+  Status ReadStringMap(std::map<std::string, std::string> *res);
   Status WriteSize(std::map<std::string, std::string>::size_type s);
   Status FillWithZerosUntil(int n);
   Status WriteBool(bool val);

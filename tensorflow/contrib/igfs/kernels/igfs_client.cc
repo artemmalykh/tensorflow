@@ -21,7 +21,7 @@ IGFSClient::IGFSClient(std::string host, int port, std::string fs_name,
                        std::string user_name)
     : fs_name_(fs_name),
       user_name_(user_name),
-      client_(ExtendedTCPClient(host, port)) {
+      client_(ExtendedTCPClient(host, port, true)) {
   client_.Connect();
 }
 

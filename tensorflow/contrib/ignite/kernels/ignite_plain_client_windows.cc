@@ -29,8 +29,8 @@ limitations under the License.
 
 namespace tensorflow {
 
-PlainClient::PlainClient(std::string host, int port)
-    : host_(host), port_(port), sock_(INVALID_SOCKET) {}
+PlainClient::PlainClient(std::string host, int port, bool big_endian)
+    : Client(big_endian), host_(host), port_(port), sock_(INVALID_SOCKET) {}
 
 PlainClient::~PlainClient() {
   if (IsConnected()) {

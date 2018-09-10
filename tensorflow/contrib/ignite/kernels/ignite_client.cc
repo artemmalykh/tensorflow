@@ -15,33 +15,12 @@ limitations under the License.
 
 #include "ignite_client.h"
 
-#include <openssl/ssl.h>
-#include <string>
-
 namespace tensorflow {
 
-class SslWrapper : public Client {
- public:
-  SslWrapper(std::shared_ptr<Client> client, std::string certfile,
-             std::string keyfile, std::string cert_password, bool big_endian);
-  ~SslWrapper();
-
-  virtual Status Connect();
-  virtual Status Disconnect();
-  virtual bool IsConnected();
-  virtual int GetSocketDescriptor();
-  virtual Status ReadData(uint8_t* buf, int32_t length);
-  virtual Status WriteData(uint8_t* buf, int32_t length);
-
- private:
-  std::shared_ptr<Client> client_;
-  std::string certfile_;
-  std::string keyfile_;
-  std::string cert_password_;
-  SSL_CTX* ctx_;
-  SSL* ssl_;
-
-  Status InitSslContext();
-};
+Client::Client(bool big_endian) {
+  int x = 1;
+  bool is_little_endian = (*(char *)&x == 1);
+  swap_ = big_endian == is_little_endian;
+}
 
 }  // namespace tensorflow
