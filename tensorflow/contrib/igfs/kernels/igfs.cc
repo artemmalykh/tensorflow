@@ -53,7 +53,7 @@ std::string MakeRelative(const std::string &a, const std::string &b) {
 IGFS::IGFS()
     : host_(GetEnvOrElse("IGFS_HOST", "localhost")),
       port_(atoi(GetEnvOrElse("IGFS_PORT", "10500").c_str())),
-      fs_name_(GetEnvOrElse("IGFS_FS_NAME", "myFileSystem")) {
+      fs_name_(GetEnvOrElse("IGFS_FS_NAME", "default_fs")) {
   LOG(INFO) << "IGFS created [host=" << host_ << ", port=" << port_
             << ", fs_name=" << fs_name_ << "]";
 };

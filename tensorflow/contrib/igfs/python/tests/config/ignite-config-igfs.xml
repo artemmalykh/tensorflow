@@ -24,7 +24,7 @@
     <property name="fileSystemConfiguration">
       <bean class="org.apache.ignite.configuration.FileSystemConfiguration">
         <!-- Distinguished file system name. -->
-        <property name="name" value="myFileSystem"/>
+        <property name="name" value="default_fs"/>
         <property name="managementPort" value="9000"/>
         <property name="ipcEndpointEnabled" value="true"/>
         <property name="defaultMode" value="PRIMARY"/>

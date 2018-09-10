@@ -24,17 +24,11 @@ namespace tensorflow {
 class Client {
  public:
   Client(bool big_endian);
-
   virtual Status Connect() = 0;
-
   virtual Status Disconnect() = 0;
-
   virtual bool IsConnected() = 0;
-
   virtual int GetSocketDescriptor() = 0;
-
   virtual Status ReadData(uint8_t *buf, int32_t length) = 0;
-
   virtual Status WriteData(uint8_t *buf, int32_t length) = 0;
 
   inline Status ReadByte(uint8_t *data) { return ReadData(data, 1); }

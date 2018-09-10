@@ -35,8 +35,6 @@ Status ExtendedTCPClient::WriteData(uint8_t *buf, int32_t length) {
   return Status::OK();
 }
 
-Status ExtendedTCPClient::Skip(int n) { return Ignore(n); };
-
 Status ExtendedTCPClient::Ignore(int n) {
   uint8_t buf[n];
   return ReadData(buf, n);
@@ -116,12 +114,12 @@ Status ExtendedTCPClient::WriteBool(bool val) {
 
 Status ExtendedTCPClient::WriteString(std::string str) {
   if (!str.empty()) {
-    WriteBool(false);
+    TF_RETURN_IF_ERROR(WriteBool(false));
     unsigned short l = str.length();
     TF_RETURN_IF_ERROR(WriteShort(l));
     TF_RETURN_IF_ERROR(WriteData((uint8_t *)str.c_str(), str.length()));
   } else {
-    WriteBool(true);
+    TF_RETURN_IF_ERROR(WriteBool(true));
   }
 
   return Status::OK();

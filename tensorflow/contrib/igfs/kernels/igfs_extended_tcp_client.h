@@ -25,7 +25,6 @@ class ExtendedTCPClient : public PlainClient {
   ExtendedTCPClient(std::string host, int port, bool big_endian);
   Status ReadData(uint8_t *buf, int32_t length) override;
   Status WriteData(uint8_t *buf, int32_t length) override;
-  Status Skip(int n);
   Status Ignore(int n);
   Status SkipToPos(int target_pos);
   Status ReadBool(bool *res);

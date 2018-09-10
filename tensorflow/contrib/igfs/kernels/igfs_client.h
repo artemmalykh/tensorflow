@@ -16,8 +16,6 @@ limitations under the License.
 #ifndef TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_CLIENT_H_
 #define TENSORFLOW_CONTRIB_IGFS_KERNELS_IGFS_CLIENT_H_
 
-#include <string>
-
 #include "igfs_messages.h"
 
 namespace tensorflow {
